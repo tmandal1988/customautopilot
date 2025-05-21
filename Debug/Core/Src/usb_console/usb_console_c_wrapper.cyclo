@@ -1,0 +1,1 @@
+../Core/Src/usb_console/usb_console_c_wrapper.cc:10:17:void UsbConsoleOnUsbData(const char*, size_t)	1

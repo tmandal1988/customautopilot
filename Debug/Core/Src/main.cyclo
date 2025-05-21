@@ -1,0 +1,7 @@
+../Core/Inc/task_manager/task_base.h:40:17:static void TaskBase::TaskFunctionWrapper(void*)	1
+../Core/Inc/task_manager/task_base.h:46:39:void __tcf_0()	2
+../Core/Src/main.cc:207:6:void SystemClock_Config()	5
+../Core/Src/main.cc:667:6:bool SetSdBus4BWide()	1
+../Core/Src/main.cc:100:5:int main()	27
+../Core/Src/main.cc:740:6:void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef*)	2
+../Core/Src/main.cc:757:6:void Error_Handler()	1

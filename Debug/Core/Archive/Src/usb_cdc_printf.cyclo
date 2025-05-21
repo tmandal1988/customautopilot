@@ -1,0 +1,2 @@
+../Core/Archive/Src/usb_cdc_printf.c:15:6:InitUsbMutex	2
+../Core/Archive/Src/usb_cdc_printf.c:22:5:_write	12

@@ -1,0 +1,13 @@
+../Core/Src/mavlink_rxtx/mavlink_rxtx.h:22:7:MavlinkRxTx::~MavlinkRxTx()	1
+../Core/Src/mavlink_rxtx/mavlink_rxtx.h:22:7:virtual MavlinkRxTx::~MavlinkRxTx()	1
+../Core/Inc/mavlink/common/../mavlink_sha256.h:152:21:void mavlink_sha256_update(mavlink_sha256_ctx*, const void*, uint32_t)	7
+../Core/Inc/task_manager/task_base.h:46:39:void __tcf_0()	2
+../Core/Src/mavlink_rxtx/mavlink_rxtx.cc:17:1:MavlinkRxTx::MavlinkRxTx(UART_HandleTypeDef*)	11
+../Core/Src/mavlink_rxtx/mavlink_rxtx.cc:23:6:void MavlinkRxTx::FlushUartDataRegister()	3
+../Core/Src/mavlink_rxtx/mavlink_rxtx.cc:35:6:void MavlinkRxTx::SwapBuffers()	1
+../Core/Src/mavlink_rxtx/mavlink_rxtx.cc:165:6:void MavlinkRxTx::HandleMavlinkMessage(mavlink_message_t*)	49
+../Core/Src/mavlink_rxtx/mavlink_rxtx.cc:151:6:void MavlinkRxTx::ParseReadyMavlinkMessages()	84
+../Core/Src/mavlink_rxtx/mavlink_rxtx.cc:40:6:virtual void MavlinkRxTx::Run()	115
+../Core/Src/mavlink_rxtx/mavlink_rxtx.cc:207:6:void MavlinkRxTx::SetTxReadyFlag()	1
+../Core/Src/mavlink_rxtx/mavlink_rxtx.cc:211:6:static void MavlinkRxTx::TxCompleted()	2
+../Core/Src/mavlink_rxtx/mavlink_rxtx.cc:215:1:cc)	1

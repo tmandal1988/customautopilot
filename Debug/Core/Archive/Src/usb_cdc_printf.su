@@ -1,0 +1,2 @@
+../Core/Archive/Src/usb_cdc_printf.c:15:6:InitUsbMutex	8	static
+../Core/Archive/Src/usb_cdc_printf.c:22:5:_write	32	static

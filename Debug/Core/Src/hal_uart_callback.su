@@ -1,0 +1,1 @@
+../Core/Src/hal_uart_callback.cc:14:17:void HAL_UART_RxCpltCallback(UART_HandleTypeDef*)	0	static,ignoring_inline_asm
