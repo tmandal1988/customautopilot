@@ -38,6 +38,12 @@ private:
     static constexpr uint8_t SBUS_START_BYTE = 0x0F;
     static constexpr uint8_t SBUS_END_BYTE   = 0x00;
 
+    static constexpr uint16_t kMinPwmVal = 985;
+    static constexpr uint16_t kMaxPwmVal = 2000;
+
+    static constexpr uint16_t kMinRcVal = 172;
+    static constexpr uint16_t kMaxRcVal = 1811;
+
     bool new_rc_sbus_frame_ = false;
     uint8_t rc_sbus_ring_buffer_[RING_BUFFER_SIZE] = {0};
     uint16_t write_pos_ = 0;
@@ -48,6 +54,7 @@ private:
     void RcSbusInit();
     void RestartDma();
     void DecodeSbusFrame();
+    inline uint16_t ScaleToPwmRange(uint16_t channel_in) const;
 };
 
 //#ifdef __cplusplus

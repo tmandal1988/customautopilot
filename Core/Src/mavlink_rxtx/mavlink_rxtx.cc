@@ -41,7 +41,10 @@ void MavlinkRxTx::Run() {
   DEBUG_PRINT("Starting Mavlink Module\n");
 
   TickType_t last_wake_time = xTaskGetTickCount();
-  const TickType_t loop_frequency = pdMS_TO_TICKS(READ_INTERVAL_MS);  // 10Hz
+  const TickType_t loop_frequency = pdMS_TO_TICKS(READ_INTERVAL_MS);  // 1000Hz
+
+  // Initialize the xLastWakeTime variable with the current time.
+  last_wake_time = xTaskGetTickCount();
 
   int heartbeat_counter = 0;
 

@@ -1,7 +1,7 @@
 ../Core/Inc/task_manager/task_base.h:40:17:static void TaskBase::TaskFunctionWrapper(void*)	0	static
 ../Core/Inc/task_manager/task_base.h:46:39:void __tcf_0()	0	static
-../Core/Src/main.cc:207:6:void SystemClock_Config()	136	static,ignoring_inline_asm
-../Core/Src/main.cc:667:6:bool SetSdBus4BWide()	16	static
-../Core/Src/main.cc:100:5:int main()	104	static,ignoring_inline_asm
-../Core/Src/main.cc:740:6:void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef*)	0	static
-../Core/Src/main.cc:757:6:void Error_Handler()	0	static,ignoring_inline_asm
+../Core/Src/main.cc:252:6:void SystemClock_Config()	136	static,ignoring_inline_asm
+../Core/Src/main.cc:913:6:bool SetSdBus4BWide()	16	static
+../Core/Src/main.cc:111:5:int main()	160	static,ignoring_inline_asm
+../Core/Src/main.cc:986:6:void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef*)	0	static
+../Core/Src/main.cc:1003:6:void Error_Handler()	0	static,ignoring_inline_asm

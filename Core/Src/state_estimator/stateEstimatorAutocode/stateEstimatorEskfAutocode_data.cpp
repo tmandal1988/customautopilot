@@ -5,7 +5,7 @@
 //
 // Model version                  : 1.44
 // Simulink Coder version         : 9.7 (R2022a) 13-Nov-2021
-// C/C++ source code generated on : Thu May  1 12:29:17 2025
+// C/C++ source code generated on : Fri Jun 13 14:24:07 2025
 //
 // Target selection: ert.tlc
 // Embedded hardware selection: ARM Compatible->ARM Cortex-M
@@ -57,19 +57,20 @@ const stateEstimatorAutocode::ConstP_stateEstimatorEskfAuto_T
   //  Referenced by: '<Root>/accelParams'
 
   {
-    { -0.0147876265F, -0.00241447636F, 0.0508151F },
+    { -0.00345489639F, 0.0153643331F, 0.00632852921F },
 
-    { 0.998770714F, 0.0334529802F, 0.00165741274F, 0.0320384614F, 0.998117924F,
-      -0.000863323919F, 0.00456682127F, -0.000593769946F, 0.995291293F }
+    { 1.00597918F, 0.0F, 0.0F, 0.0F, 1.00528288F, 0.0F, 0.0F, 0.0F, 0.988832414F
+    }
   },
 
   // Expression: magParams
   //  Referenced by: '<Root>/magParams'
 
   {
-    { 19.1927F, 42.3204F, -32.0349F },
+    { 10.4372272F, -0.414435655F, 0.0716963261F },
 
-    { 1.0F, 0.0F, 0.0F, 0.0F, 1.0F, 0.0F, 0.0F, 0.0F, 1.0F }
+    { 1.06889939F, 0.00264356309F, -0.00201464887F, 0.00264356309F, 0.960914969F,
+      -0.0233825091F, -0.00201464887F, -0.0233825091F, 0.974173903F }
   },
 
   // Computed Parameter: stateEstSmParams_Value

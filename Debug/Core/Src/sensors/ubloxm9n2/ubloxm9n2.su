@@ -28,4 +28,3 @@
 ../Core/Src/sensors/ubloxm9n2/ubloxm9n2.cc:829:6:static void ReadUbloxM9n2::ReceivedNewNavPvtFrame()	0	static
 ../Core/Src/sensors/ubloxm9n2/ubloxm9n2.cc:835:6:void ReadUbloxM9n2::ProcessNavPvtFrame()	8	static
 ../Core/Src/sensors/ubloxm9n2/ubloxm9n2.cc:863:6:virtual void ReadUbloxM9n2::Run()	48	static
-../Core/Src/sensors/ubloxm9n2/ubloxm9n2.cc:898:1:cc)	0	static

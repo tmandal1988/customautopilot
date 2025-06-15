@@ -14,6 +14,8 @@ enum class TopicID {
 	UBLOXM9N,
 	RCCHANNELS,
 	EKF,
+	PWM,
+	FCSDEBUG,
     MAX_TOPICS
 };
 

@@ -53,8 +53,8 @@ void StateEstimator::Run(){
 //			uint32_t used = 30000 - highWaterMark * sizeof(StackType_t);
 //			DEBUG_PRINT("Used: %lu bytes, Free: %lu bytes (of %d total)\n",
 //				   used, highWaterMark * sizeof(StackType_t), 10000);
-			DEBUG_PRINT("Roll: %g, Pitch: %g, Yaw: %g, Ex Time: %g\n", ekf_data.euler_rad[0]/DEG2RAD,
-					ekf_data.euler_rad[1]/DEG2RAD, ekf_data.euler_rad[2]/DEG2RAD, (float)(end_cycles - start_cycles) / (SystemCoreClock / 1e6));
+//			DEBUG_PRINT("Roll: %g, Pitch: %g, Yaw: %g, Ex Time: %g\n", ekf_data.euler_rad[0]/DEG2RAD,
+//					ekf_data.euler_rad[1]/DEG2RAD, ekf_data.euler_rad[2]/DEG2RAD, (float)(end_cycles - start_cycles) / (SystemCoreClock / 1e6));
 //			DEBUG_PRINT("Ax: %g, Ay: %g, Az: %g\n", ekf_data.bias_corr_body_accels_mps2[0],
 //					ekf_data.bias_corr_body_accels_mps2[1], ekf_data.bias_corr_body_accels_mps2[2]);
 //			DEBUG_PRINT("Ax: %g, Ay: %g, Az: %g\n", imu_data.accel_mps2[0],
@@ -134,6 +134,9 @@ void StateEstimator::Run(){
 			ekf_data.dcm_ned_to_fep[idx] = state_estimator_autocode_y_.dcmNedToFep[idx];
 			ekf_data.dcm_ned_to_fep[idx + 3] = state_estimator_autocode_y_.dcmNedToFep[idx + 3];
 			ekf_data.dcm_ned_to_fep[idx + 6] = state_estimator_autocode_y_.dcmNedToFep[idx + 6];
+
+			ekf_data.nedpos_m[idx] = state_estimator_autocode_y_.states[idx + 4];
+			ekf_data.nedvel_mps[idx] = state_estimator_autocode_y_.states[idx + 7];
 		}
 		ekf_data.is_mag_valid = state_estimator_autocode_u_.magData.isMagDataValid;
 		ekf_data.is_baro_valid = state_estimator_autocode_u_.baroData.isBaroDataValid;

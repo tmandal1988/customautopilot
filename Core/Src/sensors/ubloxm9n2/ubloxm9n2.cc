@@ -18,7 +18,7 @@ extern "C" {
     void Error_Handler(void);
 }
 
-ReadUbloxM9n2 read_ubloxm9n2_task_instance_(&huart2);
+//ReadUbloxM9n2 read_ubloxm9n2_task_instance_(&huart2);
 
 ReadUbloxM9n2::ReadUbloxM9n2(UART_HandleTypeDef* huart):
 TaskBase("UbloxM9nTask2", 1296, osPriorityAboveNormal),

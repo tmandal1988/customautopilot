@@ -19,6 +19,7 @@ Core/Src/logger/logger.o: ../Core/Src/logger/logger.cc \
  ../Core/Inc/pubsub/topic_definition.h ../Core/Inc/messages/imu_data.h \
  ../Core/Inc/messages/baro_data.h ../Core/Inc/messages/rc_channels.h \
  ../Core/Inc/messages/gps_data.h ../Core/Inc/messages/ekf_data.h \
+ ../Core/Inc/messages/fcs_debug_data.h ../Core/Inc/messages/pwm_data.h \
  ../Core/Inc/debug.h ../Core/Inc/debug_config.h \
  ../Core/Inc/usb_console/usb_console.h ../Core/Src/logger/data_buffer.h \
  ../FATFS/App/fatfs.h ../Middlewares/Third_Party/FatFs/src/ff.h \
@@ -94,6 +95,8 @@ Core/Src/logger/logger.o: ../Core/Src/logger/logger.cc \
 ../Core/Inc/messages/rc_channels.h:
 ../Core/Inc/messages/gps_data.h:
 ../Core/Inc/messages/ekf_data.h:
+../Core/Inc/messages/fcs_debug_data.h:
+../Core/Inc/messages/pwm_data.h:
 ../Core/Inc/debug.h:
 ../Core/Inc/debug_config.h:
 ../Core/Inc/usb_console/usb_console.h:

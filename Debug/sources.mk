@@ -39,16 +39,20 @@ CPP_DEPS :=
 # Every subdirectory with source files must be described here
 SUBDIRS := \
 Core/Src/blink_led \
+Core/Src/flight_controls/fcsModelAutocode \
+Core/Src/flight_controls \
 Core/Src \
 Core/Src/logger \
 Core/Src/mavlink_rxtx \
 Core/Src/pubsub \
+Core/Src/pwm_cmds \
 Core/Src/rc_sbus \
 Core/Src/sensors/bmp390l \
 Core/Src/sensors/icm20948 \
 Core/Src/sensors/ubloxm8n \
 Core/Src/sensors/ubloxm9n \
 Core/Src/sensors/ubloxm9n2 \
+Core/Src/sensors/ubloxm9n_rb \
 Core/Src/state_estimator/stateEstimatorAutocode \
 Core/Src/state_estimator \
 Core/Src/usb_console \

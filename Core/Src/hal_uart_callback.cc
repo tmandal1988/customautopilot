@@ -9,26 +9,28 @@
 //#include "sensors/ubloxm9n/ubloxm9n.h"
 #include "sensors/ubloxm9n2/ubloxm9n2.h"
 //#include "sensors/ubloxm8n/ubloxm8n.h"
-#include "mavlink_rxtx/mavlink_rxtx.h"
+//#include "mavlink_rxtx/mavlink_rxtx.h"
 
 extern "C" void HAL_UART_RxCpltCallback(UART_HandleTypeDef* huart) {
     if (huart->Instance == SBUSRX) {
         if (RcSbus::rc_sbus_instance_handle_ != nullptr) {
             RcSbus::ReceivedNewSbusFrame(0);
         }
-    } else if (huart->Instance == GPSUART) {
+    }
+//    else if (huart->Instance == GPSUART) {
 //        if (ReadUbloxM9n::ubloxm9n_instance_handle_ != nullptr) {
 //        	ReadUbloxM9n::ReceivedNewNavPvtFrame();
+////        }
+//        if (ReadUbloxM9n2::ubloxm9n2_instance_handle_ != nullptr) {
+//        	ReadUbloxM9n2::ReceivedNewNavPvtFrame();
 //        }
-        if (ReadUbloxM9n2::ubloxm9n2_instance_handle_ != nullptr) {
-        	ReadUbloxM9n2::ReceivedNewNavPvtFrame();
-        }
 //        if (ReadUbloxM8n::ubloxm8n_instance_handle_ != nullptr) {
 //			ReadUbloxM8n::ReceivedNewNavPvtFrame();
 //		}
-    } else {
-        __NOP();
-    }
+//    }
+		else {
+				__NOP();
+			}
 //	if (huart->Instance == GPSUART) {
 ////        if (ReadUbloxM9n::ubloxm9n_instance_handle_ != nullptr) {
 ////        	ReadUbloxM9n::ReceivedNewNavPvtFrame();

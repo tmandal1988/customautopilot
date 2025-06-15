@@ -1,0 +1,8 @@
+../Core/Src/flight_controls/flight_controls.h:26:7:FlightControls::~FlightControls()	1
+../Core/Src/flight_controls/flight_controls.h:26:7:virtual FlightControls::~FlightControls()	1
+../Core/Inc/task_manager/task_base.h:46:39:void __tcf_0()	2
+../Core/Src/flight_controls/fcsModelAutocode/fcs_params.h:5:14:busFcsParams AssignFcsCtrlParams()	1
+../Core/Src/flight_controls/flight_controls.cc:15:6:virtual void FlightControls::Run()	31
+../Core/Src/flight_controls/flight_controls.cc:10:1:FlightControls::FlightControls()	14
+../Core/Src/flight_controls/flight_controls.cc:189:46:cc)	1
+../Core/Src/flight_controls/flight_controls.cc:189:46:cc)	1

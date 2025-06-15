@@ -63,6 +63,14 @@ void RcSbus::Run(){
 
 }
 
+inline uint16_t RcSbus::ScaleToPwmRange(uint16_t channel_in) const{
+	// Clamp input to the input range
+	if (channel_in < kMinRcVal) channel_in = kMinRcVal;
+	if (channel_in > kMaxRcVal) channel_in = kMaxRcVal;
+
+	return static_cast<uint16_t>( (channel_in - kMinRcVal) * (kMaxPwmVal - kMinPwmVal) / (kMaxRcVal - kMinRcVal) + kMinPwmVal );
+}
+
 void RcSbus::DecodeSbusFrame(){
 	// Process data from the ring buffer to find valid frames
 	while (read_pos_ != write_pos_) {
@@ -96,6 +104,16 @@ void RcSbus::DecodeSbusFrame(){
 					rc_channels_.sw3  		= (uint16_t) ((payload_[8]>>2 |payload_[9] <<6)                     & 0x07FF);
 					rc_channels_.knob  		= (uint16_t) ((payload_[9]>>5 |payload_[10]<<3)                     & 0x07FF);
 					rc_channels_.sw4  		= (uint16_t) ((payload_[11]   |payload_[12]<<8)                     & 0x07FF);
+
+					rc_channels_.roll = ScaleToPwmRange(rc_channels_.roll);
+					rc_channels_.pitch = ScaleToPwmRange(rc_channels_.pitch);
+					rc_channels_.yaw = ScaleToPwmRange(rc_channels_.yaw);
+					rc_channels_.throttle = ScaleToPwmRange(rc_channels_.throttle);
+					rc_channels_.sw1 = ScaleToPwmRange(rc_channels_.sw1);
+					rc_channels_.sw2 = ScaleToPwmRange(rc_channels_.sw2);
+					rc_channels_.sw3 = ScaleToPwmRange(rc_channels_.sw3);
+					rc_channels_.knob = ScaleToPwmRange(rc_channels_.knob);
+					rc_channels_.sw4 = ScaleToPwmRange(rc_channels_.sw4);
 					//					rc_channels_[9]  = (uint16_t) ((payload_[12]>>3|payload_[13]<<5)                     & 0x07FF);
 					//					rc_channels_[10] = (uint16_t) ((payload_[13]>>6|payload_[14]<<2 |payload_[15]<<10)   & 0x07FF);
 					//					rc_channels_[11] = (uint16_t) ((payload_[15]>>1|payload_[16]<<7)                     & 0x07FF);

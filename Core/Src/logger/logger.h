@@ -14,6 +14,8 @@
 #include "messages/rc_channels.h"
 #include "messages/gps_data.h"
 #include "messages/ekf_data.h"
+#include "messages/fcs_debug_data.h"
+#include "messages/pwm_data.h"
 #include "debug.h"
 #include "data_buffer.h"
 
@@ -57,6 +59,9 @@ class Logger : public TaskBase {
 
     void TryLog(uint32_t now_ticks, Logger* logger) override {
       if ((now_ticks - last_log_tick_) < interval_ticks_) return;
+
+      // Print once per eligible interval
+//      DEBUG_PRINT("[TryLog] Topic ID %d eligible at tick %lu\n", static_cast<int>(topic_id_), now_ticks);
 
       T data;
       if (!subscriber_.copy(data)) return;

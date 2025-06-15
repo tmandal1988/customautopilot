@@ -8,35 +8,45 @@
 #include "logger.h"
 
 Logger::Logger()
-: TaskBase("LoggerTask", 2048, osPriorityAboveNormal){
+: TaskBase("LoggerTask", 4096, osPriorityAboveNormal){
 
 }
 
 void Logger::SetupTopics() {
   if (log_config_count_ < kMaxLogConfigs) {
-    log_configs_[log_config_count_++] =
-        new LogConfig<ImuData>(TopicID::ICM20948, pdMS_TO_TICKS(10));
+	log_configs_[log_config_count_++] =
+	new LogConfig<ImuData>(TopicID::ICM20948, pdMS_TO_TICKS(10));
   }
 
   if (log_config_count_ < kMaxLogConfigs) {
-    log_configs_[log_config_count_++] =
-        new LogConfig<BaroData>(TopicID::BMP390L, pdMS_TO_TICKS(64));
+	log_configs_[log_config_count_++] =
+	new LogConfig<BaroData>(TopicID::BMP390L, pdMS_TO_TICKS(64));
   }
 
   if (log_config_count_ < kMaxLogConfigs) {
-      log_configs_[log_config_count_++] =
-          new LogConfig<RcChannels>(TopicID::RCCHANNELS, pdMS_TO_TICKS(20));
+	log_configs_[log_config_count_++] =
+	new LogConfig<RcChannels>(TopicID::RCCHANNELS, pdMS_TO_TICKS(20));
   }
 
   if (log_config_count_ < kMaxLogConfigs) {
-        log_configs_[log_config_count_++] =
-            new LogConfig<GpsData>(TopicID::UBLOXM9N, pdMS_TO_TICKS(50));
+	log_configs_[log_config_count_++] =
+	new LogConfig<GpsData>(TopicID::UBLOXM9N, pdMS_TO_TICKS(50));
   }
 
   if (log_config_count_ < kMaxLogConfigs) {
-          log_configs_[log_config_count_++] =
-              new LogConfig<EkfData>(TopicID::EKF, pdMS_TO_TICKS(10));
-    }
+	log_configs_[log_config_count_++] =
+	new LogConfig<EkfData>(TopicID::EKF, pdMS_TO_TICKS(25));
+  }
+
+  if (log_config_count_ < kMaxLogConfigs) {
+	log_configs_[log_config_count_++] =
+	new LogConfig<FcsDebugData>(TopicID::FCSDEBUG, pdMS_TO_TICKS(25));
+  }
+
+  if (log_config_count_ < kMaxLogConfigs) {
+	log_configs_[log_config_count_++] =
+	new LogConfig<PwmData>(TopicID::PWM, pdMS_TO_TICKS(25));
+  }
 
   // Add more safely up to TopicID::MAX_TOPICS
 }
