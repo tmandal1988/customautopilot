@@ -19,7 +19,10 @@ Core/Src/mavlink_rxtx/mavlink_rxtx.o: \
  ../Middlewares/Third_Party/FreeRTOS/Source/include/queue.h \
  ../Middlewares/Third_Party/FreeRTOS/Source/include/task.h \
  ../Core/Inc/pubsub/topic_definition.h ../Core/Inc/pubsub/publisher.h \
- ../Core/Inc/messages/ekf_data.h ../Core/Inc/debug.h \
+ ../Core/Inc/messages/ekf_data.h ../Core/Inc/messages/gps_data.h \
+ ../Core/Inc/messages/fcs_debug_data.h \
+ ../Core/Inc/messages/mavlink_data.h \
+ ../Core/Inc/messages/mavlink_params_data.h ../Core/Inc/debug.h \
  ../Core/Inc/debug_config.h ../Core/Inc/usb_console/usb_console.h \
  ../Core/Inc/pin_defines.h \
  ../Drivers/STM32H7xx_HAL_Driver/Inc/stm32h7xx_hal.h \
@@ -325,6 +328,10 @@ Core/Src/mavlink_rxtx/mavlink_rxtx.o: \
 ../Core/Inc/pubsub/topic_definition.h:
 ../Core/Inc/pubsub/publisher.h:
 ../Core/Inc/messages/ekf_data.h:
+../Core/Inc/messages/gps_data.h:
+../Core/Inc/messages/fcs_debug_data.h:
+../Core/Inc/messages/mavlink_data.h:
+../Core/Inc/messages/mavlink_params_data.h:
 ../Core/Inc/debug.h:
 ../Core/Inc/debug_config.h:
 ../Core/Inc/usb_console/usb_console.h:

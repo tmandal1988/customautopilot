@@ -9,6 +9,7 @@
 #define INC_CUSTOM_MATH_CUSTOM_MATH_H_
 
 static constexpr double DEG2RAD = 0.0174532925199433;
+static constexpr double RAD2DEG = 57.295779513082323;
 
 
 

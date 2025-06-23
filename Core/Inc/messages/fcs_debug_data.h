@@ -55,22 +55,28 @@ struct PACKED FcsDebugData {
 	float vd_meas_mps;
 	float vd_kp_out;
 	float vd_ki_out;
+	float vd_ff_out;
+	float hover_thrust_est;
 
-	float pn_cmd_mps;
-	float pn_meas_mps;
+	float pn_cmd_m;
+	float pn_meas_m;
 	float pn_kp_out;
 
-	float pe_cmd_mps;
-	float pe_meas_mps;
+	float pe_cmd_m;
+	float pe_meas_m;
 	float pe_kp_out;
 
-	float pd_cmd_mps;
-	float pd_meas_mps;
+	float pd_cmd_m;
+	float pd_meas_m;
 	float pd_kp_out;
 
+	float chirp_debug;
+
+	uint8_t chirp_trigger;
+	uint8_t chirp_type;
 	uint8_t flt_mode;
 	uint8_t sm_mode;
 	uint64_t timestamp_us;
 };
 
-static_assert(sizeof(FcsDebugData) == 194, "Fcs Debug Data size should be 241 bytes!");
+static_assert(sizeof(FcsDebugData) == 208, "Fcs Debug Data size should be 208 bytes!");

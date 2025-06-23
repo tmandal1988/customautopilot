@@ -3,9 +3,9 @@
 //
 // Code generated for Simulink model 'fcsModel'.
 //
-// Model version                  : 1.117
+// Model version                  : 1.118
 // Simulink Coder version         : 9.7 (R2022a) 13-Nov-2021
-// C/C++ source code generated on : Sat Jun 14 09:55:15 2025
+// C/C++ source code generated on : Sun Jun 22 23:09:15 2025
 //
 // Target selection: ert.tlc
 // Embedded hardware selection: ARM Compatible->ARM Cortex-M
@@ -255,6 +255,7 @@ struct busVelCtrlParams
   std::array<busSignalConditioningParams, 3> accelSignalConditioningParamsArray;
   std::array<real_T, 3> accelFbGainsArray;
   std::array<real_T, 3> ffGainsArray;
+  std::array<real_T, 3> ff2GainsArray;
   real_T baseMass_kg;
   std::array<real_T, 2> baseMassMinMax_kg;
   std::array<real_T, 2> firstOrderHeadingFilterNum;
@@ -335,6 +336,21 @@ struct busFcsParams
   busInnerLoopCtrlParams innerLoopCtrlParams;
   busOuterLoopCtrlParams outerLoopCtrlParams;
   busSysIdInjectionParams sysIdInjectionParams;
+};
+
+#endif
+
+#ifndef DEFINED_TYPEDEF_FOR_busExternalCmds_
+#define DEFINED_TYPEDEF_FOR_busExternalCmds_
+
+// Contains external commands that are not RC stick commands sent
+// to the controller
+struct busExternalCmds
+{
+  // 0 -  undefined
+  // 1 - Arm command issued
+  // 2 - Disarm command issued
+  uint8_T armCmdIssued;
 };
 
 #endif

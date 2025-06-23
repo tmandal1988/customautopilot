@@ -16,6 +16,8 @@ enum class TopicID {
 	EKF,
 	PWM,
 	FCSDEBUG,
+	MAVLINK,
+	MAVLINKPARAMS,
     MAX_TOPICS
 };
 

@@ -25,4 +25,4 @@
 ../Core/Src/sensors/ubloxm9n/ubloxm9n.cc:803:6:void ReadUbloxM9n::SetDataReadyFlag()	1
 ../Core/Src/sensors/ubloxm9n/ubloxm9n.cc:807:6:static void ReadUbloxM9n::ReceivedNewNavPvtFrame()	2
 ../Core/Src/sensors/ubloxm9n/ubloxm9n.cc:813:6:void ReadUbloxM9n::ProcessNavPvtFrame()	3
-../Core/Src/sensors/ubloxm9n/ubloxm9n.cc:838:6:virtual void ReadUbloxM9n::Run()	6
+../Core/Src/sensors/ubloxm9n/ubloxm9n.cc:838:6:virtual void ReadUbloxM9n::Run()	5

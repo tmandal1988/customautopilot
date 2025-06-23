@@ -20,9 +20,10 @@ Core/Src/logger/logger.o: ../Core/Src/logger/logger.cc \
  ../Core/Inc/messages/baro_data.h ../Core/Inc/messages/rc_channels.h \
  ../Core/Inc/messages/gps_data.h ../Core/Inc/messages/ekf_data.h \
  ../Core/Inc/messages/fcs_debug_data.h ../Core/Inc/messages/pwm_data.h \
- ../Core/Inc/debug.h ../Core/Inc/debug_config.h \
- ../Core/Inc/usb_console/usb_console.h ../Core/Src/logger/data_buffer.h \
- ../FATFS/App/fatfs.h ../Middlewares/Third_Party/FatFs/src/ff.h \
+ ../Core/Inc/messages/mavlink_params_data.h ../Core/Inc/debug.h \
+ ../Core/Inc/debug_config.h ../Core/Inc/usb_console/usb_console.h \
+ ../Core/Src/logger/data_buffer.h ../FATFS/App/fatfs.h \
+ ../Middlewares/Third_Party/FatFs/src/ff.h \
  ../Middlewares/Third_Party/FatFs/src/integer.h ../FATFS/Target/ffconf.h \
  ../Core/Inc/main.h ../Drivers/STM32H7xx_HAL_Driver/Inc/stm32h7xx_hal.h \
  ../Core/Inc/stm32h7xx_hal_conf.h \
@@ -97,6 +98,7 @@ Core/Src/logger/logger.o: ../Core/Src/logger/logger.cc \
 ../Core/Inc/messages/ekf_data.h:
 ../Core/Inc/messages/fcs_debug_data.h:
 ../Core/Inc/messages/pwm_data.h:
+../Core/Inc/messages/mavlink_params_data.h:
 ../Core/Inc/debug.h:
 ../Core/Inc/debug_config.h:
 ../Core/Inc/usb_console/usb_console.h:

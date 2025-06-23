@@ -23,6 +23,6 @@
 ../Core/Src/sensors/ubloxm9n_rb/ubloxm9n_rb.cc:735:6:bool ReadUbloxM9nRb::ConfigGpsMeasRate(uint16_t, uint8_t)	72	static
 ../Core/Src/sensors/ubloxm9n_rb/ubloxm9n_rb.cc:716:6:bool ReadUbloxM9nRb::InitGps(uint32_t, uint16_t, uint8_t)	40	static
 ../Core/Src/sensors/ubloxm9n_rb/ubloxm9n_rb.cc:811:6:void ReadUbloxM9nRb::StartNavPvtMsg()	24	static
-../Core/Src/sensors/ubloxm9n_rb/ubloxm9n_rb.cc:848:6:void ReadUbloxM9nRb::ProcessNavPvtFrame()	136	static
-../Core/Src/sensors/ubloxm9n_rb/ubloxm9n_rb.cc:911:6:virtual void ReadUbloxM9nRb::Run()	48	static
-../Core/Src/sensors/ubloxm9n_rb/ubloxm9n_rb.cc:948:1:cc)	0	static
+../Core/Src/sensors/ubloxm9n_rb/ubloxm9n_rb.cc:848:6:void ReadUbloxM9nRb::ProcessNavPvtFrame()	160	static
+../Core/Src/sensors/ubloxm9n_rb/ubloxm9n_rb.cc:920:6:virtual void ReadUbloxM9nRb::Run()	40	static
+../Core/Src/sensors/ubloxm9n_rb/ubloxm9n_rb.cc:957:1:cc)	0	static

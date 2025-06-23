@@ -1,30 +1,33 @@
-../Core/Src/logger/logger.h:52:9:Logger::LogConfig<PwmData>::~LogConfig()	0	static
-../Core/Src/logger/logger.h:52:9:Logger::LogConfig<FcsDebugData>::~LogConfig()	0	static
-../Core/Src/logger/logger.h:52:9:Logger::LogConfig<EkfData>::~LogConfig()	0	static
-../Core/Src/logger/logger.h:52:9:Logger::LogConfig<GpsData>::~LogConfig()	0	static
-../Core/Src/logger/logger.h:52:9:Logger::LogConfig<RcChannels>::~LogConfig()	0	static
-../Core/Src/logger/logger.h:52:9:Logger::LogConfig<BaroData>::~LogConfig()	0	static
-../Core/Src/logger/logger.h:52:9:Logger::LogConfig<ImuData>::~LogConfig()	0	static
-../Core/Src/logger/logger.h:25:7:Logger::~Logger()	0	static
-../Core/Src/logger/logger.h:25:7:virtual Logger::~Logger()	8	static
-../Core/Src/logger/logger.h:52:9:virtual Logger::LogConfig<ImuData>::~LogConfig()	8	static
-../Core/Src/logger/logger.h:52:9:virtual Logger::LogConfig<BaroData>::~LogConfig()	8	static
-../Core/Src/logger/logger.h:52:9:virtual Logger::LogConfig<RcChannels>::~LogConfig()	8	static
-../Core/Src/logger/logger.h:52:9:virtual Logger::LogConfig<GpsData>::~LogConfig()	8	static
-../Core/Src/logger/logger.h:52:9:virtual Logger::LogConfig<EkfData>::~LogConfig()	8	static
-../Core/Src/logger/logger.h:52:9:virtual Logger::LogConfig<FcsDebugData>::~LogConfig()	8	static
-../Core/Src/logger/logger.h:52:9:virtual Logger::LogConfig<PwmData>::~LogConfig()	8	static
-../Core/Src/logger/logger.cc:84:6:void Logger::WriteBuffered(const uint8_t*, size_t)	48	static
-../Core/Src/logger/logger.h:60:10:void Logger::LogConfig<T>::TryLog(uint32_t, Logger*) [with T = PwmData]	48	static
-../Core/Src/logger/logger.h:60:10:void Logger::LogConfig<T>::TryLog(uint32_t, Logger*) [with T = FcsDebugData]	240	static
-../Core/Src/logger/logger.h:60:10:void Logger::LogConfig<T>::TryLog(uint32_t, Logger*) [with T = EkfData]	288	static
-../Core/Src/logger/logger.h:60:10:void Logger::LogConfig<T>::TryLog(uint32_t, Logger*) [with T = GpsData]	80	static
-../Core/Src/logger/logger.h:60:10:void Logger::LogConfig<T>::TryLog(uint32_t, Logger*) [with T = RcChannels]	64	static
-../Core/Src/logger/logger.h:60:10:void Logger::LogConfig<T>::TryLog(uint32_t, Logger*) [with T = BaroData]	48	static
-../Core/Src/logger/logger.h:60:10:void Logger::LogConfig<T>::TryLog(uint32_t, Logger*) [with T = ImuData]	88	static
+../Core/Src/logger/logger.h:53:9:Logger::LogConfig<MavlinkParamsData>::~LogConfig()	0	static
+../Core/Src/logger/logger.h:53:9:Logger::LogConfig<PwmData>::~LogConfig()	0	static
+../Core/Src/logger/logger.h:53:9:Logger::LogConfig<FcsDebugData>::~LogConfig()	0	static
+../Core/Src/logger/logger.h:53:9:Logger::LogConfig<EkfData>::~LogConfig()	0	static
+../Core/Src/logger/logger.h:53:9:Logger::LogConfig<GpsData>::~LogConfig()	0	static
+../Core/Src/logger/logger.h:53:9:Logger::LogConfig<RcChannels>::~LogConfig()	0	static
+../Core/Src/logger/logger.h:53:9:Logger::LogConfig<BaroData>::~LogConfig()	0	static
+../Core/Src/logger/logger.h:53:9:Logger::LogConfig<ImuData>::~LogConfig()	0	static
+../Core/Src/logger/logger.h:26:7:Logger::~Logger()	0	static
+../Core/Src/logger/logger.h:26:7:virtual Logger::~Logger()	8	static
+../Core/Src/logger/logger.h:53:9:virtual Logger::LogConfig<ImuData>::~LogConfig()	8	static
+../Core/Src/logger/logger.h:53:9:virtual Logger::LogConfig<BaroData>::~LogConfig()	8	static
+../Core/Src/logger/logger.h:53:9:virtual Logger::LogConfig<RcChannels>::~LogConfig()	8	static
+../Core/Src/logger/logger.h:53:9:virtual Logger::LogConfig<GpsData>::~LogConfig()	8	static
+../Core/Src/logger/logger.h:53:9:virtual Logger::LogConfig<EkfData>::~LogConfig()	8	static
+../Core/Src/logger/logger.h:53:9:virtual Logger::LogConfig<FcsDebugData>::~LogConfig()	8	static
+../Core/Src/logger/logger.h:53:9:virtual Logger::LogConfig<PwmData>::~LogConfig()	8	static
+../Core/Src/logger/logger.h:53:9:virtual Logger::LogConfig<MavlinkParamsData>::~LogConfig()	8	static
+../Core/Src/logger/logger.cc:89:6:void Logger::WriteBuffered(const uint8_t*, size_t)	48	static
+../Core/Src/logger/logger.h:61:10:void Logger::LogConfig<T>::TryLog(uint32_t, Logger*) [with T = MavlinkParamsData]	72	static
+../Core/Src/logger/logger.h:61:10:void Logger::LogConfig<T>::TryLog(uint32_t, Logger*) [with T = PwmData]	48	static
+../Core/Src/logger/logger.h:61:10:void Logger::LogConfig<T>::TryLog(uint32_t, Logger*) [with T = FcsDebugData]	248	static
+../Core/Src/logger/logger.h:61:10:void Logger::LogConfig<T>::TryLog(uint32_t, Logger*) [with T = EkfData]	288	static
+../Core/Src/logger/logger.h:61:10:void Logger::LogConfig<T>::TryLog(uint32_t, Logger*) [with T = GpsData]	120	static
+../Core/Src/logger/logger.h:61:10:void Logger::LogConfig<T>::TryLog(uint32_t, Logger*) [with T = RcChannels]	64	static
+../Core/Src/logger/logger.h:61:10:void Logger::LogConfig<T>::TryLog(uint32_t, Logger*) [with T = BaroData]	48	static
+../Core/Src/logger/logger.h:61:10:void Logger::LogConfig<T>::TryLog(uint32_t, Logger*) [with T = ImuData]	88	static
 ../Core/Inc/task_manager/task_base.h:46:39:void __tcf_0()	0	static
 ../Core/Src/logger/logger.cc:10:1:Logger::Logger()	40	static
 ../Core/Src/logger/logger.cc:15:6:void Logger::SetupTopics()	16	static
-../Core/Src/logger/logger.cc:54:6:virtual void Logger::Run()	32	static
-../Core/Src/logger/logger.cc:84:6:void Logger::WriteBuffered(const uint8_t*, size_t)	48	static
-../Core/Src/logger/logger.cc:180:29:cc)	0	static
+../Core/Src/logger/logger.cc:59:6:virtual void Logger::Run()	32	static
+../Core/Src/logger/logger.cc:89:6:void Logger::WriteBuffered(const uint8_t*, size_t)	48	static
+../Core/Src/logger/logger.cc:185:29:cc)	0	static

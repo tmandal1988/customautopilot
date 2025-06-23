@@ -123,9 +123,10 @@ void StateEstimator::Run(){
 			ekf_data.euler_rad[idx] = state_estimator_autocode_y_.eulAng_rad[idx];
 
 			ekf_data.bias_corr_body_rates_radps[idx] = state_estimator_autocode_u_.imuData.bodyRates_radps[idx] -
-					state_estimator_autocode_y_.states[idx + 11];
+					state_estimator_autocode_y_.states[idx + 10];
 
-			ekf_data.bias_corr_body_accels_mps2[idx] = state_estimator_autocode_y_.bodyAccels_mps2[idx];
+			ekf_data.bias_corr_body_accels_mps2[idx] = state_estimator_autocode_u_.imuData.bodyAccels_mps2[idx] -
+					state_estimator_autocode_y_.states[idx + 13];
 
 			ekf_data.dcm_ned_to_body[idx] = state_estimator_autocode_y_.dcmNedToBody[idx];
 			ekf_data.dcm_ned_to_body[idx + 3] = state_estimator_autocode_y_.dcmNedToBody[idx + 3];

@@ -16,6 +16,8 @@
 #include "messages/rc_channels.h"
 #include "messages/pwm_data.h"
 #include "messages/fcs_debug_data.h"
+#include "messages/mavlink_data.h"
+#include "messages/mavlink_params_data.h"
 #include "pubsub/subscriber.h"
 #include "pubsub/publisher.h"
 #include "debug.h"
@@ -53,6 +55,12 @@ private:
 
     PwmData pwm_data_ = {0};
     FcsDebugData fcs_debug_data_ = {0};
+
+    Subscriber<MavlinkData> mavlink_sub_ = Subscriber<MavlinkData>(TopicID::MAVLINK);
+    MavlinkData mavlink_data_ = {0};
+
+    Subscriber<MavlinkParamsData> mavlink_params_sub_ = Subscriber<MavlinkParamsData>(TopicID::MAVLINKPARAMS);
+	MavlinkParamsData mavlink_params_data_ = {0};
 };
 
 

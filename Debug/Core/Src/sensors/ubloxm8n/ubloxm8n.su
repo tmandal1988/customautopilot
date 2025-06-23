@@ -27,4 +27,4 @@
 ../Core/Src/sensors/ubloxm8n/ubloxm8n.cc:815:6:void ReadUbloxM8n::SetDataReadyFlag()	0	static
 ../Core/Src/sensors/ubloxm8n/ubloxm8n.cc:819:6:static void ReadUbloxM8n::ReceivedNewNavPvtFrame()	0	static
 ../Core/Src/sensors/ubloxm8n/ubloxm8n.cc:825:6:void ReadUbloxM8n::ProcessNavPvtFrame()	16	static
-../Core/Src/sensors/ubloxm8n/ubloxm8n.cc:850:6:virtual void ReadUbloxM8n::Run()	48	static
+../Core/Src/sensors/ubloxm8n/ubloxm8n.cc:850:6:virtual void ReadUbloxM8n::Run()	40	static

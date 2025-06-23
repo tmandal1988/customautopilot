@@ -58,6 +58,8 @@ Core/Src/flight_controls/flight_controls.o: \
  ../Core/Inc/messages/baro_data.h ../Core/Inc/messages/gps_data.h \
  ../Core/Inc/messages/ekf_data.h ../Core/Inc/messages/rc_channels.h \
  ../Core/Inc/messages/pwm_data.h ../Core/Inc/messages/fcs_debug_data.h \
+ ../Core/Inc/messages/mavlink_data.h \
+ ../Core/Inc/messages/mavlink_params_data.h \
  ../Core/Inc/pubsub/subscriber.h ../Core/Inc/pubsub/pubsub_manager.h \
  ../Core/Inc/pubsub/topic.h \
  ../Middlewares/Third_Party/FreeRTOS/Source/include/semphr.h \
@@ -131,6 +133,8 @@ Core/Src/flight_controls/flight_controls.o: \
 ../Core/Inc/messages/rc_channels.h:
 ../Core/Inc/messages/pwm_data.h:
 ../Core/Inc/messages/fcs_debug_data.h:
+../Core/Inc/messages/mavlink_data.h:
+../Core/Inc/messages/mavlink_params_data.h:
 ../Core/Inc/pubsub/subscriber.h:
 ../Core/Inc/pubsub/pubsub_manager.h:
 ../Core/Inc/pubsub/topic.h:

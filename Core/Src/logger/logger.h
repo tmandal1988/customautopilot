@@ -16,6 +16,7 @@
 #include "messages/ekf_data.h"
 #include "messages/fcs_debug_data.h"
 #include "messages/pwm_data.h"
+#include "messages/mavlink_params_data.h"
 #include "debug.h"
 #include "data_buffer.h"
 

@@ -48,6 +48,11 @@ void Logger::SetupTopics() {
 	new LogConfig<PwmData>(TopicID::PWM, pdMS_TO_TICKS(25));
   }
 
+  if (log_config_count_ < kMaxLogConfigs) {
+  	log_configs_[log_config_count_++] =
+  	new LogConfig<MavlinkParamsData>(TopicID::MAVLINKPARAMS, pdMS_TO_TICKS(1000));
+    }
+
   // Add more safely up to TopicID::MAX_TOPICS
 }
 

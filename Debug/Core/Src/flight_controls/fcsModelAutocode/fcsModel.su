@@ -19,9 +19,11 @@
 ../Core/Src/flight_controls/fcsModelAutocode/fcsModel.cpp:1174:6:static void fcsModel::SignalConditioningBlock1_c_Init(DW_SignalConditioningBlock1_g_T*)	0	static
 ../Core/Src/flight_controls/fcsModelAutocode/fcsModel.cpp:1188:6:static void fcsModel::fcsM_SignalConditioningBlock1_f(real_T, const busSignalConditioningParams*, real_T*, real_T, DW_SignalConditioningBlock1_g_T*)	32	static
 ../Core/Src/flight_controls/fcsModelAutocode/fcsModel.cpp:1315:11:boolean_T fcsModel::fcsModel_checkRcCmds(const busRcInCmds*)	0	static
-../Core/Src/flight_controls/fcsModelAutocode/fcsModel.cpp:1357:6:void fcsModel::step()	1584	static
-../Core/Src/flight_controls/fcsModelAutocode/fcsModel.cpp:3614:6:void fcsModel::initialize()	256	static
-../Core/Src/flight_controls/fcsModelAutocode/fcsModel.cpp:3747:6:static void fcsModel::terminate()	0	static
-../Core/Src/flight_controls/fcsModelAutocode/fcsModel.cpp:3753:1:fcsModel::fcsModel()	16	static
-../Core/Src/flight_controls/fcsModelAutocode/fcsModel.cpp:3763:1:fcsModel::~fcsModel()	0	static
-../Core/Src/flight_controls/fcsModelAutocode/fcsModel.cpp:3769:33:fcsModel::RT_MODEL_fcsModel_T* fcsModel::getRTM()	0	static
+../Core/Src/flight_controls/fcsModelAutocode/fcsModel.cpp:1356:8:real_T rt_urand_Upu32_Yd_f_pw(uint32_T*)	8	static
+../Core/Src/flight_controls/fcsModelAutocode/fcsModel.cpp:1383:8:real_T rt_nrand_Upu32_Yd_f_pw(uint32_T*)	40	static
+../Core/Src/flight_controls/fcsModelAutocode/fcsModel.cpp:1401:6:void fcsModel::step()	1592	static
+../Core/Src/flight_controls/fcsModelAutocode/fcsModel.cpp:3857:6:void fcsModel::initialize()	256	static
+../Core/Src/flight_controls/fcsModelAutocode/fcsModel.cpp:3994:6:static void fcsModel::terminate()	0	static
+../Core/Src/flight_controls/fcsModelAutocode/fcsModel.cpp:4000:1:fcsModel::fcsModel()	16	static
+../Core/Src/flight_controls/fcsModelAutocode/fcsModel.cpp:4010:1:fcsModel::~fcsModel()	0	static
+../Core/Src/flight_controls/fcsModelAutocode/fcsModel.cpp:4016:33:fcsModel::RT_MODEL_fcsModel_T* fcsModel::getRTM()	0	static

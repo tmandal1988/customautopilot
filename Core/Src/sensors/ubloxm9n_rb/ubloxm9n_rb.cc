@@ -893,6 +893,15 @@ void ReadUbloxM9nRb::ProcessNavPvtFrame(){
 						gps_data_.vn_mps = nav_pvt_data_.vel_n * 1e-3;
 						gps_data_.ve_mps = nav_pvt_data_.vel_e * 1e-3;
 						gps_data_.vd_mps = nav_pvt_data_.vel_d * 1e-3;
+						gps_data_.num_sv = nav_pvt_data_.num_sv;
+						gps_data_.g_speed_mps = nav_pvt_data_.g_speed * 1e-3f;
+						gps_data_.cog_deg = nav_pvt_data_.heading * 1e-5f;
+						gps_data_.hacc_m = nav_pvt_data_.h_acc * 1e-3f;
+						gps_data_.vacc_m = nav_pvt_data_.v_acc * 1e-3f;
+						gps_data_.s_acc_mps = nav_pvt_data_.s_acc * 1e-3f;
+						gps_data_.heading_acc_deg = nav_pvt_data_.heading_acc * 1e-5f;
+						gps_data_.p_dop = nav_pvt_data_.p_dop;
+						gps_data_.head_veh_deg = nav_pvt_data_.head_veh * 1e-5;
 
 						gps_data_.checksum_valid = true;
 						new_nav_pvt_frame_ = true;
