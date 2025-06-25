@@ -120,7 +120,7 @@ private:
     float velz_kff_ = 0.0f;
     float velz_kff2_ = 0.0f;
     float velz_accel_kfb_ = 0.0f;
-    float posz_kp_ = 1.75f;
+    float posz_kp_ = 1.5f;
     float base_mass_kg_ = 2.5f;
 
     struct MavlinkParam {
