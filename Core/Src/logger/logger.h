@@ -66,6 +66,13 @@ class Logger : public TaskBase {
 
       T data;
       if (!subscriber_.copy(data)) return;
+//      if constexpr (std::is_same<T, EkfData>::value) {
+//    	  DEBUG_PRINT("[Logger] EKF sizeof: %u, is_gps_valid: %u, timestamp: %g\n",
+//    	                  static_cast<unsigned>(sizeof(data)),
+//    	                  static_cast<unsigned>(data.is_gps_valid),
+//    	                  data.timestamp_us * 0.000001f);
+//
+//      }
 
       const size_t payload_size = sizeof(T);
       const size_t total_size = 1 + 1 + payload_size + 2;

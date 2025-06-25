@@ -95,8 +95,10 @@ void StateEstimator::Run(){
 
 			if(gps_data.fix_type >= 2){
 				state_estimator_autocode_u_.gpsData.isGpsDataValid = true;
+				ekf_data.is_gps_valid = true;
 			}else{
 				state_estimator_autocode_u_.gpsData.isGpsDataValid = false;
+				ekf_data.is_gps_valid = false;
 			}
 
 			if(gps_fix_count < 10){
@@ -111,6 +113,7 @@ void StateEstimator::Run(){
 
 		}else{
 			state_estimator_autocode_u_.gpsData.isGpsDataValid = false;
+			ekf_data.is_gps_valid = false;
 		}
 
 		// Run one step of the model
@@ -125,8 +128,7 @@ void StateEstimator::Run(){
 			ekf_data.bias_corr_body_rates_radps[idx] = state_estimator_autocode_u_.imuData.bodyRates_radps[idx] -
 					state_estimator_autocode_y_.states[idx + 10];
 
-			ekf_data.bias_corr_body_accels_mps2[idx] = state_estimator_autocode_u_.imuData.bodyAccels_mps2[idx] -
-					state_estimator_autocode_y_.states[idx + 13];
+			ekf_data.bias_corr_body_accels_mps2[idx] = state_estimator_autocode_y_.bodyAccels_mps2[idx];
 
 			ekf_data.dcm_ned_to_body[idx] = state_estimator_autocode_y_.dcmNedToBody[idx];
 			ekf_data.dcm_ned_to_body[idx + 3] = state_estimator_autocode_y_.dcmNedToBody[idx + 3];
@@ -141,7 +143,6 @@ void StateEstimator::Run(){
 		}
 		ekf_data.is_mag_valid = state_estimator_autocode_u_.magData.isMagDataValid;
 		ekf_data.is_baro_valid = state_estimator_autocode_u_.baroData.isBaroDataValid;
-		ekf_data.is_gps_valid = state_estimator_autocode_u_.gpsData.isGpsDataValid;
 
 		memcpy(ekf_data.states, state_estimator_autocode_y_.states, sizeof(float) * 23);
 

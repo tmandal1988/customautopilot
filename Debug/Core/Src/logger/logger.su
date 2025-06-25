@@ -19,7 +19,7 @@
 ../Core/Src/logger/logger.cc:89:6:void Logger::WriteBuffered(const uint8_t*, size_t)	48	static
 ../Core/Src/logger/logger.h:61:10:void Logger::LogConfig<T>::TryLog(uint32_t, Logger*) [with T = MavlinkParamsData]	72	static
 ../Core/Src/logger/logger.h:61:10:void Logger::LogConfig<T>::TryLog(uint32_t, Logger*) [with T = PwmData]	48	static
-../Core/Src/logger/logger.h:61:10:void Logger::LogConfig<T>::TryLog(uint32_t, Logger*) [with T = FcsDebugData]	248	static
+../Core/Src/logger/logger.h:61:10:void Logger::LogConfig<T>::TryLog(uint32_t, Logger*) [with T = FcsDebugData]	264	static
 ../Core/Src/logger/logger.h:61:10:void Logger::LogConfig<T>::TryLog(uint32_t, Logger*) [with T = EkfData]	288	static
 ../Core/Src/logger/logger.h:61:10:void Logger::LogConfig<T>::TryLog(uint32_t, Logger*) [with T = GpsData]	120	static
 ../Core/Src/logger/logger.h:61:10:void Logger::LogConfig<T>::TryLog(uint32_t, Logger*) [with T = RcChannels]	64	static

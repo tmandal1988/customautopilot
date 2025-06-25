@@ -20,12 +20,12 @@ void Logger::SetupTopics() {
 
   if (log_config_count_ < kMaxLogConfigs) {
 	log_configs_[log_config_count_++] =
-	new LogConfig<BaroData>(TopicID::BMP390L, pdMS_TO_TICKS(64));
+	new LogConfig<BaroData>(TopicID::BMP390L, pdMS_TO_TICKS(25));
   }
 
   if (log_config_count_ < kMaxLogConfigs) {
 	log_configs_[log_config_count_++] =
-	new LogConfig<RcChannels>(TopicID::RCCHANNELS, pdMS_TO_TICKS(20));
+	new LogConfig<RcChannels>(TopicID::RCCHANNELS, pdMS_TO_TICKS(25));
   }
 
   if (log_config_count_ < kMaxLogConfigs) {
@@ -35,7 +35,7 @@ void Logger::SetupTopics() {
 
   if (log_config_count_ < kMaxLogConfigs) {
 	log_configs_[log_config_count_++] =
-	new LogConfig<EkfData>(TopicID::EKF, pdMS_TO_TICKS(25));
+	new LogConfig<EkfData>(TopicID::EKF, pdMS_TO_TICKS(10));
   }
 
   if (log_config_count_ < kMaxLogConfigs) {

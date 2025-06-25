@@ -3,9 +3,9 @@
 //
 // Code generated for Simulink model 'stateEstimatorEskf'.
 //
-// Model version                  : 1.56
+// Model version                  : 1.64
 // Simulink Coder version         : 9.7 (R2022a) 13-Nov-2021
-// C/C++ source code generated on : Fri Jun 13 14:23:38 2025
+// C/C++ source code generated on : Tue Jun 24 17:45:12 2025
 //
 // Target selection: ert.tlc
 // Embedded hardware selection: ARM Compatible->ARM Cortex-M
@@ -3254,7 +3254,7 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
   // Sum: '<Root>/Sum' incorporates:
   //   Product: '<S4>/Product'
 
-  rty_bodyAccels_mps2[0] = stateEstimatorEskf_DW.Product[0] - rty_states[13];
+  rty_bodyAccels_mps2[0] = stateEstimatorEskf_DW.Product[0] - rty_states[14];
 
   // Math: '<Root>/Transpose'
   rty_dcmNedToBody[3] = rtb_dcmBodyToNed_idx_1;
@@ -3264,7 +3264,7 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
   // Sum: '<Root>/Sum' incorporates:
   //   Product: '<S4>/Product'
 
-  rty_bodyAccels_mps2[1] = stateEstimatorEskf_DW.Product[1] - rty_states[14];
+  rty_bodyAccels_mps2[1] = stateEstimatorEskf_DW.Product[1] - rty_states[15];
 
   // Math: '<Root>/Transpose'
   rty_dcmNedToBody[6] = rtb_dcmBodyToNed_idx_2;
@@ -3274,7 +3274,7 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
   // Sum: '<Root>/Sum' incorporates:
   //   Product: '<S4>/Product'
 
-  rty_bodyAccels_mps2[2] = stateEstimatorEskf_DW.Product[2] - rty_states[15];
+  rty_bodyAccels_mps2[2] = stateEstimatorEskf_DW.Product[2] - rty_states[16];
 
   // BusCreator: '<Root>/Bus Creator'
   rty_stateEstimatorDebug->stateEstInitPct =

@@ -182,6 +182,9 @@ void FlightControls::Run(){
 			fcs_debug_data_.vd_ff_out = fcs_model_autocode_y_.fcsDebug.outerLoopCtrlDebug.velCtrlDebug.velCtrlFf[2];
 			// Estimated hover thrust
 			fcs_debug_data_.hover_thrust_est = fcs_model_autocode_y_.fcsDebug.outerLoopCtrlDebug.zAccelCtrlDebug.pidDebug.output;
+			fcs_debug_data_.vd_meas_thrust_est = fcs_model_autocode_y_.fcsDebug.outerLoopCtrlDebug.zAccelCtrlDebug.cmd;
+			fcs_debug_data_.ad_meas_thrust_est = fcs_model_autocode_y_.fcsDebug.outerLoopCtrlDebug.zAccelCtrlDebug.meas;
+			fcs_debug_data_.alt_ctrl_trigger = fcs_model_autocode_y_.fcsDebug.outerLoopCtrlDebug.zAccelCtrlDebug.pidDebug.proportionalOutput;
 
 			fcs_debug_data_.pn_cmd_m = fcs_model_autocode_y_.fcsDebug.outerLoopCtrlDebug.posCtrlDebug.cmd[0];
 			fcs_debug_data_.pn_meas_m = fcs_model_autocode_y_.fcsDebug.outerLoopCtrlDebug.posCtrlDebug.meas[0];

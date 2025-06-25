@@ -115,13 +115,13 @@ private:
     bool new_mavlink_data_ = false;
 
     // Parameters (example only)
-    float velz_kp_ = 8.0f;
-    float velz_ki_ = 1.5f;
-    float velz_kff_ = 0.1f;
+    float velz_kp_ = 5.0f;
+    float velz_ki_ = 1.0f;
+    float velz_kff_ = 0.0f;
     float velz_kff2_ = 0.0f;
     float velz_accel_kfb_ = 0.0f;
-    float posz_kp_ = 2.5f;
-    float base_mass_kg_ = 2.0f;
+    float posz_kp_ = 1.75f;
+    float base_mass_kg_ = 2.5f;
 
     struct MavlinkParam {
       const char* name;

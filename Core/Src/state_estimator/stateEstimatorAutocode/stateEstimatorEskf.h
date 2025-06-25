@@ -3,9 +3,9 @@
 //
 // Code generated for Simulink model 'stateEstimatorEskf'.
 //
-// Model version                  : 1.56
+// Model version                  : 1.64
 // Simulink Coder version         : 9.7 (R2022a) 13-Nov-2021
-// C/C++ source code generated on : Fri Jun 13 14:23:38 2025
+// C/C++ source code generated on : Tue Jun 24 17:45:12 2025
 //
 // Target selection: ert.tlc
 // Embedded hardware selection: ARM Compatible->ARM Cortex-M
@@ -145,7 +145,10 @@ class stateEstimatorEskf final
 //-
 //  These blocks were eliminated from the model due to optimizations:
 //
+//  Block '<Root>/Constant' : Unused code path elimination
 //  Block '<Root>/Gain' : Unused code path elimination
+//  Block '<Root>/Gain1' : Unused code path elimination
+//  Block '<Root>/Sum1' : Unused code path elimination
 //  Block '<S4>/Product1' : Unused code path elimination
 
 

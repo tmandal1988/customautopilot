@@ -3,9 +3,9 @@
 //
 // Code generated for Simulink model 'stateEstimatorEskfAutocode'.
 //
-// Model version                  : 1.44
+// Model version                  : 1.46
 // Simulink Coder version         : 9.7 (R2022a) 13-Nov-2021
-// C/C++ source code generated on : Fri Jun 13 14:24:07 2025
+// C/C++ source code generated on : Tue Jun 24 17:50:37 2025
 //
 // Target selection: ert.tlc
 // Embedded hardware selection: ARM Compatible->ARM Cortex-M
@@ -19,18 +19,18 @@
 #define RTW_HEADER_stateEstimatorEskfAutocode_private_h_
 #include "rtwtypes.h"
 
-extern const real32_T rtCP_pooled_3yPn1d1EvTvF[361];
-extern const real32_T rtCP_pooled_BRlAKMBTYMAX[361];
-extern const real32_T rtCP_pooled_xTEOdCbtdAc7[196];
+extern const real32_T rtCP_pooled_nEm8aofMDVqC[361];
+extern const real32_T rtCP_pooled_W4igRJnX17mZ[361];
+extern const real32_T rtCP_pooled_BGm5CYZ8C2bJ[196];
 extern const real32_T rtCP_pooled_FQUpkqF8e3zU;
 
-#define rtCP_processNoiseQ_Value       rtCP_pooled_3yPn1d1EvTvF  // Expression: processNoiseQ
+#define rtCP_processNoiseQ_Value       rtCP_pooled_nEm8aofMDVqC  // Expression: processNoiseQ
                                                                  //  Referenced by: '<Root>/processNoiseQ'
 
-#define rtCP_initCovP_Value            rtCP_pooled_BRlAKMBTYMAX  // Expression: initCovP
+#define rtCP_initCovP_Value            rtCP_pooled_W4igRJnX17mZ  // Expression: initCovP
                                                                  //  Referenced by: '<Root>/initCovP'
 
-#define rtCP_measNoiseR_Value          rtCP_pooled_xTEOdCbtdAc7  // Expression: measNoiseR
+#define rtCP_measNoiseR_Value          rtCP_pooled_BGm5CYZ8C2bJ  // Expression: measNoiseR
                                                                  //  Referenced by: '<Root>/measNoiseR'
 
 #define rtCP_gEarth_mps2_Value         rtCP_pooled_FQUpkqF8e3zU  // Computed Parameter: rtCP_gEarth_mps2_Value
