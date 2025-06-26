@@ -20895,7 +20895,7 @@ subscriber_id(pubSubManager().registerSubscriber(topic_id)){
  8009b98:	2300      	movs	r3, #0
  8009b9a:	f504 608c 	add.w	r0, r4, #1120	@ 0x460
  8009b9e:	f504 618e 	add.w	r1, r4, #1136	@ 0x470
- 8009ba2:	eeb1 6a04 	vmov.f32	s12, #20	@ 0x40a00000  5.0
+ 8009ba2:	eeb0 6a08 	vmov.f32	s12, #8	@ 0x40400000  3.0
  8009ba6:	eef7 6a00 	vmov.f32	s13, #112	@ 0x3f800000  1.0
  8009baa:	2500      	movs	r5, #0
  8009bac:	f504 6e71 	add.w	lr, r4, #3856	@ 0xf10
@@ -20905,7 +20905,7 @@ subscriber_id(pubSubManager().registerSubscriber(topic_id)){
  8009bbc:	f604 761c 	addw	r6, r4, #3868	@ 0xf1c
  8009bc0:	f604 0a89 	addw	sl, r4, #2185	@ 0x889
  8009bc4:	f244 0901 	movw	r9, #16385	@ 0x4001
- 8009bc8:	eeb7 7a0c 	vmov.f32	s14, #124	@ 0x3fe00000  1.750
+ 8009bc8:	eeb7 7a08 	vmov.f32	s14, #120	@ 0x3fc00000  1.5
  8009bcc:	eef0 7a04 	vmov.f32	s15, #4	@ 0x40200000  2.5
  8009bd0:	e9c0 2300 	strd	r2, r3, [r0]
  8009bd4:	e940 2302 	strd	r2, r3, [r0, #-8]
