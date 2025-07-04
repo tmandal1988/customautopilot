@@ -40,7 +40,7 @@ void Logger::SetupTopics() {
 
   if (log_config_count_ < kMaxLogConfigs) {
 	log_configs_[log_config_count_++] =
-	new LogConfig<FcsDebugData>(TopicID::FCSDEBUG, pdMS_TO_TICKS(25));
+	new LogConfig<FcsDebugData>(TopicID::FCSDEBUG, pdMS_TO_TICKS(10));
   }
 
   if (log_config_count_ < kMaxLogConfigs) {
