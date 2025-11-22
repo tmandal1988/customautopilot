@@ -3,9 +3,9 @@
 //
 // Code generated for Simulink model 'stateEstimatorEskfAutocode'.
 //
-// Model version                  : 1.46
+// Model version                  : 1.47
 // Simulink Coder version         : 9.7 (R2022a) 13-Nov-2021
-// C/C++ source code generated on : Tue Jun 24 17:50:37 2025
+// C/C++ source code generated on : Fri Nov 21 11:05:18 2025
 //
 // Target selection: ert.tlc
 // Embedded hardware selection: ARM Compatible->ARM Cortex-M
@@ -48,6 +48,11 @@ class stateEstimatorAutocode final
 
     busStateEstSmParams stateEstSmParams_Value;
 
+    // Expression: mtf01pParams
+    //  Referenced by: '<Root>/mtf01pParams'
+
+    busMtf01pParams mtf01pParams_Value;
+
     // Expression: lidarParams
     //  Referenced by: '<Root>/lidarParams'
 
@@ -61,6 +66,7 @@ class stateEstimatorAutocode final
     busGpsData gpsData;                // '<Root>/gpsData'
     busBaroData baroData;              // '<Root>/baroData'
     busLidarData lidarData;            // '<Root>/lidarData'
+    busMtf01pData mtf01pData;          // '<Root>/mtf01pData'
   };
 
   // External outputs (root outports fed by signals with default storage)

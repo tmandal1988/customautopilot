@@ -10,7 +10,7 @@
 #include "usb_console/usb_console.h"
 
 SdUtils::SdUtils()
-: TaskBase("SdWriteTask", 1820, osPriorityBelowNormal){
+: TaskBase("SdWriteTask", 1820, osPriorityNormal){
 }
 
 bool SdUtils::SdInit(){

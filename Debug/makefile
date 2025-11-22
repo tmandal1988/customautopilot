@@ -30,6 +30,7 @@ RM := rm -rf
 -include Core/Src/sensors/ubloxm9n2/subdir.mk
 -include Core/Src/sensors/ubloxm9n/subdir.mk
 -include Core/Src/sensors/ubloxm8n/subdir.mk
+-include Core/Src/sensors/mtf01p/subdir.mk
 -include Core/Src/sensors/icm20948/subdir.mk
 -include Core/Src/sensors/bmp390l/subdir.mk
 -include Core/Src/rc_sbus/subdir.mk

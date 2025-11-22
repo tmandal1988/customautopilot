@@ -5,14 +5,6 @@
  *      Author: tanmay
  */
 
-/*
- * ubloxm9n.cc
- *
- *  Created on: Apr 8, 2025
- *      Author: tanmay
- */
-
-
 #include "ubloxm9n_rb.h"
 
 // Definition of the static member variable
@@ -79,7 +71,14 @@ void ReadUbloxM9nRb::UbloxM9nUartInit(uint32_t baudrate)
  * @param baudrate: The desired baud rate
  */
 void ReadUbloxM9nRb::SetBaudrate(const uint32_t baudrate){
+	HAL_UART_DMAStop(gps_uart_);
+	osDelay(5);
 	UbloxM9nUartInit(baudrate);
+	osDelay(10);
+	FlushUartDataRegister();
+	osDelay(10);
+	HAL_UART_Receive_DMA(gps_uart_, rx_buffer_, MAX_BUFF_SIZE);
+	osDelay(10);
 }
 
 void ReadUbloxM9nRb::FlushUartDataRegister(){
@@ -111,12 +110,11 @@ void ReadUbloxM9nRb::CalculateChecksum(uint8_t *buffer, uint16_t length, uint8_t
 	}
 }
 
-/* @brief Send a UBX poll command over UART
+/* @brief Send a UBX poll command over UART DMA
  * @param message: Pointer to the UBX message structure
- * @param wait_time: Maximum wait time for the operation
  * @return true if successful, false otherwise
  */
-bool ReadUbloxM9nRb::TxUartUbxPollCmd(const UbxMessage *message, uint32_t wait_time) {
+bool ReadUbloxM9nRb::TxUartUbxPollCmd(const UbxMessage *message, const uint16_t wait_ms) {
 	// Buffer to hold the complete UBX message
 	uint8_t buffer[6 + message->length + 2];
 
@@ -140,70 +138,27 @@ bool ReadUbloxM9nRb::TxUartUbxPollCmd(const UbxMessage *message, uint32_t wait_t
 	buffer[7 + message->length] = ck_b;
 
 	// Send the complete message over UART
-	HAL_StatusTypeDef status = HAL_UART_Transmit(gps_uart_, buffer, sizeof(buffer), HAL_MAX_DELAY);
-	return (status == HAL_OK);
+	HAL_StatusTypeDef status = HAL_UART_Transmit_DMA(gps_uart_, buffer, sizeof(buffer));
+	osDelay(wait_ms);
+	if(status == HAL_OK){
+		return true;
+	}else{
+		DEBUG_PRINT("GPS Module: Transmit failed: %d\n", status);
+		return false;
+	}
 }
 
-/**
- * @brief Receive a UBX message with ACK over UART
- * @param payload_buffer: Buffer to store the received payload
- * @param payload_length: Expected length of the payload
- * @param wait_time: Maximum wait time for the operation
- * @return true if successful, false otherwise
- */
-bool ReadUbloxM9nRb::RxUartUbxPollMsgAck(uint8_t *payload_buffer, uint16_t payload_length, uint32_t wait_time){
-	// Calculate total message length including ACK
-	uint16_t rx_msg_length = 6 + payload_length + 2 + (6 + ACK_NAK_PAYLOAD_LENGTH + 2);
-
-	// Receive the message
-	HAL_StatusTypeDef status = HAL_UART_Receive(gps_uart_, rx_buffer_, rx_msg_length, wait_time);
-	if(status != HAL_OK){
-		return false;
+bool ReadUbloxM9nRb::RxUartUbxPollMsg(const uint8_t class_id, const uint8_t msg_id, const uint16_t wait_ms){
+	// Receive with DMA but wait
+	uint16_t init_check_count = 0;
+	while(init_check_count < wait_ms){
+		if(ProcessUbloxFrame() && packet_.cls == class_id &&
+		   packet_.id == msg_id){
+			return true;
+		}
+		init_check_count++;
+		osDelay(1);
 	}
-
-	// Calculate and verify checksum
-	uint8_t ck_a, ck_b;
-	CalculateChecksum(&rx_buffer_[2], payload_length + 4, &ck_a, &ck_b);
-	if(ck_a == rx_buffer_[payload_length + 6] && ck_b == rx_buffer_[payload_length + 7]){
-		memcpy(payload_buffer, &rx_buffer_[6], payload_length);
-		return true;
-	}
-
-	return false;
-}
-
-/**
- * @brief Receive a UBX message over UART
- * @param payload_buffer: Buffer to store the received payload
- * @param payload_length: Expected length of the payload
- * @param wait_time: Maximum wait time for the operation
- * @return true if successful, false otherwise
- */
-bool ReadUbloxM9nRb::RxUartUbxPollMsg(uint8_t *payload_buffer, uint16_t payload_length, uint32_t wait_time){
-	uint16_t rx_msg_length = 6 + payload_length + 2;
-	HAL_StatusTypeDef status = HAL_UART_Receive(gps_uart_, rx_buffer_, rx_msg_length, wait_time);
-	if(status != HAL_OK){
-		return false;
-	}
-
-	// Calculate checksum
-	uint8_t ck_a, ck_b;
-	CalculateChecksum(&rx_buffer_[2], payload_length + 4, &ck_a, &ck_b);
-
-	// Check if the message is an ACK-NAK (indicates configuration failure)
-	if(rx_buffer_[2] == CLASS_ACK && rx_buffer_[3] == ID_NAK){
-		DEBUG_PRINT("ACK-NAK Failed\n");
-		return false;
-	}
-
-	// Verify checksum and copy payload if valid
-	if((ck_a == rx_buffer_[payload_length + 6] && ck_b == rx_buffer_[payload_length + 7]) &&
-			(ck_a != 0 && ck_b != 0)){
-		memcpy(payload_buffer, &rx_buffer_[6], payload_length);
-		return true;
-	}
-
-	DEBUG_PRINT("Checksum Failed\n");
 	return false;
 }
 
@@ -220,7 +175,7 @@ bool ReadUbloxM9nRb::ResetGps(){
 	ubx_cfg_rst.length = sizeof(UbloxM9nCfgRst);
 	ubx_cfg_rst.payload = (uint8_t *)&ubx_cfg_rst_msg;
 
-	DEBUG_PRINT("Sending GPS reset command\n");
+	DEBUG_PRINT("GPS Module: Sending GPS reset command\n");
 
 	// Send the UBX-CFG-RST message
 	bool status  = TxUartUbxPollCmd(&ubx_cfg_rst, txrx_delay_ms_);
@@ -228,28 +183,6 @@ bool ReadUbloxM9nRb::ResetGps(){
 	// Reset command may not send ACK, just wait
 	HAL_Delay(3000);
 	return status;
-
-//	// UBX-MON-VER command
-//	uint8_t ubx_mon_ver[] = { 0xB5, 0x62, 0x0A, 0x04, 0x00, 0x00, 0x0E, 0x34 };
-//
-//	// Buffer for response (UBX-MON-VER returns ~100 bytes, but 200 is safe)
-//	uint8_t rx_buffer[200];
-//
-//	// Send the command
-//	HAL_UART_Transmit(gps_uart_, ubx_mon_ver, sizeof(ubx_mon_ver), HAL_MAX_DELAY);
-//
-//	// Receive response (UBX messages start with 0xB5 0x62)
-//	// Read more bytes if needed; UBX-MON-VER response is usually 100+ bytes
-//	HAL_UART_Receive(gps_uart_, rx_buffer, 100, HAL_MAX_DELAY);
-//
-//	for(int idx = 0; idx < 4; idx++){
-//		DEBUG_PRINT("Byte[%d]: 0x%02X\n", idx, rx_buffer[idx]);
-//	}
-//
-//	return true;
-//
-//	// Now, rx_buffer contains the UBX response
-//	// You can parse it or print via printf (if debugging over SWO/ITM/USART)
 }
 
 /**
@@ -273,15 +206,21 @@ bool ReadUbloxM9nRb::UbxSaveCfg(uint32_t save_mask){
 	ubx_cfg_cfg_msg.payload = (uint8_t *)&ubx_cfg_cfg;
 
 	// Send the UBX-CFG-CFG message
-	TxUartUbxPollCmd(&ubx_cfg_cfg_msg, txrx_delay_ms_);
-	uint8_t payload_buffer[2] = {0};
-	bool status = RxUartUbxPollMsg(payload_buffer, 2, txrx_delay_ms_);
-
-	if(status && payload_buffer[0] == CLASS_CFG && payload_buffer[1] == ID_CFG){
-		DEBUG_PRINT("Configuration successfully saved to non-volatile memory\n");
+	bool status = TxUartUbxPollCmd(&ubx_cfg_cfg_msg, txrx_delay_ms_);
+	if(!status){
+		DEBUG_PRINT("GPS Module: UbxSaveCfg - Transmit failure\n");
+		return false;
 	}
 
-	return status;
+	if(RxUartUbxPollMsg(CLASS_ACK, ID_ACK, txrx_delay_ms_) &&
+			packet_.payload[0] == CLASS_CFG && packet_.payload[1] == ID_CFG){
+		DEBUG_PRINT("GPS Module: Successfully saved the config\n");
+		return true;
+	}else{
+		DEBUG_PRINT("GPS Module: Failed to save the config: [Class]: %02x, [Id]%02x, [Pld0]%02x, [Pld1]%02x\n",
+				packet_.cls, packet_.id, packet_.payload[1], packet_.payload[1]);
+		return false;
+	}
 }
 
 /**
@@ -296,27 +235,29 @@ bool ReadUbloxM9nRb::GetVersion(){
 	ubx_mon_ver.msg_id = ID_VER;
 	ubx_mon_ver.length = 0;
 	ubx_mon_ver.payload = NULL;
-
-	uint8_t payload_buffer[220] = {0};
 	// Send the UBX-MON-VER request
-	TxUartUbxPollCmd(&ubx_mon_ver, 100);
-	// Receive and process the response
-	bool status = RxUartUbxPollMsg(payload_buffer, 220, 100);
-	if(status){
-		UbloxM9nVer *ublox_ver = (UbloxM9nVer *)(&payload_buffer[0]);
-		DEBUG_PRINT("\r");
-		DEBUG_PRINT("***********************************************\n");
-		DEBUG_PRINT("swVersion: %s\n", ublox_ver->sw_version);
-		DEBUG_PRINT("hwVersion: %s\n", ublox_ver->hw_version);
-		DEBUG_PRINT("%s\n", ublox_ver->ext1);
-		DEBUG_PRINT("%s\n", ublox_ver->ext2);
-		DEBUG_PRINT("%s\n", ublox_ver->ext3);
-		DEBUG_PRINT("%s\n", ublox_ver->ext4);
-		DEBUG_PRINT("%s\n", ublox_ver->ext5);
-		DEBUG_PRINT("%s\n", ublox_ver->ext6);
-		DEBUG_PRINT("***********************************************\n");
+	TxUartUbxPollCmd(&ubx_mon_ver, txrx_delay_ms_);
+	if(RxUartUbxPollMsg(CLASS_MON, ID_VER, txrx_delay_ms_)){
+		UbloxM9nVer ublox_ver{};
+		size_t copy_len = sizeof(ublox_ver);
+		if (packet_.len < copy_len) {
+			// if payload smaller than struct, copy only what's there
+			copy_len = packet_.len;
+		}
+		std::memcpy(&ublox_ver, packet_.payload, copy_len);
+		DEBUG_PRINT("GPS Module: ***********************************************\n");
+		DEBUG_PRINT("GPS Module: swVersion: %s\n", ublox_ver.sw_version);
+		DEBUG_PRINT("GPS Module: hwVersion: %s\n", ublox_ver.hw_version);
+		DEBUG_PRINT("GPS Module: %s\n", ublox_ver.ext1);
+		DEBUG_PRINT("GPS Module: %s\n", ublox_ver.ext2);
+		DEBUG_PRINT("GPS Module: %s\n", ublox_ver.ext3);
+		DEBUG_PRINT("GPS Module: %s\n", ublox_ver.ext4);
+		DEBUG_PRINT("GPS Module: %s\n", ublox_ver.ext5);
+		DEBUG_PRINT("GPS Module: %s\n", ublox_ver.ext6);
+		DEBUG_PRINT("GPS Module: ***********************************************\n");
+		return true;
 	}
-	return status;
+	return false;
 }
 
 /**
@@ -327,8 +268,9 @@ bool ReadUbloxM9nRb::GetVersion(){
 bool ReadUbloxM9nRb::ConfigGpsUart1(const uint32_t baudrate){
 	// Poll UBX-CFG-PRT message for UART1
 	UbxMessage ubx_cfg_prt;
+	UbloxM9nCfgPrt ubx_cfg_prt_msg {};
 
-	DEBUG_PRINT("\rQuerying Ublox UART1 PRT Config...\n");
+	DEBUG_PRINT("GPS Module: Querying Ublox UART1 PRT Config...\n");
 
 	ubx_cfg_prt.class_id = CLASS_CFG;
 	ubx_cfg_prt.msg_id = ID_PRT;
@@ -337,91 +279,103 @@ bool ReadUbloxM9nRb::ConfigGpsUart1(const uint32_t baudrate){
 	ubx_cfg_prt.payload = &port_id;
 
 	// Send the UBX-CFG-PRT poll request
-	TxUartUbxPollCmd(&ubx_cfg_prt, txrx_delay_ms_);
-	// Receive and process the response
-	uint8_t payload_buffer[20] = {0};
-	bool status = RxUartUbxPollMsgAck(payload_buffer, 20, txrx_delay_ms_);
-	UbloxM9nCfgPrt *ubx_cfg_prt_msg = (UbloxM9nCfgPrt *)(&payload_buffer[0]);
-
-	if(status){
-		DEBUG_PRINT("***********************************************\n");
-		DEBUG_PRINT("Port Id: %d\n", ubx_cfg_prt_msg->port_id);
-		DEBUG_PRINT("Tx Ready: 0x%04x\n", ubx_cfg_prt_msg->tx_ready);
-		DEBUG_PRINT("Mode: 0x%08" PRIx32 "\n", ubx_cfg_prt_msg->mode);
-		DEBUG_PRINT("Baudrate: %lu\n", ubx_cfg_prt_msg->baudrate);
-		DEBUG_PRINT("InProtoMask: 0x%04x\n", ubx_cfg_prt_msg->in_proto_mask);
-		DEBUG_PRINT("OutProtoMask: 0x%04x\n", ubx_cfg_prt_msg->out_proto_mask);
-		DEBUG_PRINT("Flags: 0x%04x\n", ubx_cfg_prt_msg->flags);
-		DEBUG_PRINT("***********************************************\n");
-	}else{
-		ERROR_PRINT("CFG-PRT Poll request failed\n");
+	bool status = TxUartUbxPollCmd(&ubx_cfg_prt, txrx_delay_ms_);
+	if(!status){
+		DEBUG_PRINT("GPS Module: ConfigGpsUart1 - Transmit failure - 1\n");
 		return false;
 	}
 
+	if(RxUartUbxPollMsg(CLASS_CFG, ID_PRT, txrx_delay_ms_)){
+		size_t copy_len = sizeof(ubx_cfg_prt_msg);
+		if (packet_.len < copy_len) {
+			// if payload smaller than struct, copy only what's there
+			copy_len = packet_.len;
+		}
+		std::memcpy(&ubx_cfg_prt_msg, packet_.payload, copy_len);
+		DEBUG_PRINT("GPS Module: ***********************************************\n");
+		DEBUG_PRINT("GPS Module: Port Id: %d\n", ubx_cfg_prt_msg.port_id);
+		DEBUG_PRINT("GPS Module: Tx Ready: 0x%04x\n", ubx_cfg_prt_msg.tx_ready);
+		DEBUG_PRINT("GPS Module: Mode: 0x%08" PRIx32 "\n", ubx_cfg_prt_msg.mode);
+		DEBUG_PRINT("GPS Module: Baudrate: %lu\n", ubx_cfg_prt_msg.baudrate);
+		DEBUG_PRINT("GPS Module: InProtoMask: 0x%04x\n", ubx_cfg_prt_msg.in_proto_mask);
+		DEBUG_PRINT("GPS Module: OutProtoMask: 0x%04x\n", ubx_cfg_prt_msg.out_proto_mask);
+		DEBUG_PRINT("GPS Module: Flags: 0x%04x\n", ubx_cfg_prt_msg.flags);
+		DEBUG_PRINT("GPS Module: ***********************************************\n");
+	}else{
+		ERROR_PRINT("GPS Module: CFG-PRT Poll request failed - 1\n");
+		return false;
+	}
+
+	//It also sends an ACK receive it so that cicular buffer is stepped forward
+	//No need to check the result as we have safeguards below.
+	RxUartUbxPollMsg(CLASS_ACK, ID_ACK, txrx_delay_ms_);
+
 	// Change the baudrate
-	if(ubx_cfg_prt_msg->baudrate != baudrate ||
-			ubx_cfg_prt_msg->in_proto_mask != 0x0001 ||
-			ubx_cfg_prt_msg->out_proto_mask != 0x0001){
-		ubx_cfg_prt_msg->baudrate = baudrate;
+	if(ubx_cfg_prt_msg.baudrate != baudrate ||
+			ubx_cfg_prt_msg.in_proto_mask != 0x0001 ||
+			ubx_cfg_prt_msg.out_proto_mask != 0x0001){
+		ubx_cfg_prt_msg.baudrate = baudrate;
 		// Change In and Out protocol
-		ubx_cfg_prt_msg->in_proto_mask = 0x0001;
-		ubx_cfg_prt_msg->out_proto_mask = 0x0001;
+		ubx_cfg_prt_msg.in_proto_mask = 0x0001;
+		ubx_cfg_prt_msg.out_proto_mask = 0x0001;
 
 		// Create a new UbxMessage to send the updated configuration
 		ubx_cfg_prt.length = sizeof(UbloxM9nCfgPrt);
-		ubx_cfg_prt.payload = (uint8_t *)ubx_cfg_prt_msg;
+		ubx_cfg_prt.payload = (uint8_t *)&ubx_cfg_prt_msg;
 
 		// Send the UBX-CFG-PRT configuration command with the updated baud rate,
 		// And check for ACK ACK
-		TxUartUbxPollCmd(&ubx_cfg_prt, txrx_delay_ms_);
-		// Wait for 100ms
-		HAL_Delay(200);
+		bool status = TxUartUbxPollCmd(&ubx_cfg_prt, txrx_delay_ms_);
+		if(!status){
+			DEBUG_PRINT("GPS Module: ConfigGpsUart1 - Transmit failure - 2\n");
+			return false;
+		}
 		SetBaudrate(baudrate);
-//		FlushUartDataRegister();
-//		status = RxUartUbxPollMsg(payload_buffer, 2, txrx_delay_ms_);
-//		if(!status || (payload_buffer[0] != CLASS_CFG || payload_buffer[1] != ID_PRT)){
-//			ERROR_PRINT("UBX-CFG-PRT command to change UART1 baudrate to %lu is not acknowledged\n", baudrate);
-//			return false;
-//		}
-
 		// Read back the uart port config
 		ubx_cfg_prt.length = 1;
 		ubx_cfg_prt.payload = &port_id;
 		// Send the UBX-CFG-PRT poll request
 		TxUartUbxPollCmd(&ubx_cfg_prt, txrx_delay_ms_);
-		// UBC-CFG-PRT payload length = 20
-		status = RxUartUbxPollMsgAck(payload_buffer, 20, txrx_delay_ms_);
-		ubx_cfg_prt_msg = (UbloxM9nCfgPrt *)(&payload_buffer[0]);
-		if(status){
-			DEBUG_PRINT("***********************************************\n");
-			DEBUG_PRINT("After Configuring UART1\n");
-			DEBUG_PRINT("Port Id: %d\n", ubx_cfg_prt_msg->port_id);
-			DEBUG_PRINT("Tx Ready: 0x%04x\n", ubx_cfg_prt_msg->tx_ready);
-			DEBUG_PRINT("Mode: 0x%08" PRIx32 "\n", ubx_cfg_prt_msg->mode);
-			DEBUG_PRINT("Baudrate: %lu\n", ubx_cfg_prt_msg->baudrate);
-			DEBUG_PRINT("InProtoMask: 0x%04x\n", ubx_cfg_prt_msg->in_proto_mask);
-			DEBUG_PRINT("OutProtoMask: 0x%04x\n", ubx_cfg_prt_msg->out_proto_mask);
-			DEBUG_PRINT("Flags: 0x%04x\n", ubx_cfg_prt_msg->flags);
-			DEBUG_PRINT("***********************************************\n");
+		if(RxUartUbxPollMsg(CLASS_CFG, ID_PRT, txrx_delay_ms_)){
+			UbloxM9nCfgPrt ubx_cfg_prt_msg {};
+			size_t copy_len = sizeof(ubx_cfg_prt_msg);
+			if (packet_.len < copy_len) {
+				// if payload smaller than struct, copy only what's there
+				copy_len = packet_.len;
+			}
+			std::memcpy(&ubx_cfg_prt_msg, packet_.payload, copy_len);
+			DEBUG_PRINT("GPS Module: ***********************************************\n");
+			DEBUG_PRINT("GPS Module: After Configuring UART1\n");
+			DEBUG_PRINT("GPS Module: Port Id: %d\n", ubx_cfg_prt_msg.port_id);
+			DEBUG_PRINT("GPS Module: Tx Ready: 0x%04x\n", ubx_cfg_prt_msg.tx_ready);
+			DEBUG_PRINT("GPS Module: Mode: 0x%08" PRIx32 "\n", ubx_cfg_prt_msg.mode);
+			DEBUG_PRINT("GPS Module: Baudrate: %lu\n", ubx_cfg_prt_msg.baudrate);
+			DEBUG_PRINT("GPS Module: InProtoMask: 0x%04x\n", ubx_cfg_prt_msg.in_proto_mask);
+			DEBUG_PRINT("GPS Module: OutProtoMask: 0x%04x\n", ubx_cfg_prt_msg.out_proto_mask);
+			DEBUG_PRINT("GPS Module: Flags: 0x%04x\n", ubx_cfg_prt_msg.flags);
+			DEBUG_PRINT("GPS Module: ***********************************************\n");
 		}else{
-			ERROR_PRINT("CFG-PRT Poll request failed  after updating the CFG-PRT for UART1\n");
+			ERROR_PRINT("GPS Module: CFG-PRT Poll request failed  after updating the CFG-PRT for UART1\n");
 			return false;
 		}
 
-		if(ubx_cfg_prt_msg->baudrate == baudrate){
-			DEBUG_PRINT("Successfully Configured GPS Module To Communicate At %ld\n", baudrate);
+		//It also sends an ACK receive it so that cicular buffer is stepped forward
+		//No need to check the result as we have safeguards below.
+		RxUartUbxPollMsg(CLASS_ACK, ID_ACK, txrx_delay_ms_);
+
+		if(ubx_cfg_prt_msg.baudrate == baudrate){
+			DEBUG_PRINT("GPS Module: Successfully Configured GPS Module To Communicate At %ld\n", baudrate);
 			current_baudrate_ = baudrate;
 		}else{
-			ERROR_PRINT("Failed To Configure GPS Module To Communicate At %ld\n", baudrate);
+			ERROR_PRINT("GPS Module: Failed To Configure GPS Module To Communicate At %ld\n", baudrate);
 		}
 		// Save the port config
 		status = UbxSaveCfg(0x00000001);
 		return status;
+
 	}else{
 		return true;
 	}
-
-	return true;
 }
 
 bool ReadUbloxM9nRb::ConfigPrtProtocol(uint8_t port_id, uint16_t proto_mask){
@@ -431,8 +385,9 @@ bool ReadUbloxM9nRb::ConfigPrtProtocol(uint8_t port_id, uint16_t proto_mask){
 
 	// Poll UBX-CFG-PRT message
 	UbxMessage ubx_cfg_prt;
+	UbloxM9nCfgPrt ubx_cfg_prt_msg {};
 
-	DEBUG_PRINT("Querying Config For Port Id: %d ...\n", port_id);
+	DEBUG_PRINT("GPS Module: Querying Config For Port Id: %d ...\n", port_id);
 
 	ubx_cfg_prt.class_id = CLASS_CFG;
 	ubx_cfg_prt.msg_id = ID_PRT;
@@ -440,50 +395,52 @@ bool ReadUbloxM9nRb::ConfigPrtProtocol(uint8_t port_id, uint16_t proto_mask){
 	ubx_cfg_prt.payload = &port_id;
 
 	// Send the UBX-CFG-PRT poll request
-	TxUartUbxPollCmd(&ubx_cfg_prt, txrx_delay_ms_);
+	bool status = TxUartUbxPollCmd(&ubx_cfg_prt, txrx_delay_ms_);
+	if(!status){
+		DEBUG_PRINT("GPS Module: ConfigPrtProtocol - Transmit failure - %d\n", port_id);
+		return false;
+	}
 	// UBC-CFG-PRT payload length = 20
-	uint8_t payload_buffer[sizeof(UbloxM9nCfgPrt)] = {0};
-	bool status = RxUartUbxPollMsgAck(payload_buffer, 20, txrx_delay_ms_);
-
-	UbloxM9nCfgPrt ubx_cfg_prt_data;
-	memcpy(&ubx_cfg_prt_data, payload_buffer, sizeof(UbloxM9nCfgPrt));
-	UbloxM9nCfgPrt* ubx_cfg_prt_msg = &ubx_cfg_prt_data;
-
-//	UbloxM9nCfgPrt *ubx_cfg_prt_msg = (UbloxM9nCfgPrt *)(&payload_buffer[0]);
-
-	if(status){
-		DEBUG_PRINT("***********************************************\n");
-		DEBUG_PRINT("Port Id: %d\n", ubx_cfg_prt_msg->port_id);
-		DEBUG_PRINT("InProtoMask: 0x%04x\n", ubx_cfg_prt_msg->in_proto_mask);
-		DEBUG_PRINT("OutProtoMask: 0x%04x\n", ubx_cfg_prt_msg->out_proto_mask);
-		DEBUG_PRINT("***********************************************\n");
+	if(RxUartUbxPollMsg(CLASS_CFG, ID_PRT, txrx_delay_ms_)){
+		size_t copy_len = sizeof(ubx_cfg_prt_msg);
+		if (packet_.len < copy_len) {
+			// if payload smaller than struct, copy only what's there
+			copy_len = packet_.len;
+		}
+		std::memcpy(&ubx_cfg_prt_msg, packet_.payload, copy_len);
+		DEBUG_PRINT("GPS Module: ***********************************************\n");
+		DEBUG_PRINT("GPS Module: Port Id: %d\n", ubx_cfg_prt_msg.port_id);
+		DEBUG_PRINT("GPS Module: InProtoMask: 0x%04x\n", ubx_cfg_prt_msg.in_proto_mask);
+		DEBUG_PRINT("GPS Module: OutProtoMask: 0x%04x\n", ubx_cfg_prt_msg.out_proto_mask);
+		DEBUG_PRINT("GPS Module: ***********************************************\n");
 	}else{
-		ERROR_PRINT("CFG-PRT Poll request failed\n");
+		ERROR_PRINT("GPS Module: CFG-PRT Poll request failed - %d\n", port_id);
 		return false;
 	}
 
+	//It also sends an ACK receive it so that cicular buffer is stepped forward
+	//No need to check the result as we have safeguards below.
+	RxUartUbxPollMsg(CLASS_ACK, ID_ACK, txrx_delay_ms_);
 
 	// Change the in and out protocol
-	if(ubx_cfg_prt_msg->in_proto_mask != proto_mask ||
-			ubx_cfg_prt_msg->out_proto_mask != proto_mask){
+	if(ubx_cfg_prt_msg.in_proto_mask != proto_mask ||
+			ubx_cfg_prt_msg.out_proto_mask != proto_mask){
 		// Change In and Out protocol
-		ubx_cfg_prt_msg->in_proto_mask = proto_mask;
-		ubx_cfg_prt_msg->out_proto_mask = proto_mask;
+		ubx_cfg_prt_msg.in_proto_mask = proto_mask;
+		ubx_cfg_prt_msg.out_proto_mask = proto_mask;
 
 		// Create a new UbxMessage to send the updated configuration
 		ubx_cfg_prt.length = sizeof(UbloxM9nCfgPrt);
-		ubx_cfg_prt.payload = (uint8_t *)ubx_cfg_prt_msg;
+		ubx_cfg_prt.payload = (uint8_t *)&ubx_cfg_prt_msg;
 
 		// Send the UBX-CFG-PRT configuration command with the updated proto mask
 		TxUartUbxPollCmd(&ubx_cfg_prt, txrx_delay_ms_);
 
-		bool status  = RxUartUbxPollMsg(payload_buffer, 2, txrx_delay_ms_);
-
-
-		if(status && payload_buffer[0] == CLASS_CFG && payload_buffer[1] == ID_PRT){
-			DEBUG_PRINT("Configuration change acknowledged for Port Id: %d\n", port_id);
+		if(RxUartUbxPollMsg(CLASS_ACK, ID_ACK, txrx_delay_ms_) &&
+					packet_.payload[0] == CLASS_CFG && packet_.payload[1] == ID_PRT){
+			DEBUG_PRINT("GPS Module: Configuration change acknowledged for Port Id: %d\n", port_id);
 		}else{
-			ERROR_PRINT("Configuration change not acknowledged for Port Id: %d\n", port_id);
+			ERROR_PRINT("GPS Module: Configuration change not acknowledged for Port Id: %d\n", port_id);
 			return false;
 		}
 
@@ -491,24 +448,32 @@ bool ReadUbloxM9nRb::ConfigPrtProtocol(uint8_t port_id, uint16_t proto_mask){
 		ubx_cfg_prt.length = 1;
 		ubx_cfg_prt.payload = &port_id;
 		// Send the UBX-CFG-PRT poll request
-		TxUartUbxPollCmd(&ubx_cfg_prt, txrx_delay_ms_);
-
-		// UBC-CFG-PRT payload length = 20
-		status = RxUartUbxPollMsgAck(payload_buffer, 20, txrx_delay_ms_);
-
-		// Copy into struct safely
-		memcpy(&ubx_cfg_prt_data, payload_buffer, sizeof(UbloxM9nCfgPrt));
-
-		if(status){
-			DEBUG_PRINT("***********************************************\n");
-			DEBUG_PRINT("After Configuring Port Id: %d\n", port_id);
-			DEBUG_PRINT("InProtoMask: 0x%04x\n", ubx_cfg_prt_data.in_proto_mask);
-			DEBUG_PRINT("OutProtoMask: 0x%04x\n", ubx_cfg_prt_data.out_proto_mask);
-			DEBUG_PRINT("***********************************************\n");
-		}else{
-			ERROR_PRINT("CFG-PRT Poll request failed after port configuration\n");
+		bool status = TxUartUbxPollCmd(&ubx_cfg_prt, txrx_delay_ms_);
+		if(!status){
+			DEBUG_PRINT("GPS Module: ConfigPrtProtocol - Transmit failure - %d\n", port_id);
 			return false;
 		}
+
+		// UBC-CFG-PRT payload length = 20
+		if(RxUartUbxPollMsg(CLASS_CFG, ID_PRT, txrx_delay_ms_)){
+			size_t copy_len = sizeof(ubx_cfg_prt_msg);
+			if (packet_.len < copy_len) {
+				// if payload smaller than struct, copy only what's there
+				copy_len = packet_.len;
+			}
+			std::memcpy(&ubx_cfg_prt_msg, packet_.payload, copy_len);
+			DEBUG_PRINT("GPS Module: ***********************************************\n");
+			DEBUG_PRINT("GPS Module: Port Id: %d\n", ubx_cfg_prt_msg.port_id);
+			DEBUG_PRINT("GPS Module: InProtoMask: 0x%04x\n", ubx_cfg_prt_msg.in_proto_mask);
+			DEBUG_PRINT("GPS Module: OutProtoMask: 0x%04x\n", ubx_cfg_prt_msg.out_proto_mask);
+			DEBUG_PRINT("GPS Module: ***********************************************\n");
+		}else{
+			ERROR_PRINT("GPS Module: CFG-PRT Poll request failed after port configuration - %d\n", port_id);
+			return false;
+		}
+
+		//It also sends an ACK, receive it so that cicular buffer is stepped forward
+		RxUartUbxPollMsg(CLASS_ACK, ID_ACK, txrx_delay_ms_);
 
 		// Save the port config
 		status = UbxSaveCfg(0x00000001);
@@ -516,8 +481,6 @@ bool ReadUbloxM9nRb::ConfigPrtProtocol(uint8_t port_id, uint16_t proto_mask){
 	}else{
 		return true;
 	}
-
-	return true;
 }
 
 bool ReadUbloxM9nRb::ConfigAuxPrts(){
@@ -529,33 +492,33 @@ bool ReadUbloxM9nRb::ConfigAuxPrts(){
 	bool status = true;
 	status &= ConfigPrtProtocol(0, 0x0001);
 	if(status){
-		DEBUG_PRINT("I2C port configured\n");
+		DEBUG_PRINT("GPS Module: I2C port configured\n");
 	}else{
-		ERROR_PRINT("Failed to configure I2C port\n");
+		ERROR_PRINT("GPS Module: Failed to configure I2C port\n");
 	}
 
 	// Config UART2 for UBX only
 	status &= ConfigPrtProtocol(2, 0x0001);
 	if(status){
-		DEBUG_PRINT("UART2 port configured\n");
+		DEBUG_PRINT("GPS Module: UART2 port configured\n");
 	}else{
-		ERROR_PRINT("Failed to configure UART2 port\n");
+		ERROR_PRINT("GPS Module: Failed to configure UART2 port\n");
 	}
 
 	// Config USB for UBX and NMEA only
 	status &= ConfigPrtProtocol(3, 0x0003);
 	if(status){
-		DEBUG_PRINT("USB port configured\n");
+		DEBUG_PRINT("GPS Module: USB port configured\n");
 	}else{
-		ERROR_PRINT("Failed to configure USB port\n");
+		ERROR_PRINT("GPS Module: Failed to configure USB port\n");
 	}
 
 	// Config SPI for UBX
 	status &= ConfigPrtProtocol(4, 0x0001);
 	if(status){
-		DEBUG_PRINT("SPI port configured\n");
+		DEBUG_PRINT("GPS Module: SPI port configured\n");
 	}else{
-		ERROR_PRINT("Failed to configure SPI port\n");
+		ERROR_PRINT("GPS Module: Failed to configure SPI port\n");
 	}
 
 	return status;
@@ -564,6 +527,7 @@ bool ReadUbloxM9nRb::ConfigAuxPrts(){
 bool ReadUbloxM9nRb::ConfigNav5(){
 	// Poll UBX-CFG-NAV5 message
 	UbxMessage ubx_cfg_nav5;
+	UbloxM9nCfgNav5 ubx_cfg_nav5_msg {};
 
 	ubx_cfg_nav5.class_id = CLASS_CFG;
 	ubx_cfg_nav5.msg_id = ID_NAV5;
@@ -571,42 +535,54 @@ bool ReadUbloxM9nRb::ConfigNav5(){
 	ubx_cfg_nav5.payload = NULL;
 
 	// Send the UBX-CFG-NAV5 request
-	TxUartUbxPollCmd(&ubx_cfg_nav5, txrx_delay_ms_);
+	bool status = TxUartUbxPollCmd(&ubx_cfg_nav5, txrx_delay_ms_);
+	if(!status){
+		DEBUG_PRINT("GPS Module: ConfigNav5 - Transmit failure - 1\n");
+	}
 
 	// UBC-CFG-NAV5 payload length = 36
-	uint8_t payload_buffer[36] = {0};
-	bool status = RxUartUbxPollMsgAck(payload_buffer, 36, txrx_delay_ms_);
-	UbloxM9nCfgNav5 *ubx_cfg_nav5_msg = (UbloxM9nCfgNav5 *)(&payload_buffer);
-
-	if(status){
-		DEBUG_PRINT("***********************************************\n");
-		DEBUG_PRINT("Current Dynamic Model: %d\n", ubx_cfg_nav5_msg->dyn_model);
-		DEBUG_PRINT("Current Fix Mode: %d\n", ubx_cfg_nav5_msg->fix_mode);
-		DEBUG_PRINT("***********************************************\n");
+	if(RxUartUbxPollMsg(CLASS_CFG, ID_NAV5, txrx_delay_ms_)){
+		size_t copy_len = sizeof(ubx_cfg_nav5_msg);
+		if (packet_.len < copy_len) {
+			// if payload smaller than struct, copy only what's there
+			copy_len = packet_.len;
+		}
+		std::memcpy(&ubx_cfg_nav5_msg, packet_.payload, copy_len);
+		DEBUG_PRINT("GPS Module: ***********************************************\n");
+		DEBUG_PRINT("GPS Module: Current Dynamic Model: %d\n", ubx_cfg_nav5_msg.dyn_model);
+		DEBUG_PRINT("GPS Module: Current Fix Mode: %d\n", ubx_cfg_nav5_msg.fix_mode);
+		DEBUG_PRINT("GPS Module: ***********************************************\n");
 	}else{
-		ERROR_PRINT("CFG-NAV5 Poll request failed\n");
+		ERROR_PRINT("GPS Module: CFG-NAV5 Poll request failed\n");
 		return false;
 	}
 
-	if (ubx_cfg_nav5_msg->dyn_model != 8 ||
-			ubx_cfg_nav5_msg->fix_mode	!= 2){
+	//It also sends an ACK receive it so that cicular buffer is stepped forward
+	//No need to check the result as we have safeguards below.
+	RxUartUbxPollMsg(CLASS_ACK, ID_ACK, txrx_delay_ms_);
+
+	if (ubx_cfg_nav5_msg.dyn_model != 8 ||
+			ubx_cfg_nav5_msg.fix_mode	!= 2){
 		// Change dynamic model to airborne < 4g and use only 3D fix
-		ubx_cfg_nav5_msg->dyn_model = 8;
-		ubx_cfg_nav5_msg->fix_mode = 2;
-		ubx_cfg_nav5_msg->mask = 0x05;
+		ubx_cfg_nav5_msg.dyn_model = 8;
+		ubx_cfg_nav5_msg.fix_mode = 2;
+		ubx_cfg_nav5_msg.mask = 0x05;
 
 		// Create a CFG message to send to Ublox
 		ubx_cfg_nav5.length = sizeof(UbloxM9nCfgNav5);
-		ubx_cfg_nav5.payload = (uint8_t*)ubx_cfg_nav5_msg;
+		ubx_cfg_nav5.payload = (uint8_t*)&ubx_cfg_nav5_msg;
 
 		// Send the UBX-CFG-PRT configuration command with the updated proto mask
-		TxUartUbxPollCmd(&ubx_cfg_nav5, txrx_delay_ms_);
-		status  = RxUartUbxPollMsg(payload_buffer, 2, txrx_delay_ms_);
+		status = TxUartUbxPollCmd(&ubx_cfg_nav5, txrx_delay_ms_);
+		if(!status){
+			DEBUG_PRINT("GPS Module: ConfigNav5 - Transmit failure - 2\n");
+		}
 
-		if(status && payload_buffer[0] == CLASS_CFG && payload_buffer[1] == ID_NAV5){
-			DEBUG_PRINT("Configuration change acknowledged for NAV5\n");
+		if(RxUartUbxPollMsg(CLASS_ACK, ID_ACK, txrx_delay_ms_) &&
+					packet_.payload[0] == CLASS_CFG && packet_.payload[1] == ID_NAV5){
+			DEBUG_PRINT("GPS Module: Configuration change acknowledged for NAV5\n");
 		}else{
-			ERROR_PRINT("Configuration change not acknowledged for NAV5\n");
+			ERROR_PRINT("GPS Module: Configuration change not acknowledged for NAV5\n");
 			return false;
 		}
 
@@ -614,28 +590,37 @@ bool ReadUbloxM9nRb::ConfigNav5(){
 		ubx_cfg_nav5.payload = NULL;
 
 		// Send the UBX-CFG-NAV5 request
-		TxUartUbxPollCmd(&ubx_cfg_nav5, txrx_delay_ms_);
+		status = TxUartUbxPollCmd(&ubx_cfg_nav5, txrx_delay_ms_);
+		if(!status){
+			DEBUG_PRINT("GPS Module: ConfigNav5 - Transmit failure - 3\n");
+		}
 
 		// UBC-CFG-NAV5 payload length = 36, read back the NAV5 config
-		status = RxUartUbxPollMsgAck(payload_buffer, 36, txrx_delay_ms_);
-		ubx_cfg_nav5_msg = (UbloxM9nCfgNav5 *)(&payload_buffer);
-		if(status){
-			DEBUG_PRINT("***********************************************\n");
-			DEBUG_PRINT("Updated Dynamic Model: %d\n", ubx_cfg_nav5_msg->dyn_model);
-			DEBUG_PRINT("Updated Fix Mode: %d\n", ubx_cfg_nav5_msg->fix_mode);
-			DEBUG_PRINT("***********************************************\n");
+		if(RxUartUbxPollMsg(CLASS_CFG, ID_NAV5, txrx_delay_ms_)){
+			size_t copy_len = sizeof(ubx_cfg_nav5_msg);
+			if (packet_.len < copy_len) {
+				// if payload smaller than struct, copy only what's there
+				copy_len = packet_.len;
+			}
+			std::memcpy(&ubx_cfg_nav5_msg, packet_.payload, copy_len);
+			DEBUG_PRINT("GPS Module: ***********************************************\n");
+			DEBUG_PRINT("GPS Module: Current Dynamic Model: %d\n", ubx_cfg_nav5_msg.dyn_model);
+			DEBUG_PRINT("GPS Module: Current Fix Mode: %d\n", ubx_cfg_nav5_msg.fix_mode);
+			DEBUG_PRINT("GPS Module: ***********************************************\n");
 		}else{
-			ERROR_PRINT("CFG-NAV5 Poll request failed after updating the CFG-NAV5\n");
+			ERROR_PRINT("GPS Module: CFG-NAV5 Poll request failed after updating the CFG-NAV5\n");
 			return false;
 		}
+
+		//It also sends an ACK receive it so that cicular buffer is stepped forward
+		RxUartUbxPollMsg(CLASS_ACK, ID_ACK, txrx_delay_ms_);
 
 		//Save the NAV5 config
 		status = UbxSaveCfg(0x00000008);
 		return status;
-
+	}else{
+		return true;
 	}
-
-	return true;
 }
 
 bool ReadUbloxM9nRb::EnableNavPvtMsg(){
@@ -656,15 +641,22 @@ bool ReadUbloxM9nRb::EnableNavPvtMsg(){
 	ubx_cfg_msg.length = sizeof(UbloxM9nCfgMsg);
 	ubx_cfg_msg.payload = (uint8_t*)&ubx_cfg_msg_msg;
 
-	// Send the UBX-CFG-RATE request
-	TxUartUbxPollCmd(&ubx_cfg_msg, txrx_delay_ms_);
-	uint8_t payload_buffer[8] = {0};
-	bool status  = RxUartUbxPollMsg(payload_buffer, 2, 1000);
-	if(status && payload_buffer[0] == CLASS_CFG && payload_buffer[1] == ID_MSG){
-		DEBUG_PRINT("Successfully configured NAV-PVT message for UART1\n");
+	// Send the command
+	bool status = TxUartUbxPollCmd(&ubx_cfg_msg, txrx_delay_ms_);
+	if(!status){
+		DEBUG_PRINT("GPS Module: EnableNavPvtMsg - Transmit failure\n");
 	}
 
-	return status;
+	if(RxUartUbxPollMsg(CLASS_ACK, ID_ACK, txrx_delay_ms_) &&
+			packet_.payload[0] == CLASS_CFG && packet_.payload[1] == ID_MSG){
+		DEBUG_PRINT("GPS Module: Successfully started NAV-PVT message for UART1\n");
+		return true;
+	}else{
+		DEBUG_PRINT("GPS Module: Failed to start NAV-PVT message for UART1: [Class]: %02x, [Id]%02x, [Pld0]%02x, [Pld1]%02x\n",
+				packet_.cls, packet_.id, packet_.payload[0], packet_.payload[1]);
+	}
+
+	return false;
 }
 
 bool ReadUbloxM9nRb::DisableNavPvtMsg(){
@@ -685,38 +677,42 @@ bool ReadUbloxM9nRb::DisableNavPvtMsg(){
 	ubx_cfg_msg.length = sizeof(UbloxM9nCfgMsg);
 	ubx_cfg_msg.payload = (uint8_t*)&ubx_cfg_msg_msg;
 
-	// Send the UBX-CFG-RATE request
-	uint8_t payload_buffer[8] = {0};
-	TxUartUbxPollCmd(&ubx_cfg_msg, txrx_delay_ms_);
-	bool status  = RxUartUbxPollMsg(payload_buffer, 2, 1000);
-	if(status && payload_buffer[0] == CLASS_CFG && payload_buffer[1] == ID_MSG){
-		DEBUG_PRINT("Successfully stopped NAV-PVT message for UART1\n");
+	// Send the command
+	bool status = TxUartUbxPollCmd(&ubx_cfg_msg, txrx_delay_ms_);
+	if(!status){
+		DEBUG_PRINT("GPS Module: DisableNavPvtMsg - Transmit failure\n");
 	}
 
-	return status;
+	if(RxUartUbxPollMsg(CLASS_ACK, ID_ACK, txrx_delay_ms_) &&
+			packet_.payload[0] == CLASS_CFG && packet_.payload[1] == ID_MSG){
+		DEBUG_PRINT("GPS Module: Successfully stopped NAV-PVT message for UART1\n");
+		return true;
+	}else{
+		DEBUG_PRINT("GPS Module: Failed to stop NAV-PVT message for UART1: %02x, %02x\n", packet_.cls, packet_.id);
+	}
+
+	return false;
 }
 
 void ReadUbloxM9nRb::GetCurrentBaudrate(){
 	uint8_t num_baurates = sizeof(supported_baudrates_) / sizeof(supported_baudrates_[0]);
 	for (size_t idx = 0; idx < num_baurates; idx++){
 		SetBaudrate(supported_baudrates_[idx]);
-		FlushUartDataRegister();
 		bool status = GetVersion();
 		if(status){
-			DEBUG_PRINT("Current GPS Module Baudrate is: %ld, Resetting GPS\n", supported_baudrates_[idx]);
+			DEBUG_PRINT("GPS Module: Current GPS Module Baudrate is: %ld, Resetting GPS\n", supported_baudrates_[idx]);
 			current_baudrate_ = supported_baudrates_[idx];
 			status = ResetGps();
 			return;
 		}
 	}
 
-	DEBUG_PRINT("Unable to find the correct baudrate\n");
+	DEBUG_PRINT("GPS Module: Unable to find the correct baudrate\n");
 }
 
 bool ReadUbloxM9nRb::InitGps(uint32_t baudrate, uint16_t time_bw_samples_ms, uint8_t nav_rate){
 	bool status;
 	GetCurrentBaudrate();
-	FlushUartDataRegister();
 	status = DisableNavPvtMsg();
 	if(status){
 		//Config the desired baudrate on GPS module
@@ -727,6 +723,8 @@ bool ReadUbloxM9nRb::InitGps(uint32_t baudrate, uint16_t time_bw_samples_ms, uin
 		status &= ConfigAuxPrts();
 		status &= ConfigNav5();
 		status &= ConfigGpsMeasRate(time_bw_samples_ms, nav_rate);
+		FlushUartDataRegister();
+		status &= EnableNavPvtMsg();
 	}
 
 	return status;
@@ -737,47 +735,62 @@ bool ReadUbloxM9nRb::ConfigGpsMeasRate(uint16_t time_bw_samples_ms, uint8_t nav_
 	 *
 	 */
 	UbxMessage ubx_cfg_rate;
+	UbloxM9nCfgRate ubx_cfg_rate_msg {};
+
 	ubx_cfg_rate.class_id = CLASS_CFG;
 	ubx_cfg_rate.msg_id = ID_RATE;
 	ubx_cfg_rate.length = 0;
 	ubx_cfg_rate.payload = NULL;
 
-	uint8_t payload_buffer[6] = {0};
 	// Send the UBX-CFG-RATE request
-	TxUartUbxPollCmd(&ubx_cfg_rate, txrx_delay_ms_);
+	bool status = TxUartUbxPollCmd(&ubx_cfg_rate, txrx_delay_ms_);
+	if(!status){
+		DEBUG_PRINT("GPS Module: ConfigGpsMeasRate - Transmit failure - 1\n");
+		return false;
+	}
 	// UBC-CFG-RATE payload length = 6
-	bool status = RxUartUbxPollMsgAck(payload_buffer, 6, txrx_delay_ms_);
-	UbloxM9nCfgRate *ubx_cfg_rate_msg = (UbloxM9nCfgRate *)(&payload_buffer);
-
-	if(status){
-		DEBUG_PRINT("***********************************************\n");
-		DEBUG_PRINT("Current Time Bw Samples [ms]: %d\n", ubx_cfg_rate_msg->meas_rate);
-		DEBUG_PRINT("Current Nav Rate: %d\n", ubx_cfg_rate_msg->nav_rate);
-		DEBUG_PRINT("***********************************************\n");
+	if(RxUartUbxPollMsg(CLASS_CFG, ID_RATE, txrx_delay_ms_)){
+		size_t copy_len = sizeof(ubx_cfg_rate_msg);
+		if (packet_.len < copy_len) {
+			// if payload smaller than struct, copy only what's there
+			copy_len = packet_.len;
+		}
+		std::memcpy(&ubx_cfg_rate_msg, packet_.payload, copy_len);
+		DEBUG_PRINT("GPS Module: ***********************************************\n");
+		DEBUG_PRINT("GPS Module: Current Time Bw Samples [ms]: %d\n", ubx_cfg_rate_msg.meas_rate);
+		DEBUG_PRINT("GPS Module: Current Nav Rate: %d\n", ubx_cfg_rate_msg.nav_rate);
+		DEBUG_PRINT("GPS Module: ***********************************************\n");
 	}else{
-		ERROR_PRINT("CFG-RATE Poll request failed\n");
+		ERROR_PRINT("GPS Module: CFG-RATE Poll request failed - 1\n");
 		return false;
 	}
 
-	if (ubx_cfg_rate_msg->meas_rate != time_bw_samples_ms ||
-			ubx_cfg_rate_msg->nav_rate	!= nav_rate){
+	//It also sends an ACK receive it so that cicular buffer is stepped forward
+	//No need to check the result as we have safeguards below.
+	RxUartUbxPollMsg(CLASS_ACK, ID_ACK, txrx_delay_ms_);
+
+	if (ubx_cfg_rate_msg.meas_rate != time_bw_samples_ms ||
+			ubx_cfg_rate_msg.nav_rate	!= nav_rate){
 		// Change meas and nav rate to desired values
-		ubx_cfg_rate_msg->meas_rate = time_bw_samples_ms;
-		ubx_cfg_rate_msg->nav_rate = nav_rate;
+		ubx_cfg_rate_msg.meas_rate = time_bw_samples_ms;
+		ubx_cfg_rate_msg.nav_rate = nav_rate;
 
 		// Create a CFG message to send to Ublox
 		ubx_cfg_rate.length = sizeof(UbloxM9nCfgRate);
-		ubx_cfg_rate.payload = (uint8_t*)ubx_cfg_rate_msg;
+		ubx_cfg_rate.payload = (uint8_t*)&ubx_cfg_rate_msg;
 
 		// Send the UBX-CFG-RATE configuration command
-		TxUartUbxPollCmd(&ubx_cfg_rate, txrx_delay_ms_);
-		status  = RxUartUbxPollMsg(payload_buffer, 2, txrx_delay_ms_);
+		status = TxUartUbxPollCmd(&ubx_cfg_rate, txrx_delay_ms_);
+		if(!status){
+			DEBUG_PRINT("GPS Module: ConfigGpsMeasRate - Transmit failure - 2\n");
+			return false;
+		}
 
-
-		if(status && payload_buffer[0] == CLASS_CFG && payload_buffer[1] == ID_RATE){
-			DEBUG_PRINT("Configuration change acknowledged for RATE\n");
+		if(RxUartUbxPollMsg(CLASS_ACK, ID_ACK, txrx_delay_ms_) &&
+							packet_.payload[0] == CLASS_CFG && packet_.payload[1] == ID_RATE){
+			DEBUG_PRINT("GPS Module: Configuration change acknowledged for RATE\n");
 		}else{
-			ERROR_PRINT("Configuration change not acknowledged for RATE\n");
+			ERROR_PRINT("GPS Module: Configuration change not acknowledged for RATE\n");
 			return false;
 		}
 
@@ -785,69 +798,43 @@ bool ReadUbloxM9nRb::ConfigGpsMeasRate(uint16_t time_bw_samples_ms, uint8_t nav_
 		ubx_cfg_rate.payload = NULL;
 
 		// Send the UBX-CFG-RATE request
-		TxUartUbxPollCmd(&ubx_cfg_rate, txrx_delay_ms_);
-
-		// UBC-CFG-NAV5 payload length = 6, read back the NAV5 config
-		status = RxUartUbxPollMsgAck(payload_buffer, 6, txrx_delay_ms_);
-		ubx_cfg_rate_msg = (UbloxM9nCfgRate *)(&payload_buffer);
-		if(status){
-			DEBUG_PRINT("***********************************************\n");
-			DEBUG_PRINT("Updated Time Bw Samples [ms]: %d\n", ubx_cfg_rate_msg->meas_rate);
-			DEBUG_PRINT("Updated Nav Rate: %d\n", ubx_cfg_rate_msg->nav_rate);
-			DEBUG_PRINT("***********************************************\n");
-		}else{
-			ERROR_PRINT("CFG-RATE Poll request failed after updating the CFG-RATE\n");
+		status = TxUartUbxPollCmd(&ubx_cfg_rate, txrx_delay_ms_);
+		if(!status){
+			DEBUG_PRINT("GPS Module: ConfigGpsMeasRate - Transmit failure - 2\n");
 			return false;
 		}
+
+		// UBC-CFG-NAV5 payload length = 6, read back the NAV5 config
+		if(RxUartUbxPollMsg(CLASS_CFG, ID_RATE, txrx_delay_ms_)){
+			size_t copy_len = sizeof(ubx_cfg_rate_msg);
+			if (packet_.len < copy_len) {
+				// if payload smaller than struct, copy only what's there
+				copy_len = packet_.len;
+			}
+			std::memcpy(&ubx_cfg_rate_msg, packet_.payload, copy_len);
+			DEBUG_PRINT("GPS Module: ***********************************************\n");
+			DEBUG_PRINT("GPS Module: Updated Time Bw Samples [ms]: %d\n", ubx_cfg_rate_msg.meas_rate);
+			DEBUG_PRINT("GPS Module: Updated Nav Rate: %d\n", ubx_cfg_rate_msg.nav_rate);
+			DEBUG_PRINT("GPS Module: ***********************************************\n");
+		}else{
+			ERROR_PRINT("GPS Module: CFG-RATE Poll request failed after updating the CFG-RATE\n");
+			return false;
+		}
+
+		//It also sends an ACK receive it so that cicular buffer is stepped forward
+		RxUartUbxPollMsg(CLASS_ACK, ID_ACK, txrx_delay_ms_);
 
 		// Save the Rate config
 		status = UbxSaveCfg(0x00000008);
 		return status;
 
+	}else{
+		return true;
 	}
-	return true;
 }
 
-void ReadUbloxM9nRb::StartNavPvtMsg(){
-	// Start UART reception in DMA Circular mode
-	HAL_Delay(5);
-	EnableNavPvtMsg();
-	FlushUartDataRegister();
-	HAL_UART_Receive_DMA(gps_uart_, rx_buffer_, MAX_BUFF_SIZE);
-	HAL_Delay(5);
-}
-//
-//void ReadUbloxM9nRb::ProcessNavPvtFrame(){
-//	uint8_t ck_a, ck_b;
-//	uint8_t checksum_valid = false;
-//	CalculateChecksum(&nav_pvt_raw_buff_[2], 92 + 4, &ck_a, &ck_b);
-//	// Verify checksum
-//	if((ck_a == nav_pvt_raw_buff_[92 + 6] && ck_b == nav_pvt_raw_buff_[92 + 7]) &&
-//			ck_a != 0 && ck_b != 0){
-//		checksum_valid = true;
-//	}
-//	if(checksum_valid){
-//		memcpy(&nav_pvt_data_, &nav_pvt_raw_buff_[6], sizeof(UbloxM9nNavPvt));
-//		gps_data_.i_tow = nav_pvt_data_.i_tow;
-//		gps_data_.valid = nav_pvt_data_.valid;
-//		gps_data_.fix_type = nav_pvt_data_.fix_type;
-//		gps_data_.flags = nav_pvt_data_.flags;
-//		gps_data_.latitude_rad = nav_pvt_data_.lat * 1e-7 * DEG2RAD;
-//		gps_data_.longitude_rad = nav_pvt_data_.lon * 1e-7 * DEG2RAD;
-//		gps_data_.altitude_m = nav_pvt_data_.height * 1e-3;
-//		gps_data_.vn_mps = nav_pvt_data_.vel_n * 1e-3;
-//		gps_data_.ve_mps = nav_pvt_data_.vel_e * 1e-3;
-//		gps_data_.vd_mps = nav_pvt_data_.vel_d * 1e-3;
-//
-//		gps_data_.checksum_valid = checksum_valid;
-//	}
-//
-//	new_nav_pvt_frame_ = false;
-//}
-
-void ReadUbloxM9nRb::ProcessNavPvtFrame(){
+bool ReadUbloxM9nRb::ProcessUbloxFrame(){
 	size_t current_write_index = MAX_BUFF_SIZE - __HAL_DMA_GET_COUNTER(gps_uart_->hdmarx);
-
 	size_t available_bytes = 0;
 	if (current_write_index >= last_read_index_) {
 		available_bytes = current_write_index - last_read_index_;
@@ -855,83 +842,114 @@ void ReadUbloxM9nRb::ProcessNavPvtFrame(){
 		available_bytes = MAX_BUFF_SIZE - last_read_index_ + current_write_index;
 	}
 
+	if(available_bytes == 0) return false;
 	size_t bytes_processed = 0;
 	while (bytes_processed < available_bytes) {
 		size_t buffer_index = (last_read_index_ + bytes_processed) % MAX_BUFF_SIZE;
-
-		uint8_t byte0 = rx_buffer_[buffer_index];
-		uint8_t byte1 = rx_buffer_[(buffer_index + 1) % MAX_BUFF_SIZE];
-
-		if (byte0 == UBX_SYNC_CHAR_1 && byte1 == UBX_SYNC_CHAR_2) {
-			// Check if full UBX frame is available
-			if ((available_bytes - bytes_processed) < UBX_NAV_PVT_SIZE) {
-				break;  // Wait for more data
-			}
-
-			uint8_t frame[UBX_NAV_PVT_SIZE];
-			for (size_t j = 0; j < UBX_NAV_PVT_SIZE; ++j) {
-				frame[j] = rx_buffer_[(buffer_index + j) % MAX_BUFF_SIZE];
-			}
-
-			if (frame[2] == CLASS_NAV && frame[3] == ID_PVT) {
-				uint16_t payload_length = frame[4] | (frame[5] << 8);
-				if (payload_length == 92) {
-					uint8_t ck_a = 0;
-					uint8_t ck_b = 0;
-					CalculateChecksum(&frame[2], 92 + 4, &ck_a, &ck_b);
-
-					if (ck_a == frame[UBX_NAV_PVT_SIZE - 2] &&
-							ck_b == frame[UBX_NAV_PVT_SIZE - 1]) {
-						memcpy(&nav_pvt_data_, &frame[6], sizeof(UbloxM9nNavPvt));
-						gps_data_.i_tow = nav_pvt_data_.i_tow;
-						gps_data_.valid = nav_pvt_data_.valid;
-						gps_data_.fix_type = nav_pvt_data_.fix_type;
-						gps_data_.flags = nav_pvt_data_.flags;
-						gps_data_.latitude_rad = nav_pvt_data_.lat * 1e-7 * DEG2RAD;
-						gps_data_.longitude_rad = nav_pvt_data_.lon * 1e-7 * DEG2RAD;
-						gps_data_.altitude_m = nav_pvt_data_.height * 1e-3;
-						gps_data_.vn_mps = nav_pvt_data_.vel_n * 1e-3;
-						gps_data_.ve_mps = nav_pvt_data_.vel_e * 1e-3;
-						gps_data_.vd_mps = nav_pvt_data_.vel_d * 1e-3;
-						gps_data_.num_sv = nav_pvt_data_.num_sv;
-						gps_data_.g_speed_mps = nav_pvt_data_.g_speed * 1e-3f;
-						gps_data_.cog_deg = nav_pvt_data_.heading * 1e-5f;
-						gps_data_.hacc_m = nav_pvt_data_.h_acc * 1e-3f;
-						gps_data_.vacc_m = nav_pvt_data_.v_acc * 1e-3f;
-						gps_data_.s_acc_mps = nav_pvt_data_.s_acc * 1e-3f;
-						gps_data_.heading_acc_deg = nav_pvt_data_.heading_acc * 1e-5f;
-						gps_data_.p_dop = nav_pvt_data_.p_dop;
-						gps_data_.head_veh_deg = nav_pvt_data_.head_veh * 1e-5;
-
-						gps_data_.checksum_valid = true;
-						new_nav_pvt_frame_ = true;
-					}
-					bytes_processed += UBX_NAV_PVT_SIZE;
-					continue;
-				}
-			}
+		if(ParseUbx(rx_buffer_[buffer_index])){
+			last_read_index_ = (last_read_index_ + bytes_processed + 1) % MAX_BUFF_SIZE;
+			return true;
 		}
 		++bytes_processed;
 	}
-
 	last_read_index_ = (last_read_index_ + bytes_processed) % MAX_BUFF_SIZE;
+	return false;
+}
+
+bool ReadUbloxM9nRb::ParseUbx(uint8_t byte)
+{
+    switch(parser_state_)
+    {
+		case WAIT_SYNC1:
+			if (byte == UBX_SYNC_CHAR_1) parser_state_ = WAIT_SYNC2;
+			break;
+
+		case WAIT_SYNC2:
+			if (byte == UBX_SYNC_CHAR_2) parser_state_ = WAIT_CLASS;
+			else parser_state_ = WAIT_SYNC1;
+			break;
+
+		case WAIT_CLASS:
+			packet_.cls = byte;
+			ck_a_ = ck_b_ = 0;
+			UpdateChecksum(byte);
+			parser_state_ = WAIT_ID;
+			break;
+
+		case WAIT_ID:
+			packet_.id = byte;
+			UpdateChecksum(byte);
+			parser_state_ = WAIT_LEN1;
+			break;
+
+		case WAIT_LEN1:
+			packet_.len = byte;
+			UpdateChecksum(byte);
+			parser_state_ = WAIT_LEN2;
+			break;
+
+		case WAIT_LEN2:
+			packet_.len |= (uint16_t)byte << 8;
+			UpdateChecksum(byte);
+			if (packet_.len > UBX_MAX_PAYLOAD) {
+				parser_state_ = WAIT_SYNC1;
+			} else if (packet_.len == 0) {
+				parser_state_ = WAIT_CK_A;
+			} else {
+				payload_idx_ = 0;
+				parser_state_ = WAIT_PAYLOAD;
+			}
+			break;
+
+		case WAIT_PAYLOAD:
+			packet_.payload[payload_idx_++] = byte;
+			UpdateChecksum(byte);
+			if (payload_idx_ >= packet_.len) {
+				parser_state_ = WAIT_CK_A;
+			}
+			break;
+
+		case WAIT_CK_A:
+			if (byte == ck_a_) {
+				parser_state_ = WAIT_CK_B;
+			} else {
+				if (byte == UBX_SYNC_CHAR_1){
+					parser_state_ = WAIT_SYNC2;
+				}else{
+					parser_state_ = WAIT_SYNC1;
+				}
+			}
+			break;
+
+		case WAIT_CK_B:
+			if (byte == ck_b_) {
+				parser_state_ = WAIT_SYNC1;
+				return true; // complete valid packet
+			} else {
+				parser_state_ = WAIT_SYNC1;
+			}
+			break;
+
+		default:
+			parser_state_ = WAIT_SYNC1;
+			break;
+    }
+
+    return false;
 }
 
 void ReadUbloxM9nRb::Run() {
 	Publisher<GpsData> ubloxm9n_pub(TopicID::UBLOXM9N);
 	osDelay(100);
-	vTaskSuspendAll();   // Suspend scheduler (no task preemption)
-	InitGps(921600, 50, 1);
-	StartNavPvtMsg();
-	xTaskResumeAll();    // Resume scheduler (task switching enabled again)s
-//	GetVersion();
-//	StartNavPvtMsg();
+	bool gps_status = InitGps(921600U, 50, 1);
+	(void)gps_status;
 	TickType_t xLastWakeTime;
 	const TickType_t xFrequency = pdMS_TO_TICKS(READ_INTERVAL_MS);
 
 	// Initialize the xLastWakeTime variable with the current time.
 	xLastWakeTime = xTaskGetTickCount();
-	osDelay(500);
+	osDelay(250);
+	UbloxM9nNavPvt nav_pvt_data_{};
 //	int blink_counter = 0;
     /* Infinite loop */
     for (;;) {
@@ -939,14 +957,35 @@ void ReadUbloxM9nRb::Run() {
 //			blink_counter = 0;
 //			UBaseType_t highWaterMark = uxTaskGetStackHighWaterMark(NULL);
 //			uint32_t used = 1296 - highWaterMark * sizeof(StackType_t);
-//			DEBUG_PRINT("Used: %lu bytes, Free: %lu bytes (of %d total)\n",
+//			DEBUG_PRINT("GPS Module: Used: %lu bytes, Free: %lu bytes (of %d total)\n",
 //			used, highWaterMark * sizeof(StackType_t), 1296);
 //    	}
 
-    	ProcessNavPvtFrame();
-    	if(new_nav_pvt_frame_){
+    	if(ProcessUbloxFrame() && packet_.cls == CLASS_NAV && packet_.id == ID_PVT){
+    		memcpy(&nav_pvt_data_, packet_.payload, sizeof(UbloxM9nNavPvt));
+    		gps_data_.i_tow = nav_pvt_data_.i_tow;
+			gps_data_.valid = nav_pvt_data_.valid;
+			gps_data_.fix_type = nav_pvt_data_.fix_type;
+			gps_data_.flags = nav_pvt_data_.flags;
+			gps_data_.latitude_rad = nav_pvt_data_.lat * 1e-7 * DEG2RAD;
+			gps_data_.longitude_rad = nav_pvt_data_.lon * 1e-7 * DEG2RAD;
+			gps_data_.altitude_m = nav_pvt_data_.height * 1e-3;
+			gps_data_.vn_mps = nav_pvt_data_.vel_n * 1e-3;
+			gps_data_.ve_mps = nav_pvt_data_.vel_e * 1e-3;
+			gps_data_.vd_mps = nav_pvt_data_.vel_d * 1e-3;
+			gps_data_.num_sv = nav_pvt_data_.num_sv;
+			gps_data_.g_speed_mps = nav_pvt_data_.g_speed * 1e-3f;
+			gps_data_.cog_deg = nav_pvt_data_.heading * 1e-5f;
+			gps_data_.hacc_m = nav_pvt_data_.h_acc * 1e-3f;
+			gps_data_.vacc_m = nav_pvt_data_.v_acc * 1e-3f;
+			gps_data_.s_acc_mps = nav_pvt_data_.s_acc * 1e-3f;
+			gps_data_.heading_acc_deg = nav_pvt_data_.heading_acc * 1e-5f;
+			gps_data_.p_dop = nav_pvt_data_.p_dop;
+			gps_data_.head_veh_deg = nav_pvt_data_.head_veh * 1e-5;
+			gps_data_.checksum_valid = true;
+
     		ubloxm9n_pub.publish(gps_data_);
-//    		DEBUG_PRINT("iTOW: %lu, fix_type: %d, lat_rad: %g, lon_rad: %g, alt_m: %g\n",
+//    		DEBUG_PRINT("GPS Module: iTOW: %lu, fix_type: %d, lat_rad: %g, lon_rad: %g, alt_m: %g\n",
 //    					gps_data_.i_tow, gps_data_.fix_type, gps_data_.latitude_rad, gps_data_.longitude_rad, gps_data_.altitude_m);
     		new_nav_pvt_frame_ = false;
     	}

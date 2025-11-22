@@ -12,7 +12,7 @@
 
 struct PACKED MavlinkData {
   uint8_t arm_cmd_issued;
-  uint64_t timestamp_us;
+  uint64_t timestamp_ms;
 };
 
 static_assert(sizeof(MavlinkData) == 9, "Mavlink Data size should be 9 bytes!");

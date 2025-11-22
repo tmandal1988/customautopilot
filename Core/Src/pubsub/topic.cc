@@ -7,7 +7,7 @@
 
 #include "pubsub/topic.h"
 
-uint64_t getCurrentTimeUs() {
+uint64_t getCurrentTimeMs() {
     TickType_t ticks = xTaskGetTickCount();
     return static_cast<uint64_t>(ticks) * 1000UL / configTICK_RATE_HZ;
 }

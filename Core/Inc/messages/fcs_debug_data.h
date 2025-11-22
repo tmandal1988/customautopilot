@@ -79,7 +79,7 @@ struct PACKED FcsDebugData {
 	uint8_t chirp_type;
 	uint8_t flt_mode;
 	uint8_t sm_mode;
-	uint64_t timestamp_us;
+	uint64_t timestamp_ms;
 };
 
 static_assert(sizeof(FcsDebugData) == 220, "Fcs Debug Data size should be 220 bytes!");

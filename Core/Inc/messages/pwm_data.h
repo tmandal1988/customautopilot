@@ -10,7 +10,7 @@
 
 struct PACKED PwmData {
   uint16_t pwm_cmds[4];
-  uint64_t timestamp_us;
+  uint64_t timestamp_ms;
 };
 
 static_assert(sizeof(PwmData) == 16, "PWM Data size should be 16 bytes!");

@@ -15,11 +15,17 @@ struct PACKED MavlinkParamsData {
   float velz_kff2;
   float velz_accel_kfb;
   float posz_kp;
+  float velne_kp;
+  float velne_ki;
+  float velne_kff;
+  float velne_kff2;
+  float velne_accel_kfb;
+  float posne_kp;
   float base_mass_kg;
-  uint64_t timestamp_us;
+  uint64_t timestamp_ms;
 };
 
-static_assert(sizeof(MavlinkParamsData) == 36, "Mavlink Params size should be 36 bytes!");
+static_assert(sizeof(MavlinkParamsData) == 60, "Mavlink Params size should be 60 bytes!");
 
 
 

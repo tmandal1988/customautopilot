@@ -18,7 +18,7 @@ struct PACKED ImuData{
 	float temp_degc;
 	uint8_t mag_st1;
 	uint8_t mag_st2;
-	uint64_t timestamp_us;
+	uint64_t timestamp_ms;
 };
 
 

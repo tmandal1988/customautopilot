@@ -123,21 +123,34 @@ private:
     float posz_kp_ = 1.6f;
     float base_mass_kg_ = 2.5f;
 
+    float velne_kp_ = 0.95f;
+	float velne_ki_ = 0.3f;
+	float velne_kff_ = 0.0f;
+	float velne_kff2_ = 0.0f;
+	float velne_accel_kfb_ = 0.03f;
+	float posne_kp_ = 0.8f;
+
     struct MavlinkParam {
       const char* name;
       float* value;
       MAV_PARAM_TYPE type;
     };
 
-    static constexpr int kParamCount = 7;
+    static constexpr int kParamCount = 13;
 
     MavlinkParam param_table_[kParamCount] = {
-        {"VEL_KP", &velz_kp_, MAV_PARAM_TYPE_REAL32},
-        {"VEL_KI", &velz_ki_, MAV_PARAM_TYPE_REAL32},
-        {"VEL_KFF", &velz_kff_, MAV_PARAM_TYPE_REAL32},
-		{"VEL_KFF2", &velz_kff2_, MAV_PARAM_TYPE_REAL32},
-		{"VEL_ACCEL_KFB", &velz_accel_kfb_, MAV_PARAM_TYPE_REAL32},
+        {"VELZ_KP", &velz_kp_, MAV_PARAM_TYPE_REAL32},
+        {"VELZ_KI", &velz_ki_, MAV_PARAM_TYPE_REAL32},
+        {"VELZ_KFF", &velz_kff_, MAV_PARAM_TYPE_REAL32},
+		{"VELZ_KFF2", &velz_kff2_, MAV_PARAM_TYPE_REAL32},
+		{"VELZ_ACCEL_KFB", &velz_accel_kfb_, MAV_PARAM_TYPE_REAL32},
 		{"POSZ_KP", &posz_kp_, MAV_PARAM_TYPE_REAL32},
+		{"VELNE_KP", &velne_kp_, MAV_PARAM_TYPE_REAL32},
+		{"VELNE_KI", &velne_ki_, MAV_PARAM_TYPE_REAL32},
+		{"VELNE_KFF", &velne_kff_, MAV_PARAM_TYPE_REAL32},
+		{"VELNE_KFF2", &velne_kff2_, MAV_PARAM_TYPE_REAL32},
+		{"VELNE_ACCEL_KFB", &velne_accel_kfb_, MAV_PARAM_TYPE_REAL32},
+		{"POSNE_KP", &posne_kp_, MAV_PARAM_TYPE_REAL32},
 		{"BASE_MASS_KG", &base_mass_kg_, MAV_PARAM_TYPE_REAL32},
     };
 

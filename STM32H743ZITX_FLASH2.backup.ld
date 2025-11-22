@@ -17,8 +17,8 @@ ENTRY(Reset_Handler)
 _estack = ORIGIN(RAM_D1) + LENGTH(RAM_D1);    /* end of RAM */
 
 /* Define heap and stack size */
-_Min_Heap_Size = 0x4000;  /* Increase if needed */
-_Min_Stack_Size = 0x4000;
+_Min_Heap_Size = 0x10000;  /* Increase if needed */
+_Min_Stack_Size = 0x400;
 
 /* Specify the memory areas */
 MEMORY

@@ -14,7 +14,8 @@
 ENTRY(Reset_Handler)
 
 /* Highest address of the user mode stack */
-_estack = ORIGIN(RAM_D1) + LENGTH(RAM_D1);    /* end of RAM */
+/*_estack = ORIGIN(RAM_D1) + LENGTH(RAM_D1);    /* end of RAM */
+_estack = ORIGIN(DTCMRAM) + LENGTH(DTCMRAM);
 
 /* Define heap and stack size */
 _Min_Heap_Size = 0x10000;  /* Increase if needed */

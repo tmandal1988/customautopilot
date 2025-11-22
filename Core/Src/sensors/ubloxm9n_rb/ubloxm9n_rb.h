@@ -32,7 +32,7 @@ public:
 private:
 	static constexpr uint16_t READ_INTERVAL_MS = 25; // 40Hz
 	// Tx and Rx max delay (ms) in polling mode
-	static constexpr uint32_t txrx_delay_ms_ = HAL_MAX_DELAY;
+	static constexpr uint32_t txrx_delay_ms_ = 50;
 
 	static constexpr uint32_t supported_baudrates_[] = {
 	        9600U, 19200U, 38400U, 57600U, 115200U, 230400U, 460800U, 921600U
@@ -44,6 +44,7 @@ private:
 	static constexpr uint8_t UBX_SYNC_CHAR_1 										= 0xB5;
 	static constexpr uint8_t UBX_SYNC_CHAR_2 										= 0x62;
 	static constexpr uint8_t UBX_NAV_PVT_SIZE 		 								= 100;
+	static constexpr uint16_t UBX_MAX_PAYLOAD										= 1024;
 
 	static constexpr uint8_t CLASS_MON 												= 0x0A;
 	static constexpr uint8_t ID_VER 												= 0x04;
@@ -200,6 +201,32 @@ private:
 
 	GpsData gps_data_;
 
+	enum ParserState{
+		WAIT_SYNC1,
+		WAIT_SYNC2,
+		WAIT_CLASS,
+		WAIT_ID,
+		WAIT_LEN1,
+		WAIT_LEN2,
+		WAIT_PAYLOAD,
+		WAIT_CK_A,
+		WAIT_CK_B
+	};
+
+	// Generic UBX packet structure
+	struct PACKED UbxPacket {
+	    uint8_t cls;
+	    uint8_t id;
+	    uint16_t len;
+	    uint8_t payload[UBX_MAX_PAYLOAD];
+	};
+
+	ParserState parser_state_ = ParserState::WAIT_SYNC1;
+	UbxPacket packet_{};
+	uint16_t payload_idx_ = 0;
+	uint8_t ck_a_ = 0;
+	uint8_t ck_b_ = 0;
+
 	// Initializes the communication interface
 	void GetCurrentBaudrate();
 	bool InitGps(uint32_t baudrate, uint16_t time_bw_samples_ms, uint8_t nav_rate);
@@ -208,9 +235,8 @@ private:
 	void FlushUartDataRegister();
 	void SetBaudrate(const uint32_t baudrate);
 	void CalculateChecksum(uint8_t *buffer, uint16_t length, uint8_t *ck_a, uint8_t *ck_b);
-	bool TxUartUbxPollCmd(const UbxMessage *message, uint32_t wait_time);
-	bool RxUartUbxPollMsgAck(uint8_t *payload_buffer, uint16_t payload_length, uint32_t wait_time);
-	bool RxUartUbxPollMsg(uint8_t *payload_buffer, uint16_t payload_length, uint32_t wait_time);
+	bool TxUartUbxPollCmd(const UbxMessage *message, const uint16_t wait_ms);
+	bool RxUartUbxPollMsg(const uint8_t class_id, const uint8_t msg_id, const uint16_t wait_ms);
 	bool ResetGps();
 	bool UbxSaveCfg(uint32_t save_mask);
 	bool GetVersion();
@@ -221,10 +247,14 @@ private:
 	bool EnableNavPvtMsg();
 	bool DisableNavPvtMsg();
 
-	// Configures GPS to continuously send out NAV-PVT messages
-	void StartNavPvtMsg();
-	// Function to check if we have new frame
-	// Process and Get GPS data
-	void ProcessNavPvtFrame();
+	// Function to extract UART data received by DMA
+	bool ProcessUbloxFrame();
+	// Function to parse the extracted UART data
+	bool ParseUbx(uint8_t data);
+
+	inline void UpdateChecksum(uint8_t byte) {
+		ck_a_ += byte;
+		ck_b_ += ck_a_;
+	}
 };
 

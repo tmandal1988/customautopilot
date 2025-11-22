@@ -32,7 +32,7 @@ struct PACKED GpsData{
 		uint32_t i_tow;
 		uint8_t num_sv;
 		uint8_t checksum_valid;
-		uint64_t timestamp_us;
+		uint64_t timestamp_ms;
 };
 
 

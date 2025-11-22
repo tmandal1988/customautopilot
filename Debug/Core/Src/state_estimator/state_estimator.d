@@ -56,9 +56,10 @@ Core/Src/state_estimator/state_estimator.o: \
  ../Drivers/STM32H7xx_HAL_Driver/Inc/stm32h7xx_ll_usb.h \
  ../Drivers/STM32H7xx_HAL_Driver/Inc/stm32h7xx_hal_pcd_ex.h \
  ../Core/Inc/messages/imu_data.h ../Core/Inc/messages/baro_data.h \
- ../Core/Inc/messages/gps_data.h ../Core/Inc/messages/ekf_data.h \
- ../Core/Inc/constants.h ../Core/Inc/pubsub/subscriber.h \
- ../Core/Inc/pubsub/pubsub_manager.h ../Core/Inc/pubsub/topic.h \
+ ../Core/Inc/messages/gps_data.h ../Core/Inc/messages/mtf01p_data.h \
+ ../Core/Inc/messages/ekf_data.h ../Core/Inc/constants.h \
+ ../Core/Inc/pubsub/subscriber.h ../Core/Inc/pubsub/pubsub_manager.h \
+ ../Core/Inc/pubsub/topic.h \
  ../Middlewares/Third_Party/FreeRTOS/Source/include/semphr.h \
  ../Middlewares/Third_Party/FreeRTOS/Source/include/queue.h \
  ../Middlewares/Third_Party/FreeRTOS/Source/include/task.h \
@@ -128,6 +129,7 @@ Core/Src/state_estimator/state_estimator.o: \
 ../Core/Inc/messages/imu_data.h:
 ../Core/Inc/messages/baro_data.h:
 ../Core/Inc/messages/gps_data.h:
+../Core/Inc/messages/mtf01p_data.h:
 ../Core/Inc/messages/ekf_data.h:
 ../Core/Inc/constants.h:
 ../Core/Inc/pubsub/subscriber.h:

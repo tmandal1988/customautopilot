@@ -3,9 +3,9 @@
 //
 // Code generated for Simulink model 'stateEstimatorEskfAutocode'.
 //
-// Model version                  : 1.46
+// Model version                  : 1.47
 // Simulink Coder version         : 9.7 (R2022a) 13-Nov-2021
-// C/C++ source code generated on : Tue Jun 24 17:50:37 2025
+// C/C++ source code generated on : Fri Nov 21 11:05:18 2025
 //
 // Target selection: ert.tlc
 // Embedded hardware selection: ARM Compatible->ARM Cortex-M
@@ -32,6 +32,7 @@ void stateEstimatorAutocode::step()
   //   Constant: '<Root>/lidarParams'
   //   Constant: '<Root>/magParams'
   //   Constant: '<Root>/measNoiseR'
+  //   Constant: '<Root>/mtf01pParams'
   //   Constant: '<Root>/processNoiseQ'
   //   Constant: '<Root>/stateEstSmParams'
   //   Inport: '<Root>/baroData'
@@ -39,6 +40,7 @@ void stateEstimatorAutocode::step()
   //   Inport: '<Root>/imuData'
   //   Inport: '<Root>/lidarData'
   //   Inport: '<Root>/magData'
+  //   Inport: '<Root>/mtf01pData'
   //   Outport: '<Root>/bodyAccels_mps2'
   //   Outport: '<Root>/dcmNedToBody'
   //   Outport: '<Root>/dcmNedToFep'
@@ -50,10 +52,12 @@ void stateEstimatorAutocode::step()
     &stateEstimatorEskfAutocode_U.magData, &stateEstimatorEskfAutocode_U.gpsData,
     &stateEstimatorEskfAutocode_U.baroData,
     &stateEstimatorEskfAutocode_U.lidarData,
+    &stateEstimatorEskfAutocode_U.mtf01pData,
     &stateEstimatorEskfAutoco_ConstP.imuNtchFilterParams_Value,
     &stateEstimatorEskfAutoco_ConstP.accelParams_Value,
     &stateEstimatorEskfAutoco_ConstP.magParams_Value,
     &stateEstimatorEskfAutoco_ConstP.lidarParams_Value,
+    &stateEstimatorEskfAutoco_ConstP.mtf01pParams_Value,
     &stateEstimatorEskfAutoco_ConstP.stateEstSmParams_Value,
     &rtCP_processNoiseQ_Value[0], &rtCP_measNoiseR_Value[0],
     &rtCP_initCovP_Value[0], &rtCP_gEarth_mps2_Value,

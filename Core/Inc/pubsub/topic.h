@@ -13,7 +13,7 @@
 #include "semphr.h"
 
 // Get current time in microseconds
-uint64_t getCurrentTimeUs();
+uint64_t getCurrentTimeMs();
 
 // Topic management structure
 template<typename T>
@@ -23,8 +23,6 @@ struct Topic {
     SemaphoreHandle_t mutex;
 };
 
-// Get current time in microseconds
-uint64_t getCurrentTimeUs();
 //{
 //    auto now = std::chrono::steady_clock::now();
 //    return std::chrono::duration_cast<std::chrono::microseconds>(now.time_since_epoch()).count();

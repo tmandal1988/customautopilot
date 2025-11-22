@@ -3,9 +3,9 @@
 //
 // Code generated for Simulink model 'stateEstimatorEskfAutocode'.
 //
-// Model version                  : 1.46
+// Model version                  : 1.47
 // Simulink Coder version         : 9.7 (R2022a) 13-Nov-2021
-// C/C++ source code generated on : Tue Jun 24 17:50:37 2025
+// C/C++ source code generated on : Fri Nov 21 11:05:18 2025
 //
 // Target selection: ert.tlc
 // Embedded hardware selection: ARM Compatible->ARM Cortex-M
@@ -82,8 +82,22 @@ const stateEstimatorAutocode::ConstP_stateEstimatorEskfAuto_T
     5.0F,
     5.0F,
     3U,
-    10.0F,
-    0.244977906F
+    2.0F,
+    0.05F,
+    0.244977906F,
+    true
+  },
+
+  // Expression: mtf01pParams
+  //  Referenced by: '<Root>/mtf01pParams'
+
+  {
+    { 0.0F, 1.0F, -1.0F, 0.0F },
+
+    { 0.08F, 5.0F },
+    50U,
+    1U,
+    12.566371F
   },
 
   // Expression: lidarParams

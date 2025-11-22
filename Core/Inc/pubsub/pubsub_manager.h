@@ -32,7 +32,7 @@ public:
 
         if (xSemaphoreTake(topic->mutex, 0)) { // Non-blocking attempt
             topic->data = data;
-            topic->data.timestamp_us = getCurrentTimeUs();
+            topic->data.timestamp_ms = getCurrentTimeMs();
             topic->updated_mask = UINT32_MAX; // Set all bits to 1 to mark all as updated
             xSemaphoreGive(topic->mutex);
         }

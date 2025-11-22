@@ -2,7 +2,7 @@
 ../Core/Src/mavlink_rxtx/mavlink_rxtx.h:26:7:virtual MavlinkRxTx::~MavlinkRxTx()	8	static
 ../Core/Inc/task_manager/task_base.h:46:39:void __tcf_0()	0	static
 ../Core/Inc/mavlink/common/../mavlink_helpers.h:73:24:uint8_t mavlink_sign_packet(mavlink_signing_t*, uint8_t*, const uint8_t*, uint8_t, const uint8_t*, uint8_t, const uint8_t*)	536	static
-../Core/Src/mavlink_rxtx/mavlink_rxtx.cc:24:1:MavlinkRxTx::MavlinkRxTx(UART_HandleTypeDef*)	40	static
+../Core/Src/mavlink_rxtx/mavlink_rxtx.cc:24:1:MavlinkRxTx::MavlinkRxTx(UART_HandleTypeDef*)	56	static
 ../Core/Src/mavlink_rxtx/mavlink_rxtx.cc:37:6:bool MavlinkRxTx::QueueMessage(const mavlink_message_t&)	32	static
 ../Core/Src/mavlink_rxtx/mavlink_rxtx.cc:46:6:void MavlinkRxTx::SendBufferedDataIfReady()	4	static
 ../Core/Src/mavlink_rxtx/mavlink_rxtx.cc:59:6:void MavlinkRxTx::FlushUartDataRegister()	8	static
@@ -13,6 +13,6 @@
 ../Core/Src/mavlink_rxtx/mavlink_rxtx.cc:261:6:void MavlinkRxTx::HandleMavlinkMessage(mavlink_message_t*)	616	static
 ../Core/Src/mavlink_rxtx/mavlink_rxtx.cc:250:6:void MavlinkRxTx::ParseReadyMavlinkMessages()	552	static
 ../Core/Src/mavlink_rxtx/mavlink_rxtx.cc:200:6:virtual void MavlinkRxTx::Run()	56	static
-../Core/Src/mavlink_rxtx/mavlink_rxtx.cc:368:6:void MavlinkRxTx::SetTxReadyFlag()	0	static
-../Core/Src/mavlink_rxtx/mavlink_rxtx.cc:370:6:static void MavlinkRxTx::TxCompleted()	0	static
-../Core/Src/mavlink_rxtx/mavlink_rxtx.cc:374:1:cc)	0	static
+../Core/Src/mavlink_rxtx/mavlink_rxtx.cc:376:6:void MavlinkRxTx::SetTxReadyFlag()	0	static
+../Core/Src/mavlink_rxtx/mavlink_rxtx.cc:378:6:static void MavlinkRxTx::TxCompleted()	0	static
+../Core/Src/mavlink_rxtx/mavlink_rxtx.cc:382:1:cc)	0	static

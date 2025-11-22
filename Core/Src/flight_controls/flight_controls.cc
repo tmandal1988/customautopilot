@@ -96,14 +96,34 @@ void FlightControls::Run(){
 			}
 
 			if(mavlink_params_sub_.copy(mavlink_params_data_)){
+				//Vel Z
 				fcs_model_autocode_u_.ctrlParams.outerLoopCtrlParams.velCtrlParams.accelFbGainsArray[2] = mavlink_params_data_.velz_accel_kfb;
 				fcs_model_autocode_u_.ctrlParams.outerLoopCtrlParams.velCtrlParams.ffGainsArray[2] = mavlink_params_data_.velz_kff;
 				fcs_model_autocode_u_.ctrlParams.outerLoopCtrlParams.velCtrlParams.ff2GainsArray[2] = mavlink_params_data_.velz_kff2;
 				fcs_model_autocode_u_.ctrlParams.outerLoopCtrlParams.velCtrlParams.ctrlParamsArray[2].Kp = mavlink_params_data_.velz_kp;
 				fcs_model_autocode_u_.ctrlParams.outerLoopCtrlParams.velCtrlParams.ctrlParamsArray[2].Ki = mavlink_params_data_.velz_ki;
+				//Pos Z
 				fcs_model_autocode_u_.ctrlParams.outerLoopCtrlParams.posCtrlParams.ctrlParamsArray[2].Kp = mavlink_params_data_.posz_kp;
+				//Base Mass
 				fcs_model_autocode_u_.ctrlParams.outerLoopCtrlParams.velCtrlParams.baseMass_kg = mavlink_params_data_.base_mass_kg;
-//				DEBUG_PRINT("Velz Kp = %g\n", fcs_model_autocode_u_.ctrlParams.outerLoopCtrlParams.velCtrlParams.ctrlParamsArray[2].Kp);
+
+				//Vel N
+				fcs_model_autocode_u_.ctrlParams.outerLoopCtrlParams.velCtrlParams.accelFbGainsArray[0] = mavlink_params_data_.velne_accel_kfb;
+				fcs_model_autocode_u_.ctrlParams.outerLoopCtrlParams.velCtrlParams.ffGainsArray[0] = mavlink_params_data_.velne_kff;
+				fcs_model_autocode_u_.ctrlParams.outerLoopCtrlParams.velCtrlParams.ff2GainsArray[0] = mavlink_params_data_.velne_kff2;
+				fcs_model_autocode_u_.ctrlParams.outerLoopCtrlParams.velCtrlParams.ctrlParamsArray[0].Kp = mavlink_params_data_.velne_kp;
+				fcs_model_autocode_u_.ctrlParams.outerLoopCtrlParams.velCtrlParams.ctrlParamsArray[0].Ki = mavlink_params_data_.velne_ki;
+				//Pos N
+				fcs_model_autocode_u_.ctrlParams.outerLoopCtrlParams.posCtrlParams.ctrlParamsArray[0].Kp = mavlink_params_data_.posne_kp;
+
+				//Vel N
+				fcs_model_autocode_u_.ctrlParams.outerLoopCtrlParams.velCtrlParams.accelFbGainsArray[1] = mavlink_params_data_.velne_accel_kfb;
+				fcs_model_autocode_u_.ctrlParams.outerLoopCtrlParams.velCtrlParams.ffGainsArray[1] = mavlink_params_data_.velne_kff;
+				fcs_model_autocode_u_.ctrlParams.outerLoopCtrlParams.velCtrlParams.ff2GainsArray[1] = mavlink_params_data_.velne_kff2;
+				fcs_model_autocode_u_.ctrlParams.outerLoopCtrlParams.velCtrlParams.ctrlParamsArray[1].Kp = mavlink_params_data_.velne_kp;
+				fcs_model_autocode_u_.ctrlParams.outerLoopCtrlParams.velCtrlParams.ctrlParamsArray[1].Ki = mavlink_params_data_.velne_ki;
+				//Pos N
+				fcs_model_autocode_u_.ctrlParams.outerLoopCtrlParams.posCtrlParams.ctrlParamsArray[1].Kp = mavlink_params_data_.posne_kp;
 			}
 
 			// Run one step of the model

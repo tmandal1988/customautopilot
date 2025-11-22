@@ -16,6 +16,7 @@ void StateEstimator::Run(){
 	ImuData imu_data = {0};
 	BaroData baro_data = {0};
 	GpsData gps_data = {0};
+	Mtf01pData mtf01p_data = {0};
 	EkfData ekf_data = {0};
 	Publisher<EkfData> ekf_pub_(TopicID::EKF);
 
@@ -70,11 +71,23 @@ void StateEstimator::Run(){
 				state_estimator_autocode_u_.imuData.bodyAccels_mps2[idx] = imu_data.accel_mps2[idx];
 				state_estimator_autocode_u_.imuData.bodyRates_radps[idx] = imu_data.gyro_radps[idx];
 				state_estimator_autocode_u_.magData.bodyMagVector_uT[idx] = imu_data.mag_ut[idx];
-				state_estimator_autocode_u_.magData.isMagDataValid = true;
 			}
+			// Check delta time between last and current imu reading
+			float curr_imu_time_s = static_cast<float>(imu_data.timestamp_ms)*0.001;
+			float dt_imu_time_s = curr_imu_time_s - prev_imu_time_s;
+
+			if(dt_imu_time_s > 0 && dt_imu_time_s <= MAX_ALLOWED_IMU_DT_S){
+				state_estimator_autocode_u_.imuData.dtImuTime_s = dt_imu_time_s;
+				state_estimator_autocode_u_.imuData.isImuDataValid = true;
+			}else{
+				state_estimator_autocode_u_.imuData.isImuDataValid = false;
+			}
+			state_estimator_autocode_u_.magData.isMagDataValid = true;
+			prev_imu_time_s = curr_imu_time_s;
 		}else{
 			state_estimator_autocode_u_.magData.isMagDataValid = false;
 			imu_updated = false;
+			state_estimator_autocode_u_.imuData.isImuDataValid = false;
 		}
 
 		if(baro_sub_.copy(baro_data)){
@@ -115,6 +128,22 @@ void StateEstimator::Run(){
 			state_estimator_autocode_u_.gpsData.isGpsDataValid = false;
 			ekf_data.is_gps_valid = false;
 		}
+
+		if(mtf01p_sub_.copy(mtf01p_data)){
+			state_estimator_autocode_u_.mtf01pData.distPrecision = mtf01p_data.precision;
+			state_estimator_autocode_u_.mtf01pData.distStatus = mtf01p_data.dis_status;
+			state_estimator_autocode_u_.mtf01pData.distStrength = mtf01p_data.strength;
+			state_estimator_autocode_u_.mtf01pData.dist_m = static_cast<float>(mtf01p_data.distance)*OF_DIST_SCALE;
+			state_estimator_autocode_u_.mtf01pData.flowX_radps = static_cast<float>(mtf01p_data.flow_vel_x)*OF_SCALE;
+			state_estimator_autocode_u_.mtf01pData.flowY_radps = static_cast<float>(mtf01p_data.flow_vel_y)*OF_SCALE;
+			state_estimator_autocode_u_.mtf01pData.flowQuality = mtf01p_data.flow_quality;
+			state_estimator_autocode_u_.mtf01pData.flowStatus = mtf01p_data.flow_status;
+			state_estimator_autocode_u_.mtf01pData.isMtf01pDataValid = true;
+
+		}else{
+			state_estimator_autocode_u_.mtf01pData.isMtf01pDataValid = false;
+		}
+
 
 		// Run one step of the model
 		stateEstimatorAutocodeObj_.setExternalInputs(&state_estimator_autocode_u_);

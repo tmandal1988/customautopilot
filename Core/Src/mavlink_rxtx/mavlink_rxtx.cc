@@ -259,6 +259,7 @@ void MavlinkRxTx::ParseReadyMavlinkMessages() {
 }
 
 void MavlinkRxTx::HandleMavlinkMessage(mavlink_message_t* msg) {
+	printf("Msg Id received: %d\n", msg->msgid);
   switch (msg->msgid) {
     case MAVLINK_MSG_ID_HEARTBEAT: {
       mavlink_heartbeat_t hb;  // decoded but unused (kept for future)
@@ -352,6 +353,13 @@ void MavlinkRxTx::HandleMavlinkMessage(mavlink_message_t* msg) {
         mavlink_params_data_.velz_kff2 = velz_kff2_;
         mavlink_params_data_.velz_accel_kfb = velz_accel_kfb_;
         mavlink_params_data_.posz_kp = posz_kp_;
+
+        mavlink_params_data_.velne_kp = velne_kp_;
+		mavlink_params_data_.velne_ki = velne_ki_;
+		mavlink_params_data_.velne_kff = velne_kff_;
+		mavlink_params_data_.velne_kff2 = velne_kff2_;
+		mavlink_params_data_.velne_accel_kfb = velne_accel_kfb_;
+		mavlink_params_data_.posne_kp = posne_kp_;
         mavlink_params_data_.base_mass_kg = base_mass_kg_;
         new_mavlink_params_data_ = true;
 

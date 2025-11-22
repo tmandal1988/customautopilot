@@ -23,7 +23,7 @@ struct PACKED EkfData {
   float states[23];
   float state_init_pct;
   uint8_t sm_mode;
-  uint64_t timestamp_us;
+  uint64_t timestamp_ms;
 };
 
 static_assert(sizeof(EkfData) == 241, "EKF Data size should be 241 bytes!");

@@ -15,22 +15,22 @@ Logger::Logger()
 void Logger::SetupTopics() {
   if (log_config_count_ < kMaxLogConfigs) {
 	log_configs_[log_config_count_++] =
-	new LogConfig<ImuData>(TopicID::ICM20948, pdMS_TO_TICKS(10));
+	new LogConfig<ImuData>(TopicID::ICM20948, pdMS_TO_TICKS(4));
   }
 
   if (log_config_count_ < kMaxLogConfigs) {
 	log_configs_[log_config_count_++] =
-	new LogConfig<BaroData>(TopicID::BMP390L, pdMS_TO_TICKS(25));
+	new LogConfig<BaroData>(TopicID::BMP390L, pdMS_TO_TICKS(10));
   }
 
   if (log_config_count_ < kMaxLogConfigs) {
 	log_configs_[log_config_count_++] =
-	new LogConfig<RcChannels>(TopicID::RCCHANNELS, pdMS_TO_TICKS(25));
+	new LogConfig<RcChannels>(TopicID::RCCHANNELS, pdMS_TO_TICKS(10));
   }
 
   if (log_config_count_ < kMaxLogConfigs) {
 	log_configs_[log_config_count_++] =
-	new LogConfig<GpsData>(TopicID::UBLOXM9N, pdMS_TO_TICKS(50));
+	new LogConfig<GpsData>(TopicID::UBLOXM9N, pdMS_TO_TICKS(20));
   }
 
   if (log_config_count_ < kMaxLogConfigs) {
@@ -45,12 +45,17 @@ void Logger::SetupTopics() {
 
   if (log_config_count_ < kMaxLogConfigs) {
 	log_configs_[log_config_count_++] =
-	new LogConfig<PwmData>(TopicID::PWM, pdMS_TO_TICKS(25));
+	new LogConfig<PwmData>(TopicID::PWM, pdMS_TO_TICKS(20));
   }
 
   if (log_config_count_ < kMaxLogConfigs) {
   	log_configs_[log_config_count_++] =
   	new LogConfig<MavlinkParamsData>(TopicID::MAVLINKPARAMS, pdMS_TO_TICKS(1000));
+  }
+
+  if (log_config_count_ < kMaxLogConfigs) {
+    	log_configs_[log_config_count_++] =
+    	new LogConfig<Mtf01pData>(TopicID::MTF01P, pdMS_TO_TICKS(10));
     }
 
   // Add more safely up to TopicID::MAX_TOPICS

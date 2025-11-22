@@ -18,6 +18,7 @@ enum class TopicID {
 	FCSDEBUG,
 	MAVLINK,
 	MAVLINKPARAMS,
+	MTF01P,
     MAX_TOPICS
 };
 

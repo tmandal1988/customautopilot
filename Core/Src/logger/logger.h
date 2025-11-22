@@ -17,6 +17,7 @@
 #include "messages/fcs_debug_data.h"
 #include "messages/pwm_data.h"
 #include "messages/mavlink_params_data.h"
+#include "messages/mtf01p_data.h"
 #include "debug.h"
 #include "data_buffer.h"
 
@@ -33,7 +34,7 @@ class Logger : public TaskBase {
   static constexpr uint8_t kHeaderByte = 0xA5;
 //  static constexpr size_t kBufferSize = 65536;
 //  static constexpr size_t kNumBuffers = 2;
-  static constexpr uint16_t INTERVAL_MS = 5; // 200Hz, fastest logging rate
+  static constexpr uint16_t INTERVAL_MS = 2; // 500Hz, fastest logging rate
 
   static constexpr size_t kScratchBufferSize = 512;
   uint8_t scratch_buffer_[kScratchBufferSize];

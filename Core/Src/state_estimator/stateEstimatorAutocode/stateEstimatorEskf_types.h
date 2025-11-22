@@ -3,9 +3,9 @@
 //
 // Code generated for Simulink model 'stateEstimatorEskf'.
 //
-// Model version                  : 1.64
+// Model version                  : 1.145
 // Simulink Coder version         : 9.7 (R2022a) 13-Nov-2021
-// C/C++ source code generated on : Tue Jun 24 17:45:12 2025
+// C/C++ source code generated on : Fri Nov 21 11:04:20 2025
 //
 // Target selection: ert.tlc
 // Embedded hardware selection: ARM Compatible->ARM Cortex-M
@@ -89,6 +89,12 @@ struct busImuData
 
   // Body angular rates from gyro
   real32_T bodyRates_radps[3];
+
+  // Delta time between IMU readings
+  real32_T dtImuTime_s;
+
+  // Flag to indicate if Imu data is valid or not
+  boolean_T isImuDataValid;
 };
 
 #endif
@@ -168,6 +174,42 @@ struct busLidarData
 
 #endif
 
+#ifndef DEFINED_TYPEDEF_FOR_busMtf01pData_
+#define DEFINED_TYPEDEF_FOR_busMtf01pData_
+
+// MTF01P optical flow data which include a a laser rangefinder and flow data
+struct busMtf01pData
+{
+  // Raw range value from laser rangefinder in MTF01P data
+  real32_T dist_m;
+
+  // Distance value precision, lower is better
+  uint8_T distPrecision;
+
+  // Distance measrement strength, higher is better
+  uint8_T distStrength;
+
+  // 0 is invalid, 1 is valid
+  uint8_T distStatus;
+
+  // Flow value in sensor X direction
+  real32_T flowX_radps;
+
+  // Flow value in sensor Y direction
+  real32_T flowY_radps;
+
+  // Flow measurement status, 1 is valid and 0 is invalid
+  uint8_T flowStatus;
+
+  // Flow measurement quality
+  uint8_T flowQuality;
+
+  // A flag that indicates if we received a new MTF01P measurement
+  boolean_T isMtf01pDataValid;
+};
+
+#endif
+
 #ifndef DEFINED_TYPEDEF_FOR_busAccelParams_
 #define DEFINED_TYPEDEF_FOR_busAccelParams_
 
@@ -216,6 +258,30 @@ struct busLidarParams
 
 #endif
 
+#ifndef DEFINED_TYPEDEF_FOR_busMtf01pParams_
+#define DEFINED_TYPEDEF_FOR_busMtf01pParams_
+
+// MTF01P prameters for use in state estimators
+struct busMtf01pParams
+{
+  // Rotates sensor axis to body axis
+  real32_T sensorToBodyRot[4];
+
+  // [min; max] valid range of laser range finder. Bound dist measurement between these values 
+  real32_T distLimit_m[2];
+
+  // Precision threshold below which reject the distance and flow measurement
+  uint8_T distPrecisionThr;
+
+  // Flow quality threshold below which to reject the flow measurement
+  uint8_T flowQualityThr;
+
+  // OF data filter cutoff
+  real32_T filterBw_radps;
+};
+
+#endif
+
 #ifndef DEFINED_TYPEDEF_FOR_busStateEstSmParams_
 #define DEFINED_TYPEDEF_FOR_busStateEstSmParams_
 
@@ -240,8 +306,14 @@ struct busStateEstSmParams
   // Duration to check the GPS validity flag before flagging GPS LOSS
   real32_T gpsLossCheckDuration_s;
 
+  // Duration to check the OF validity flag before flagging OF LOSS
+  real32_T ofLossCheckDuration_s;
+
   // Magnetic Declination At The Vehicle Position (usually at the take off location) 
   real32_T initMagDec_rad;
+
+  // Flag to indicate if optical flow is in use or not
+  boolean_T useOpticalFlow;
 };
 
 #endif
@@ -257,6 +329,87 @@ struct busStateEstimatorDebug
 
   // State Machine Mode
   enumStateEstimateMode smMode;
+};
+
+#endif
+
+#ifndef DEFINED_TYPEDEF_FOR_busPosAndVel_
+#define DEFINED_TYPEDEF_FOR_busPosAndVel_
+
+// Generic bus to contain NED Position and velocity
+struct busPosAndVel
+{
+  // 3x1 position
+  real32_T pos_m[3];
+
+  // 3x1 velocity
+  real32_T vel_mps[3];
+};
+
+#endif
+
+#ifndef DEFINED_TYPEDEF_FOR_busSensorIn_
+#define DEFINED_TYPEDEF_FOR_busSensorIn_
+
+// Bus containing all the corrected sensor data to be used in the estimation
+struct busSensorIn
+{
+  // IMU - body x, y, z accelerations includes gravity
+  real32_T bodyAccels_mps2[3];
+
+  // IMU - x, y, z body rates
+  real32_T bodyRates_radps[3];
+
+  // Delta time between imu readings
+  real32_T dtImuTime_s;
+
+  // Flag to indicate if IMU data is valid of not
+  boolean_T isImuDataValid;
+
+  // Mag - x, y, z body mag field normalized
+  real32_T normMagVec_nd[3];
+
+  // Local NED mag field normalized
+  real32_T localNedUnitMag_nd[3];
+
+  // Flag to indicate if mag data is valid
+  boolean_T isMagValid;
+
+  // NED position and velocity
+  busPosAndVel nedPosAndVel;
+
+  // Flag to indicate if GPS measurements are valid or not
+  boolean_T isGpsValid;
+
+  // Baro altitude
+  real32_T baroAlt_m;
+
+  // Flag to indicate if baro measurement is valid or not
+  boolean_T isBaroValid;
+
+  // AGL measurement from the LIDAR
+  real32_T lidarAgl_m;
+
+  // Flag to indicate if LIDAR measurement is valid or not
+  boolean_T isLidarValid;
+
+  // North and East velocities from Optical Flow
+  real32_T ofNeVel_mps[2];
+
+  // Flag to indicate if optical flow data is valid or not
+  boolean_T isOfValid;
+};
+
+#endif
+
+#ifndef DEFINED_TYPEDEF_FOR_busEkfDebugData_
+#define DEFINED_TYPEDEF_FOR_busEkfDebugData_
+
+// Bus that contains EKF debug data
+struct busEkfDebugData
+{
+  // Flag to indicate if Baro data was used in the correction stage
+  boolean_T isBaroUsed;
 };
 
 #endif

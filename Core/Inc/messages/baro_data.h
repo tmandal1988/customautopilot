@@ -14,7 +14,7 @@
 struct PACKED BaroData{
 	float press_pa;
 	float temp_degc;
-	uint64_t timestamp_us;
+	uint64_t timestamp_ms;
 };
 
 
