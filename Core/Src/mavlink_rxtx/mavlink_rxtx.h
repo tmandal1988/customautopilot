@@ -123,7 +123,7 @@ private:
     float posz_kp_ = 1.6f;
     float base_mass_kg_ = 2.5f;
 
-    float velne_kp_ = 0.95f;
+    float velne_kp_ = 0.9f;
 	float velne_ki_ = 0.3f;
 	float velne_kff_ = 0.0f;
 	float velne_kff2_ = 0.0f;
