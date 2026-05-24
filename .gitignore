@@ -1,0 +1,12 @@
+# CMake build output
+/build/
+
+# Generated firmware artifacts (produced by the CMake build)
+*.elf
+*.bin
+*.hex
+*.map
+*.list
+
+# Editor / OS cruft
+.DS_Store
