@@ -139,16 +139,13 @@ add_executable(${PROJECT_NAME}.elf ${APP_SOURCES} ${LIB_SOURCES} ${ASM_SOURCES})
 target_include_directories(${PROJECT_NAME}.elf PRIVATE ${APP_INCLUDE_DIRS} ${LIB_INCLUDES})
 target_compile_definitions(${PROJECT_NAME}.elf PRIVATE ${PROJECT_DEFINES})
 
-add_compile_options(
+target_compile_options(${PROJECT_NAME}.elf PRIVATE
     ${MCU_FLAGS}
     -ffunction-sections
     -fdata-sections
     -Wall
     -fstack-usage
     -g3
-)
-
-add_compile_options(
     $<$<COMPILE_LANGUAGE:C>:-O0>
     $<$<COMPILE_LANGUAGE:CXX>:-Ofast>
     $<$<COMPILE_LANGUAGE:CXX>:-fno-exceptions>
