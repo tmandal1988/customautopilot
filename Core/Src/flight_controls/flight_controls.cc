@@ -7,19 +7,27 @@
 
 #include "flight_controls.h"
 
+#include "parameters/parameter_store.h"
+
 FlightControls::FlightControls():
-TaskBase("FlightControlsTask", 2000, osPriorityAboveNormal){
+TaskBase("FlightControlsTask", 2000, osPriorityAboveNormal),
+fcsModelObj_(&fcs_model_autocode_u_,
+             parameters::ParameterStore::Instance().FcsModelParameters()){
 //
 }
 
 void FlightControls::Run(){
+	auto& parameter_store = parameters::ParameterStore::Instance();
+	if (!parameter_store.IsReady()) {
+		ERROR_PRINT("Flight-control parameter store was not initialized\n");
+		vTaskSuspend(nullptr);
+		return;
+	}
+
 	osDelay(500);
 	DEBUG_PRINT("Starting Flight Controls Module");
 	TickType_t xLastWakeTime;
 	const TickType_t xFrequency = pdMS_TO_TICKS(LOOP_INTERVAL_MS);
-
-	// Initialize the xLastWakeTime variable with the current time.
-	xLastWakeTime = xTaskGetTickCount();
 
 	// PWM publisher
 	Publisher<PwmData> pwm_pub_(TopicID::PWM);
@@ -27,18 +35,29 @@ void FlightControls::Run(){
 
 	fcsModelObj_.initialize();
 
-	// Assign gains to the controller
-	fcs_model_autocode_u_.ctrlParams =  AssignFcsCtrlParams();
-
 	pwm_data_.pwm_cmds[0] = 1000;
 	pwm_data_.pwm_cmds[1] = 1000;
 	pwm_data_.pwm_cmds[2] = 1000;
 	pwm_data_.pwm_cmds[3] = 1000;
 
-	uint32_t end_cycles = 0;
-	uint32_t start_cycles = 0;
 	uint16_t heartbeat_counter = 0;
+	// Start the periodic schedule after all controller initialization is complete.
+	xLastWakeTime = xTaskGetTickCount();
+	bool first_iteration = true;
+	auto parameter_runtime_state =
+			parameters::ParameterRuntimeState::Unknown;
 	for(;;){
+		const TickType_t actual_start_tick = xTaskGetTickCount();
+		const int32_t start_lateness_ticks =
+				static_cast<int32_t>(actual_start_tick - xLastWakeTime);
+
+		++fcs_debug_data_.task_run_seq;
+		if (!first_iteration && start_lateness_ticks >
+				static_cast<int32_t>(kAllowedStartLatenessTicks)) {
+			++fcs_debug_data_.late_start_count;
+		}
+		first_iteration = false;
+
 		if(ekf_sub_.copy(ekf_data_)){
 			if (++heartbeat_counter >= kOneSecIntervalCount) {
 				heartbeat_counter = 0;
@@ -50,7 +69,6 @@ void FlightControls::Run(){
 //				DEBUG_PRINT("-----------------------------------\n");
 			}
 
-			start_cycles = DWT->CYCCNT;
 			/****************** Assign Values To The Flight Controller***************************/
 			for(size_t idx = 0; idx < 3; idx++){
 				fcs_model_autocode_u_.stateEstimate.attitude_rad[idx] = ekf_data_.euler_rad[idx];
@@ -95,45 +113,22 @@ void FlightControls::Run(){
 				fcs_model_autocode_u_.externalCmds.armCmdIssued = 0U;
 			}
 
-			if(mavlink_params_sub_.copy(mavlink_params_data_)){
-				//Vel Z
-				fcs_model_autocode_u_.ctrlParams.outerLoopCtrlParams.velCtrlParams.accelFbGainsArray[2] = mavlink_params_data_.velz_accel_kfb;
-				fcs_model_autocode_u_.ctrlParams.outerLoopCtrlParams.velCtrlParams.ffGainsArray[2] = mavlink_params_data_.velz_kff;
-				fcs_model_autocode_u_.ctrlParams.outerLoopCtrlParams.velCtrlParams.ff2GainsArray[2] = mavlink_params_data_.velz_kff2;
-				fcs_model_autocode_u_.ctrlParams.outerLoopCtrlParams.velCtrlParams.ctrlParamsArray[2].Kp = mavlink_params_data_.velz_kp;
-				fcs_model_autocode_u_.ctrlParams.outerLoopCtrlParams.velCtrlParams.ctrlParamsArray[2].Ki = mavlink_params_data_.velz_ki;
-				//Pos Z
-				fcs_model_autocode_u_.ctrlParams.outerLoopCtrlParams.posCtrlParams.ctrlParamsArray[2].Kp = mavlink_params_data_.posz_kp;
-				//Base Mass
-				fcs_model_autocode_u_.ctrlParams.outerLoopCtrlParams.velCtrlParams.baseMass_kg = mavlink_params_data_.base_mass_kg;
-
-				//Vel N
-				fcs_model_autocode_u_.ctrlParams.outerLoopCtrlParams.velCtrlParams.accelFbGainsArray[0] = mavlink_params_data_.velne_accel_kfb;
-				fcs_model_autocode_u_.ctrlParams.outerLoopCtrlParams.velCtrlParams.ffGainsArray[0] = mavlink_params_data_.velne_kff;
-				fcs_model_autocode_u_.ctrlParams.outerLoopCtrlParams.velCtrlParams.ff2GainsArray[0] = mavlink_params_data_.velne_kff2;
-				fcs_model_autocode_u_.ctrlParams.outerLoopCtrlParams.velCtrlParams.ctrlParamsArray[0].Kp = mavlink_params_data_.velne_kp;
-				fcs_model_autocode_u_.ctrlParams.outerLoopCtrlParams.velCtrlParams.ctrlParamsArray[0].Ki = mavlink_params_data_.velne_ki;
-				//Pos N
-				fcs_model_autocode_u_.ctrlParams.outerLoopCtrlParams.posCtrlParams.ctrlParamsArray[0].Kp = mavlink_params_data_.posne_kp;
-
-				//Vel N
-				fcs_model_autocode_u_.ctrlParams.outerLoopCtrlParams.velCtrlParams.accelFbGainsArray[1] = mavlink_params_data_.velne_accel_kfb;
-				fcs_model_autocode_u_.ctrlParams.outerLoopCtrlParams.velCtrlParams.ffGainsArray[1] = mavlink_params_data_.velne_kff;
-				fcs_model_autocode_u_.ctrlParams.outerLoopCtrlParams.velCtrlParams.ff2GainsArray[1] = mavlink_params_data_.velne_kff2;
-				fcs_model_autocode_u_.ctrlParams.outerLoopCtrlParams.velCtrlParams.ctrlParamsArray[1].Kp = mavlink_params_data_.velne_kp;
-				fcs_model_autocode_u_.ctrlParams.outerLoopCtrlParams.velCtrlParams.ctrlParamsArray[1].Ki = mavlink_params_data_.velne_ki;
-				//Pos N
-				fcs_model_autocode_u_.ctrlParams.outerLoopCtrlParams.posCtrlParams.ctrlParamsArray[1].Kp = mavlink_params_data_.posne_kp;
-			}
-
 			// Run one step of the model
-			fcsModelObj_.setExternalInputs(&fcs_model_autocode_u_);
 			fcsModelObj_.step();
+			++fcs_debug_data_.fcs_step_seq;
 
-			// Get controller outputs
-			fcs_model_autocode_y_ = fcsModelObj_.getExternalOutputs();
+			// The generated getter returns references to model-owned output data.
+			const auto& outputs = fcsModelObj_.getExternalOutputs();
+			const auto& model_debug = outputs.fcsDebug;
+			// The model-owner supplies the authoritative state used by gated
+			// parameters and persistence. Always-policy gains remain live-tunable;
+			// any non-INACTIVE state is conservatively classified as armed.
+			parameter_runtime_state =
+					(model_debug.state == enumStateMachine::INACTIVE)
+							? parameters::ParameterRuntimeState::Disarmed
+							: parameters::ParameterRuntimeState::Armed;
 
-			if(fcs_model_autocode_y_.fcsDebug.state != enumStateMachine::INACTIVE){
+			if(model_debug.state != enumStateMachine::INACTIVE){
 				if (fcs_model_autocode_u_.rcCmdsIn.throttleCmd_nd <= kMinPwmCheckThreshold){
 					pwm_data_.pwm_cmds[0] = fcs_model_autocode_u_.rcCmdsIn.throttleCmd_nd;
 					pwm_data_.pwm_cmds[1] = fcs_model_autocode_u_.rcCmdsIn.throttleCmd_nd;
@@ -141,10 +136,10 @@ void FlightControls::Run(){
 					pwm_data_.pwm_cmds[3] = fcs_model_autocode_u_.rcCmdsIn.throttleCmd_nd;
 				}else{
 //					DEBUG_PRINT("Flying\n");
-					pwm_data_.pwm_cmds[0] = fcs_model_autocode_y_.actuatorsPwmCmds[0];
-					pwm_data_.pwm_cmds[1] = fcs_model_autocode_y_.actuatorsPwmCmds[1];
-					pwm_data_.pwm_cmds[2] = fcs_model_autocode_y_.actuatorsPwmCmds[2];
-					pwm_data_.pwm_cmds[3] = fcs_model_autocode_y_.actuatorsPwmCmds[3];
+					pwm_data_.pwm_cmds[0] = outputs.actuatorsPwmCmds[0];
+					pwm_data_.pwm_cmds[1] = outputs.actuatorsPwmCmds[1];
+					pwm_data_.pwm_cmds[2] = outputs.actuatorsPwmCmds[2];
+					pwm_data_.pwm_cmds[3] = outputs.actuatorsPwmCmds[3];
 				}
 			}else{
 				pwm_data_.pwm_cmds[0] = kMinPwmThreshold;
@@ -154,87 +149,89 @@ void FlightControls::Run(){
 			}
 			pwm_pub_.publish(pwm_data_);
 
-			fcs_debug_data_.sm_mode = static_cast<uint8_t>(fcs_model_autocode_y_.fcsDebug.state);
-			fcs_debug_data_.flt_mode = static_cast<uint8_t>(fcs_model_autocode_y_.fcsDebug.flightMode);
+			fcs_debug_data_.sm_mode = static_cast<uint8_t>(model_debug.state);
+			fcs_debug_data_.flt_mode = static_cast<uint8_t>(model_debug.flightMode);
 
-			fcs_debug_data_.p_cmd_radps = fcs_model_autocode_y_.fcsDebug.innerLoopCtrlDebug.angRateCtrlDebug.cmd[0];
-			fcs_debug_data_.p_meas_radps = fcs_model_autocode_y_.fcsDebug.innerLoopCtrlDebug.angRateCtrlDebug.meas[0];
-			fcs_debug_data_.p_kp_out = fcs_model_autocode_y_.fcsDebug.innerLoopCtrlDebug.angRateCtrlDebug.pidDebug[0].proportionalOutput;
-			fcs_debug_data_.p_ki_out = fcs_model_autocode_y_.fcsDebug.innerLoopCtrlDebug.angRateCtrlDebug.pidDebug[0].integralOutput;
+			fcs_debug_data_.p_cmd_radps = model_debug.innerLoopCtrlDebug.angRateCtrlDebug.cmd[0];
+			fcs_debug_data_.p_meas_radps = model_debug.innerLoopCtrlDebug.angRateCtrlDebug.meas[0];
+			fcs_debug_data_.p_kp_out = model_debug.innerLoopCtrlDebug.angRateCtrlDebug.pidDebug[0].proportionalOutput;
+			fcs_debug_data_.p_ki_out = model_debug.innerLoopCtrlDebug.angRateCtrlDebug.pidDebug[0].integralOutput;
 
-			fcs_debug_data_.q_cmd_radps = fcs_model_autocode_y_.fcsDebug.innerLoopCtrlDebug.angRateCtrlDebug.cmd[1];
-			fcs_debug_data_.q_meas_radps = fcs_model_autocode_y_.fcsDebug.innerLoopCtrlDebug.angRateCtrlDebug.meas[1];
-			fcs_debug_data_.q_kp_out = fcs_model_autocode_y_.fcsDebug.innerLoopCtrlDebug.angRateCtrlDebug.pidDebug[1].proportionalOutput;
-			fcs_debug_data_.q_ki_out = fcs_model_autocode_y_.fcsDebug.innerLoopCtrlDebug.angRateCtrlDebug.pidDebug[1].integralOutput;
+			fcs_debug_data_.q_cmd_radps = model_debug.innerLoopCtrlDebug.angRateCtrlDebug.cmd[1];
+			fcs_debug_data_.q_meas_radps = model_debug.innerLoopCtrlDebug.angRateCtrlDebug.meas[1];
+			fcs_debug_data_.q_kp_out = model_debug.innerLoopCtrlDebug.angRateCtrlDebug.pidDebug[1].proportionalOutput;
+			fcs_debug_data_.q_ki_out = model_debug.innerLoopCtrlDebug.angRateCtrlDebug.pidDebug[1].integralOutput;
 
-			fcs_debug_data_.r_cmd_radps = fcs_model_autocode_y_.fcsDebug.innerLoopCtrlDebug.angRateCtrlDebug.cmd[2];
-			fcs_debug_data_.r_meas_radps = fcs_model_autocode_y_.fcsDebug.innerLoopCtrlDebug.angRateCtrlDebug.meas[2];
-			fcs_debug_data_.r_kp_out = fcs_model_autocode_y_.fcsDebug.innerLoopCtrlDebug.angRateCtrlDebug.pidDebug[2].proportionalOutput;
-			fcs_debug_data_.r_ki_out = fcs_model_autocode_y_.fcsDebug.innerLoopCtrlDebug.angRateCtrlDebug.pidDebug[2].integralOutput;
+			fcs_debug_data_.r_cmd_radps = model_debug.innerLoopCtrlDebug.angRateCtrlDebug.cmd[2];
+			fcs_debug_data_.r_meas_radps = model_debug.innerLoopCtrlDebug.angRateCtrlDebug.meas[2];
+			fcs_debug_data_.r_kp_out = model_debug.innerLoopCtrlDebug.angRateCtrlDebug.pidDebug[2].proportionalOutput;
+			fcs_debug_data_.r_ki_out = model_debug.innerLoopCtrlDebug.angRateCtrlDebug.pidDebug[2].integralOutput;
 
-			fcs_debug_data_.phi_cmd_rad = fcs_model_autocode_y_.fcsDebug.innerLoopCtrlDebug.attCtrlDebug.cmd[0];
-			fcs_debug_data_.phi_meas_rad = fcs_model_autocode_y_.fcsDebug.innerLoopCtrlDebug.attCtrlDebug.meas[0];
-			fcs_debug_data_.phi_kp_out = fcs_model_autocode_y_.fcsDebug.innerLoopCtrlDebug.attCtrlDebug.pidDebug[0].proportionalOutput;
+			fcs_debug_data_.phi_cmd_rad = model_debug.innerLoopCtrlDebug.attCtrlDebug.cmd[0];
+			fcs_debug_data_.phi_meas_rad = model_debug.innerLoopCtrlDebug.attCtrlDebug.meas[0];
+			fcs_debug_data_.phi_kp_out = model_debug.innerLoopCtrlDebug.attCtrlDebug.pidDebug[0].proportionalOutput;
 
-			fcs_debug_data_.theta_cmd_rad = fcs_model_autocode_y_.fcsDebug.innerLoopCtrlDebug.attCtrlDebug.cmd[1];
-			fcs_debug_data_.theta_meas_rad = fcs_model_autocode_y_.fcsDebug.innerLoopCtrlDebug.attCtrlDebug.meas[1];
-			fcs_debug_data_.theta_kp_out = fcs_model_autocode_y_.fcsDebug.innerLoopCtrlDebug.attCtrlDebug.pidDebug[1].proportionalOutput;
+			fcs_debug_data_.theta_cmd_rad = model_debug.innerLoopCtrlDebug.attCtrlDebug.cmd[1];
+			fcs_debug_data_.theta_meas_rad = model_debug.innerLoopCtrlDebug.attCtrlDebug.meas[1];
+			fcs_debug_data_.theta_kp_out = model_debug.innerLoopCtrlDebug.attCtrlDebug.pidDebug[1].proportionalOutput;
 
-			fcs_debug_data_.psi_cmd_rad = fcs_model_autocode_y_.fcsDebug.innerLoopCtrlDebug.attCtrlDebug.cmd[2];
-			fcs_debug_data_.psi_meas_rad = fcs_model_autocode_y_.fcsDebug.innerLoopCtrlDebug.attCtrlDebug.meas[2];
-			fcs_debug_data_.psi_kp_out = fcs_model_autocode_y_.fcsDebug.innerLoopCtrlDebug.attCtrlDebug.pidDebug[2].proportionalOutput;
+			fcs_debug_data_.psi_cmd_rad = model_debug.innerLoopCtrlDebug.attCtrlDebug.cmd[2];
+			fcs_debug_data_.psi_meas_rad = model_debug.innerLoopCtrlDebug.attCtrlDebug.meas[2];
+			fcs_debug_data_.psi_kp_out = model_debug.innerLoopCtrlDebug.attCtrlDebug.pidDebug[2].proportionalOutput;
 
-			fcs_debug_data_.vn_cmd_mps = fcs_model_autocode_y_.fcsDebug.outerLoopCtrlDebug.velCtrlDebug.cmd[0];
-			fcs_debug_data_.vn_meas_mps = fcs_model_autocode_y_.fcsDebug.outerLoopCtrlDebug.velCtrlDebug.meas[0];
-			fcs_debug_data_.vn_kp_out = fcs_model_autocode_y_.fcsDebug.outerLoopCtrlDebug.velCtrlDebug.pidDebug[0].proportionalOutput;
-			fcs_debug_data_.vn_ki_out = fcs_model_autocode_y_.fcsDebug.outerLoopCtrlDebug.velCtrlDebug.pidDebug[0].integralOutput;
+			fcs_debug_data_.vn_cmd_mps = model_debug.outerLoopCtrlDebug.velCtrlDebug.cmd[0];
+			fcs_debug_data_.vn_meas_mps = model_debug.outerLoopCtrlDebug.velCtrlDebug.meas[0];
+			fcs_debug_data_.vn_kp_out = model_debug.outerLoopCtrlDebug.velCtrlDebug.pidDebug[0].proportionalOutput;
+			fcs_debug_data_.vn_ki_out = model_debug.outerLoopCtrlDebug.velCtrlDebug.pidDebug[0].integralOutput;
 
-			fcs_debug_data_.ve_cmd_mps = fcs_model_autocode_y_.fcsDebug.outerLoopCtrlDebug.velCtrlDebug.cmd[1];
-			fcs_debug_data_.ve_meas_mps = fcs_model_autocode_y_.fcsDebug.outerLoopCtrlDebug.velCtrlDebug.meas[1];
-			fcs_debug_data_.ve_kp_out = fcs_model_autocode_y_.fcsDebug.outerLoopCtrlDebug.velCtrlDebug.pidDebug[1].proportionalOutput;
-			fcs_debug_data_.ve_ki_out = fcs_model_autocode_y_.fcsDebug.outerLoopCtrlDebug.velCtrlDebug.pidDebug[1].integralOutput;
+			fcs_debug_data_.ve_cmd_mps = model_debug.outerLoopCtrlDebug.velCtrlDebug.cmd[1];
+			fcs_debug_data_.ve_meas_mps = model_debug.outerLoopCtrlDebug.velCtrlDebug.meas[1];
+			fcs_debug_data_.ve_kp_out = model_debug.outerLoopCtrlDebug.velCtrlDebug.pidDebug[1].proportionalOutput;
+			fcs_debug_data_.ve_ki_out = model_debug.outerLoopCtrlDebug.velCtrlDebug.pidDebug[1].integralOutput;
 
-			fcs_debug_data_.vd_cmd_mps = fcs_model_autocode_y_.fcsDebug.outerLoopCtrlDebug.velCtrlDebug.cmd[2];
-			fcs_debug_data_.vd_meas_mps = fcs_model_autocode_y_.fcsDebug.outerLoopCtrlDebug.velCtrlDebug.meas[2];
-			fcs_debug_data_.vd_kp_out = fcs_model_autocode_y_.fcsDebug.outerLoopCtrlDebug.velCtrlDebug.pidDebug[2].proportionalOutput;
-			fcs_debug_data_.vd_ki_out = fcs_model_autocode_y_.fcsDebug.outerLoopCtrlDebug.velCtrlDebug.pidDebug[2].integralOutput;
+			fcs_debug_data_.vd_cmd_mps = model_debug.outerLoopCtrlDebug.velCtrlDebug.cmd[2];
+			fcs_debug_data_.vd_meas_mps = model_debug.outerLoopCtrlDebug.velCtrlDebug.meas[2];
+			fcs_debug_data_.vd_kp_out = model_debug.outerLoopCtrlDebug.velCtrlDebug.pidDebug[2].proportionalOutput;
+			fcs_debug_data_.vd_ki_out = model_debug.outerLoopCtrlDebug.velCtrlDebug.pidDebug[2].integralOutput;
 			// Vz control feedforward
-			fcs_debug_data_.vd_ff_out = fcs_model_autocode_y_.fcsDebug.outerLoopCtrlDebug.velCtrlDebug.velCtrlFf[2];
+			fcs_debug_data_.vd_ff_out = model_debug.outerLoopCtrlDebug.velCtrlDebug.velCtrlFf[2];
 			// Estimated hover thrust
-			fcs_debug_data_.hover_thrust_est = fcs_model_autocode_y_.fcsDebug.outerLoopCtrlDebug.zAccelCtrlDebug.pidDebug.output;
-			fcs_debug_data_.vd_meas_thrust_est = fcs_model_autocode_y_.fcsDebug.outerLoopCtrlDebug.zAccelCtrlDebug.cmd;
-			fcs_debug_data_.ad_meas_thrust_est = fcs_model_autocode_y_.fcsDebug.outerLoopCtrlDebug.zAccelCtrlDebug.meas;
-			fcs_debug_data_.alt_ctrl_trigger = fcs_model_autocode_y_.fcsDebug.outerLoopCtrlDebug.zAccelCtrlDebug.pidDebug.proportionalOutput;
+			fcs_debug_data_.hover_thrust_est = model_debug.outerLoopCtrlDebug.zAccelCtrlDebug.pidDebug.output;
+			fcs_debug_data_.vd_meas_thrust_est = model_debug.outerLoopCtrlDebug.zAccelCtrlDebug.cmd;
+			fcs_debug_data_.ad_meas_thrust_est = model_debug.outerLoopCtrlDebug.zAccelCtrlDebug.meas;
+			fcs_debug_data_.alt_ctrl_trigger = model_debug.outerLoopCtrlDebug.zAccelCtrlDebug.pidDebug.proportionalOutput;
 
-			fcs_debug_data_.pn_cmd_m = fcs_model_autocode_y_.fcsDebug.outerLoopCtrlDebug.posCtrlDebug.cmd[0];
-			fcs_debug_data_.pn_meas_m = fcs_model_autocode_y_.fcsDebug.outerLoopCtrlDebug.posCtrlDebug.meas[0];
-			fcs_debug_data_.pn_kp_out = fcs_model_autocode_y_.fcsDebug.outerLoopCtrlDebug.posCtrlDebug.pidDebug[0].proportionalOutput;
+			fcs_debug_data_.pn_cmd_m = model_debug.outerLoopCtrlDebug.posCtrlDebug.cmd[0];
+			fcs_debug_data_.pn_meas_m = model_debug.outerLoopCtrlDebug.posCtrlDebug.meas[0];
+			fcs_debug_data_.pn_kp_out = model_debug.outerLoopCtrlDebug.posCtrlDebug.pidDebug[0].proportionalOutput;
 
-			fcs_debug_data_.pe_cmd_m = fcs_model_autocode_y_.fcsDebug.outerLoopCtrlDebug.posCtrlDebug.cmd[1];
-			fcs_debug_data_.pe_meas_m = fcs_model_autocode_y_.fcsDebug.outerLoopCtrlDebug.posCtrlDebug.meas[1];
-			fcs_debug_data_.pe_kp_out = fcs_model_autocode_y_.fcsDebug.outerLoopCtrlDebug.posCtrlDebug.pidDebug[1].proportionalOutput;
+			fcs_debug_data_.pe_cmd_m = model_debug.outerLoopCtrlDebug.posCtrlDebug.cmd[1];
+			fcs_debug_data_.pe_meas_m = model_debug.outerLoopCtrlDebug.posCtrlDebug.meas[1];
+			fcs_debug_data_.pe_kp_out = model_debug.outerLoopCtrlDebug.posCtrlDebug.pidDebug[1].proportionalOutput;
 
-			fcs_debug_data_.pd_cmd_m = fcs_model_autocode_y_.fcsDebug.outerLoopCtrlDebug.posCtrlDebug.cmd[2];
-			fcs_debug_data_.pd_meas_m = fcs_model_autocode_y_.fcsDebug.outerLoopCtrlDebug.posCtrlDebug.meas[2];
-			fcs_debug_data_.pd_kp_out = fcs_model_autocode_y_.fcsDebug.outerLoopCtrlDebug.posCtrlDebug.pidDebug[2].proportionalOutput;
+			fcs_debug_data_.pd_cmd_m = model_debug.outerLoopCtrlDebug.posCtrlDebug.cmd[2];
+			fcs_debug_data_.pd_meas_m = model_debug.outerLoopCtrlDebug.posCtrlDebug.meas[2];
+			fcs_debug_data_.pd_kp_out = model_debug.outerLoopCtrlDebug.posCtrlDebug.pidDebug[2].proportionalOutput;
 
-			fcs_debug_data_.thrust_cmd_N = fcs_model_autocode_y_.fcsDebug.allocDebug.thrustCmd_N;
-			fcs_debug_data_.xmom_cmd_Nm = fcs_model_autocode_y_.fcsDebug.allocDebug.xMomCmd_Nm;
-			fcs_debug_data_.ymom_cmd_Nm = fcs_model_autocode_y_.fcsDebug.allocDebug.yMomCmd_Nm;
-			fcs_debug_data_.zmom_cmd_Nm = fcs_model_autocode_y_.fcsDebug.allocDebug.zMomCmd_Nm;
+			fcs_debug_data_.thrust_cmd_N = model_debug.allocDebug.thrustCmd_N;
+			fcs_debug_data_.xmom_cmd_Nm = model_debug.allocDebug.xMomCmd_Nm;
+			fcs_debug_data_.ymom_cmd_Nm = model_debug.allocDebug.yMomCmd_Nm;
+			fcs_debug_data_.zmom_cmd_Nm = model_debug.allocDebug.zMomCmd_Nm;
 
-			fcs_debug_data_.chirp_debug = fcs_model_autocode_y_.fcsDebug.sysIdDebug.chirpSignal;
-			fcs_debug_data_.chirp_trigger = static_cast<uint8_t>(fcs_model_autocode_y_.fcsDebug.sysIdDebug.chirpTrigger);
-			fcs_debug_data_.chirp_type = static_cast<uint8_t>(fcs_model_autocode_y_.fcsDebug.sysIdDebug.chirpType);
+			fcs_debug_data_.chirp_debug = model_debug.sysIdDebug.chirpSignal;
+			fcs_debug_data_.chirp_trigger = static_cast<uint8_t>(model_debug.sysIdDebug.chirpTrigger);
+			fcs_debug_data_.chirp_type = static_cast<uint8_t>(model_debug.sysIdDebug.chirpType);
 
 			fcs_debug_pub_.publish(fcs_debug_data_);
-			end_cycles = DWT->CYCCNT;
 		}
+
+		// Apply at most one request after observing this tick's authoritative
+		// model state. The new value becomes visible to the next model step; no
+		// queue-draining loop or parameter-bus copy is performed.
+		parameter_store.ApplyOneFcsUpdate(parameter_runtime_state);
 
 		vTaskDelayUntil(&xLastWakeTime, xFrequency);
 	}
 }
 
 FlightControls flight_controls_task_instance_;
-
-

@@ -9,7 +9,7 @@
 //#include "sensors/ubloxm9n/ubloxm9n.h"
 #include "sensors/ubloxm9n2/ubloxm9n2.h"
 //#include "sensors/ubloxm8n/ubloxm8n.h"
-//#include "mavlink_rxtx/mavlink_rxtx.h"
+#include "mavlink_rxtx/mavlink_rxtx.h"
 
 extern "C" void HAL_UART_RxCpltCallback(UART_HandleTypeDef* huart) {
     if (huart->Instance == SBUSRX) {
@@ -46,12 +46,21 @@ extern "C" void HAL_UART_RxCpltCallback(UART_HandleTypeDef* huart) {
 //    }
 }
 
-//extern "C" void HAL_UART_TxCpltCallback(UART_HandleTypeDef* huart) {
-//    if (huart->Instance == TELEM) {
-//        if (MavlinkRxTx::mavlink_rxtx_instance_handle_ != nullptr) {
-//        	MavlinkRxTx::TxCompleted();
-//        }
-//    }else {
-//        __NOP();
-//    }
-//}
+extern "C" void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef* huart,
+                                             uint16_t size) {
+    if ((huart != nullptr) && (huart->Instance == TELEM)) {
+        MavlinkRxTx::RxEvent(huart, size);
+    }
+}
+
+extern "C" void HAL_UART_ErrorCallback(UART_HandleTypeDef* huart) {
+    if ((huart != nullptr) && (huart->Instance == TELEM)) {
+        MavlinkRxTx::UartError(huart);
+    }
+}
+
+extern "C" void HAL_UART_TxCpltCallback(UART_HandleTypeDef* huart) {
+    if ((huart != nullptr) && (huart->Instance == TELEM)) {
+        MavlinkRxTx::TxCompleted(huart);
+    }
+}

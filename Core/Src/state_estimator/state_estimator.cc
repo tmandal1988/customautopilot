@@ -20,11 +20,6 @@ void StateEstimator::Run(){
 	EkfData ekf_data = {0};
 	Publisher<EkfData> ekf_pub_(TopicID::EKF);
 
-	// On Cortex-M3/M4/M7 with DWT support:
-	CoreDebug->DEMCR |= CoreDebug_DEMCR_TRCENA_Msk;
-	DWT->CYCCNT = 0;
-	DWT->CTRL |= DWT_CTRL_CYCCNTENA_Msk;
-
 	int blink_counter = 0;
 	DEBUG_PRINT("FreeRTOS heap remaining: %u bytes\n", xPortGetFreeHeapSize());
 
@@ -35,27 +30,34 @@ void StateEstimator::Run(){
 	TickType_t xLastWakeTime;
 	const TickType_t xFrequency = pdMS_TO_TICKS(READ_INTERVAL_MS);
 
-	// Initialize the xLastWakeTime variable with the current time.
-	xLastWakeTime = xTaskGetTickCount();
-
 //	UBaseType_t highWaterMark = uxTaskGetStackHighWaterMark(NULL);
 //	uint32_t used = 2700 - highWaterMark * sizeof(StackType_t);
 //	DEBUG_PRINT("Used: %lu bytes, Free: %lu bytes (of %d total)\n",
 //    used, highWaterMark * sizeof(StackType_t), 2700);
 	osDelay(500);
+	// Initialize the periodic schedule after the startup delay.
+	xLastWakeTime = xTaskGetTickCount();
 	bool imu_updated = false;
-	uint32_t end_cycles = 0;
-	uint32_t start_cycles = 0;
+	bool first_iteration = true;
 //	uint32_t elapsedTicks = 0;
 	for(;;){
+		const TickType_t actual_start_tick = xTaskGetTickCount();
+		const int32_t start_lateness_ticks =
+				static_cast<int32_t>(actual_start_tick - xLastWakeTime);
+
+		++ekf_data.task_run_seq;
+		if (!first_iteration && start_lateness_ticks >
+				static_cast<int32_t>(kAllowedStartLatenessTicks)) {
+			++ekf_data.late_start_count;
+		}
+		first_iteration = false;
+
 		if (++blink_counter >= 100) {
 			blink_counter = 0;
 //			UBaseType_t highWaterMark = uxTaskGetStackHighWaterMark(NULL);
 //			uint32_t used = 30000 - highWaterMark * sizeof(StackType_t);
 //			DEBUG_PRINT("Used: %lu bytes, Free: %lu bytes (of %d total)\n",
 //				   used, highWaterMark * sizeof(StackType_t), 10000);
-//			DEBUG_PRINT("Roll: %g, Pitch: %g, Yaw: %g, Ex Time: %g\n", ekf_data.euler_rad[0]/DEG2RAD,
-//					ekf_data.euler_rad[1]/DEG2RAD, ekf_data.euler_rad[2]/DEG2RAD, (float)(end_cycles - start_cycles) / (SystemCoreClock / 1e6));
 //			DEBUG_PRINT("Ax: %g, Ay: %g, Az: %g\n", ekf_data.bias_corr_body_accels_mps2[0],
 //					ekf_data.bias_corr_body_accels_mps2[1], ekf_data.bias_corr_body_accels_mps2[2]);
 //			DEBUG_PRINT("Ax: %g, Ay: %g, Az: %g\n", imu_data.accel_mps2[0],
@@ -63,31 +65,56 @@ void StateEstimator::Run(){
 
 		}
 
-		start_cycles = DWT->CYCCNT;
-		// Read before
-		if(imu_sub_.copy(imu_data)){
+		// Read the latest ICM20948 acceleration and angular-rate sample.
+		if (imu_sub_.copy(imu_data)) {
 			imu_updated = true;
-			for(size_t idx = 0; idx < 3; idx++){
-				state_estimator_autocode_u_.imuData.bodyAccels_mps2[idx] = imu_data.accel_mps2[idx];
-				state_estimator_autocode_u_.imuData.bodyRates_radps[idx] = imu_data.gyro_radps[idx];
-				state_estimator_autocode_u_.magData.bodyMagVector_uT[idx] = imu_data.mag_ut[idx];
+			for (size_t idx = 0; idx < 3; ++idx) {
+				state_estimator_autocode_u_.imuData.bodyAccels_mps2[idx] =
+				    imu_data.accel_mps2[idx];
+				state_estimator_autocode_u_.imuData.bodyRates_radps[idx] =
+				    imu_data.gyro_radps[idx];
 			}
-			// Check delta time between last and current imu reading
-			float curr_imu_time_s = static_cast<float>(imu_data.timestamp_ms)*0.001;
-			float dt_imu_time_s = curr_imu_time_s - prev_imu_time_s;
 
-			if(dt_imu_time_s > 0 && dt_imu_time_s <= MAX_ALLOWED_IMU_DT_S){
+			// Check delta time between the last and current IMU samples.
+			const float curr_imu_time_s =
+			    static_cast<float>(imu_data.timestamp_ms) * 0.001F;
+			const float dt_imu_time_s = curr_imu_time_s - prev_imu_time_s;
+
+			if ((dt_imu_time_s > 0.0F) &&
+			    (dt_imu_time_s <= MAX_ALLOWED_IMU_DT_S)) {
 				state_estimator_autocode_u_.imuData.dtImuTime_s = dt_imu_time_s;
 				state_estimator_autocode_u_.imuData.isImuDataValid = true;
-			}else{
+			} else {
 				state_estimator_autocode_u_.imuData.isImuDataValid = false;
 			}
-			state_estimator_autocode_u_.magData.isMagDataValid = true;
 			prev_imu_time_s = curr_imu_time_s;
-		}else{
-			state_estimator_autocode_u_.magData.isMagDataValid = false;
+		} else {
 			imu_updated = false;
 			state_estimator_autocode_u_.imuData.isImuDataValid = false;
+		}
+
+		// Consume a magnetometer sample only on a cycle where the EKF will
+		// actually step. This prevents losing an IST8310 update during a rare
+		// cycle with no new IMU data, and prevents duplicate mag corrections.
+		state_estimator_autocode_u_.magData.isMagDataValid = false;
+		if (imu_updated) {
+			if constexpr (kStateEstimatorMagnetometerSource ==
+			              MagnetometerSource::kIst8310) {
+				MagnetometerData mag_data = {};
+				if (ist8310_mag_sub_.copy(mag_data)) {
+					for (size_t idx = 0; idx < 3; ++idx) {
+						state_estimator_autocode_u_.magData.bodyMagVector_uT[idx] =
+						    mag_data.mag_ut[idx];
+					}
+					state_estimator_autocode_u_.magData.isMagDataValid = true;
+				}
+			} else {
+				for (size_t idx = 0; idx < 3; ++idx) {
+					state_estimator_autocode_u_.magData.bodyMagVector_uT[idx] =
+					    imu_data.mag_ut[idx];
+				}
+				state_estimator_autocode_u_.magData.isMagDataValid = true;
+			}
 		}
 
 		if(baro_sub_.copy(baro_data)){
@@ -149,6 +176,7 @@ void StateEstimator::Run(){
 		stateEstimatorAutocodeObj_.setExternalInputs(&state_estimator_autocode_u_);
 		if(imu_updated){
 			stateEstimatorAutocodeObj_.step();
+			++ekf_data.ekf_step_seq;
 		}
 		state_estimator_autocode_y_ = stateEstimatorAutocodeObj_.getExternalOutputs();
 		for(size_t idx = 0; idx < 3; idx++){
@@ -178,7 +206,6 @@ void StateEstimator::Run(){
 		ekf_data.state_init_pct = state_estimator_autocode_y_.stateEstimatorDebug.stateEstInitPct;
 		ekf_data.sm_mode = static_cast<uint8_t>(state_estimator_autocode_y_.stateEstimatorDebug.smMode);
 		ekf_pub_.publish(ekf_data);
-		end_cycles = DWT->CYCCNT;
 		// Wait until the next cycle
 		vTaskDelayUntil(&xLastWakeTime, xFrequency);
 	}

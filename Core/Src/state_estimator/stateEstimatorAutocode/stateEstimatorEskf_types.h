@@ -3,9 +3,9 @@
 //
 // Code generated for Simulink model 'stateEstimatorEskf'.
 //
-// Model version                  : 1.145
-// Simulink Coder version         : 9.7 (R2022a) 13-Nov-2021
-// C/C++ source code generated on : Fri Nov 21 11:04:20 2025
+// Model version                  : 7.0
+// Simulink Coder version         : 25.1 (R2025a) 21-Nov-2024
+// C/C++ source code generated on : Sat Jul 25 13:23:09 2026
 //
 // Target selection: ert.tlc
 // Embedded hardware selection: ARM Compatible->ARM Cortex-M
@@ -15,11 +15,9 @@
 //    3. ROM efficiency
 // Validation result: Not run
 //
-#ifndef RTW_HEADER_stateEstimatorEskf_types_h_
-#define RTW_HEADER_stateEstimatorEskf_types_h_
+#ifndef stateEstimatorEskf_types_h_
+#define stateEstimatorEskf_types_h_
 #include "rtwtypes.h"
-
-// Model Code Variants
 #ifndef DEFINED_TYPEDEF_FOR_enumStateEstimateMode_
 #define DEFINED_TYPEDEF_FOR_enumStateEstimateMode_
 
@@ -436,7 +434,7 @@ struct struct_lNBPdDZBS05BfQyyvsjhxE
 };
 
 #endif
-#endif                                // RTW_HEADER_stateEstimatorEskf_types_h_
+#endif                                 // stateEstimatorEskf_types_h_
 
 //
 // File trailer for generated code.

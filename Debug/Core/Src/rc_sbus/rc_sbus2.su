@@ -1,9 +1,0 @@
-../Core/Src/rc_sbus/rc_sbus2.h:22:13:RcSbus2::~RcSbus2()	0	static
-../Core/Src/rc_sbus/rc_sbus2.h:22:13:virtual RcSbus2::~RcSbus2()	8	static
-../Core/Inc/task_manager/task_base.h:46:39:void __tcf_0()	0	static
-../Core/Src/rc_sbus/rc_sbus2.cc:17:1:RcSbus2::RcSbus2(UART_HandleTypeDef*)	40	static
-../Core/Src/rc_sbus/rc_sbus2.cc:23:6:void RcSbus2::RcSbusInit()	8	static
-../Core/Src/rc_sbus/rc_sbus2.cc:35:6:virtual void RcSbus2::Run()	48	static
-../Core/Src/rc_sbus/rc_sbus2.cc:29:6:static void RcSbus2::ReceivedNewSbusFrame(uint8_t)	4	static
-../Core/Src/rc_sbus/rc_sbus2.cc:67:6:void RcSbus2::DecodeSbusFrame()	56	static
-../Core/Src/rc_sbus/rc_sbus2.cc:147:6:void RcSbus2::RestartDma()	8	static

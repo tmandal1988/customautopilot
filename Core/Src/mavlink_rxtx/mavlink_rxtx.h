@@ -7,6 +7,10 @@
 
 #pragma once
 
+#include <array>
+#include <atomic>
+#include <utility>
+
 #include "task_manager/task_base.h"
 #include "pubsub/subscriber.h"
 #include "pubsub/publisher.h"
@@ -14,8 +18,8 @@
 #include "messages/gps_data.h"
 #include "messages/fcs_debug_data.h"
 #include "messages/mavlink_data.h"
-#include "messages/mavlink_params_data.h"
-#include "debug.h"
+#include "parameters/parameter_types.h"
+#include "mavlink_transport_state.h"
 #include "pin_defines.h"
 #include "constants.h"
 
@@ -28,24 +32,42 @@ public:
 	MavlinkRxTx(UART_HandleTypeDef* huart);
     void Run() override;
 
-    // Sets the tx_complete_ flag
-	static void TxCompleted();
+    static void RxEvent(UART_HandleTypeDef* huart, uint16_t size);
+    static void UartError(UART_HandleTypeDef* huart);
+    static void TxCompleted(UART_HandleTypeDef* huart);
 
 	static MavlinkRxTx* mavlink_rxtx_instance_handle_;
 private:
 	UART_HandleTypeDef* mavlink_uart_;  // UART handle for Mavlink messages
-    static constexpr uint16_t READ_INTERVAL_MS = 200; // 5Hz
-    static constexpr int kHeartbeatIntervalCount = 1000 / READ_INTERVAL_MS;
+    static constexpr uint16_t kTelemetryIntervalMs = 200U;  // 5 Hz
+    static constexpr uint16_t kHeartbeatIntervalMs = 1000U;
+    static constexpr uint16_t kParameterListIntervalMs = 50U;
+    static constexpr uint16_t kTransportRetryIntervalMs = 10U;
     static constexpr uint8_t kSysId       = 1;
-    static constexpr uint8_t kCompId      = 1;
+    static constexpr uint8_t kCompId      = MAV_COMP_ID_AUTOPILOT1;
 
     static constexpr size_t kMavBuffSize = 512;
-    uint8_t uart4_dma_rx_buffer_[kMavBuffSize];
+    static constexpr size_t kRxParseBudget = kMavBuffSize / 2U;
+    alignas(32) uint8_t uart4_dma_rx_buffer_[kMavBuffSize]{};
 
     // TX buffer constants
     static constexpr size_t kTxBufferSize = 1024;
+    static constexpr size_t kPendingParameterReplyCapacity = 32;
+    static constexpr size_t kMaxParameterValueFrameLength =
+        MAVLINK_MSG_ID_PARAM_VALUE_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES +
+        MAVLINK_SIGNATURE_BLOCK_LEN;
+    static_assert((kMavBuffSize & (kMavBuffSize - 1U)) == 0U);
+    static_assert(kRxParseBudget <= kMavBuffSize);
+    static_assert(kTxBufferSize <= UINT16_MAX);
+    static_assert(kMaxParameterValueFrameLength <= MAVLINK_MAX_PACKET_LEN);
+    static_assert(std::atomic<uint32_t>::is_always_lock_free);
 
-    static constexpr double kEpsilon = 1e-9;
+    static constexpr uint32_t kRxReadyEvent = 1UL << 0U;
+    static constexpr uint32_t kRxErrorEvent = 1UL << 1U;
+    static constexpr uint32_t kTxCompleteEvent = 1UL << 2U;
+    static constexpr uint32_t kTxErrorEvent = 1UL << 3U;
+    static constexpr uint32_t kAllTaskEvents =
+        kRxReadyEvent | kRxErrorEvent | kTxCompleteEvent | kTxErrorEvent;
 
 	enum class HomeState {
 		NOTHOMED = 0,
@@ -74,31 +96,59 @@ private:
     bool gps_valid_ = false;
 
     //Double buffering for MAVLink TX
-    uint8_t tx_buffer_a_[kTxBufferSize];
-    uint8_t tx_buffer_b_[kTxBufferSize];
+    alignas(32) uint8_t tx_buffer_a_[kTxBufferSize]{};
+    alignas(32) uint8_t tx_buffer_b_[kTxBufferSize]{};
     uint8_t* active_buffer_ = tx_buffer_a_;
     uint8_t* sending_buffer_ = tx_buffer_b_;
     size_t active_index_ = 0;
+    size_t sending_length_ = 0;
+    bool active_buffer_has_parameter_response_ = false;
+    bool sending_buffer_has_parameter_response_ = false;
+    bool tx_resend_pending_ = false;
+    bool tx_replay_wait_pending_ = false;
+    bool tx_retry_pending_ = false;
+    TickType_t next_tx_retry_due_ = 0U;
 
-    mavlink_message_t msg;
-    mavlink_status_t status;
-    size_t read_index_ = 0;
+    mavlink_message_t msg{};
+    mavlink_status_t status{};
+    TaskHandle_t mavlink_task_handle_ = nullptr;
+    std::atomic<uint32_t> rx_dma_last_position_{0U};
+    std::atomic<uint32_t> rx_produced_bytes_{0U};
+    uint32_t rx_consumed_bytes_ = 0U;
+    bool rx_backlog_pending_ = false;
+    bool rx_restart_pending_ = false;
+    TickType_t next_rx_restart_due_ = 0U;
 
-    size_t write_index_ = 0;
-    bool tx_complete_ = true;
-    void SetTxReadyFlag();
-    void ParseReadyMavlinkMessages();
+    bool StartRxDma();
+    void RecoverRxDma(TickType_t now);
+    bool ParseReadyMavlinkMessages();
+    void ResetMavlinkParser();
     void HandleMavlinkMessage(mavlink_message_t* msg);
-    void FlushUartDataRegister();
-    void SwapBuffers();
+    void NotifyTaskFromIsr(uint32_t event);
 
     void BuildHeartbeat();
     void BuildGlobalPosition(uint32_t now_ms);
     void BuildGps(uint32_t now_ms);
     void BuildAttitude(uint32_t now_ms);
 
+    enum class ParameterTxResult : uint8_t {
+      Queued = 0U,
+      TxFull,
+      InvalidParameter,
+    };
+
     bool QueueMessage(const mavlink_message_t& msg);
-    void SendBufferedDataIfReady();
+    ParameterTxResult TryQueueParameterValue(uint16_t index, float value,
+                                             uint16_t parameter_count);
+    ParameterTxResult TryQueueCurrentParameterValue(
+        uint16_t index, uint16_t parameter_count);
+    bool EnqueueCurrentParameterReply(uint16_t index);
+    void RequestParameterList(TickType_t now);
+    void ProcessOneParameterResponse(TickType_t now);
+    void SendBufferedDataIfReady(TickType_t now);
+    TickType_t ComputeWaitTicks(TickType_t now,
+                                TickType_t next_telemetry,
+                                TickType_t next_heartbeat) const;
 
     /// Generic wrapper that packs a MAVLink message then queues it.
     template<typename PackFunc, typename... Args>
@@ -114,46 +164,33 @@ private:
     MavlinkData mavlink_data_ = {0};
     bool new_mavlink_data_ = false;
 
-    // Parameters (example only)
-    float velz_kp_ = 3.05f;
-    float velz_ki_ = 1.0f;
-    float velz_kff_ = 0.0f;
-    float velz_kff2_ = 0.0f;
-    float velz_accel_kfb_ = 0.0f;
-    float posz_kp_ = 1.6f;
-    float base_mass_kg_ = 2.5f;
+    uint32_t next_parameter_update_token_ = 1U;
+    parameters::ParameterUpdateCompletion pending_parameter_completion_{};
+    bool has_pending_parameter_completion_ = false;
 
-    float velne_kp_ = 0.9f;
-	float velne_ki_ = 0.3f;
-	float velne_kff_ = 0.0f;
-	float velne_kff2_ = 0.0f;
-	float velne_accel_kfb_ = 0.03f;
-	float posne_kp_ = 0.8f;
-
-    struct MavlinkParam {
-      const char* name;
-      float* value;
-      MAV_PARAM_TYPE type;
+    struct PendingParameterReply {
+      float value;
+      uint16_t index;
+      uint16_t parameter_count;
     };
+    static_assert(sizeof(PendingParameterReply) == 8U);
+    static_assert((kPendingParameterReplyCapacity &
+                   (kPendingParameterReplyCapacity - 1U)) == 0U);
+    std::array<PendingParameterReply,
+               kPendingParameterReplyCapacity> pending_parameter_replies_{};
+    uint32_t pending_parameter_reply_head_ = 0U;
+    uint32_t pending_parameter_reply_tail_ = 0U;
+    mavlink_transport::ParameterListCursor parameter_list_cursor_{};
 
-    static constexpr int kParamCount = 13;
+    uint32_t rx_overrun_count_ = 0U;
+    uint32_t rx_dropped_byte_count_ = 0U;
+    uint32_t rx_error_count_ = 0U;
+    uint32_t rx_restart_count_ = 0U;
+    uint32_t tx_start_error_count_ = 0U;
+    uint32_t tx_dma_error_count_ = 0U;
+    uint32_t tx_resend_count_ = 0U;
+    uint32_t pending_parameter_reply_overflow_count_ = 0U;
+    uint32_t parameter_response_error_count_ = 0U;
+    uint32_t parameter_list_error_count_ = 0U;
 
-    MavlinkParam param_table_[kParamCount] = {
-        {"VELZ_KP", &velz_kp_, MAV_PARAM_TYPE_REAL32},
-        {"VELZ_KI", &velz_ki_, MAV_PARAM_TYPE_REAL32},
-        {"VELZ_KFF", &velz_kff_, MAV_PARAM_TYPE_REAL32},
-		{"VELZ_KFF2", &velz_kff2_, MAV_PARAM_TYPE_REAL32},
-		{"VELZ_ACCEL_KFB", &velz_accel_kfb_, MAV_PARAM_TYPE_REAL32},
-		{"POSZ_KP", &posz_kp_, MAV_PARAM_TYPE_REAL32},
-		{"VELNE_KP", &velne_kp_, MAV_PARAM_TYPE_REAL32},
-		{"VELNE_KI", &velne_ki_, MAV_PARAM_TYPE_REAL32},
-		{"VELNE_KFF", &velne_kff_, MAV_PARAM_TYPE_REAL32},
-		{"VELNE_KFF2", &velne_kff2_, MAV_PARAM_TYPE_REAL32},
-		{"VELNE_ACCEL_KFB", &velne_accel_kfb_, MAV_PARAM_TYPE_REAL32},
-		{"POSNE_KP", &posne_kp_, MAV_PARAM_TYPE_REAL32},
-		{"BASE_MASS_KG", &base_mass_kg_, MAV_PARAM_TYPE_REAL32},
-    };
-
-    MavlinkParamsData mavlink_params_data_ = {0};
-    bool new_mavlink_params_data_ = false;
 };

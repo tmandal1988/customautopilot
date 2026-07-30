@@ -84,16 +84,12 @@ See BSP_SD_ErrorCallback() and BSP_SD_AbortCallback() below
 * transfer data
 */
 /* USER CODE BEGIN enableScratchBuffer */
-/* #define ENABLE_SCRATCH_BUFFER */
+#define ENABLE_SCRATCH_BUFFER
 /* USER CODE END enableScratchBuffer */
 
 /* Private variables ---------------------------------------------------------*/
 #if defined(ENABLE_SCRATCH_BUFFER)
-#if defined (ENABLE_SD_DMA_CACHE_MAINTENANCE)
 ALIGN_32BYTES(static uint8_t scratch[BLOCKSIZE]); // 32-Byte aligned for cache maintenance
-#else
-__ALIGN_BEGIN static uint8_t scratch[BLOCKSIZE] __ALIGN_END;
-#endif
 #endif
 /* Disk status */
 static volatile DSTATUS Stat = STA_NOINIT;
@@ -151,6 +147,9 @@ static int SD_CheckStatusWithTimeout(uint32_t timeout)
     {
       return 0;
     }
+    /* yield while the card is busy so this poll cannot starve lower
+       priority tasks */
+    osDelay(1);
   }
 
   return -1;
@@ -311,6 +310,9 @@ DRESULT SD_read(BYTE lun, BYTE *buff, DWORD sector, UINT count)
 #endif
                 break;
               }
+              /* yield while the card is busy so this poll cannot starve
+                 lower priority tasks */
+              osDelay(1);
             }
 #if (osCMSIS < 0x20000U)
           }
@@ -329,9 +331,15 @@ DRESULT SD_read(BYTE lun, BYTE *buff, DWORD sector, UINT count)
 
       for (i = 0; i < count; i++)
       {
+#if (ENABLE_SD_DMA_CACHE_MAINTENANCE == 1)
+        /* Discard any stale scratch line before SD DMA writes into it. */
+        SCB_InvalidateDCache_by_Addr((uint32_t*)scratch, BLOCKSIZE);
+#endif
         ret = BSP_SD_ReadBlocks_DMA((uint32_t*)scratch, (uint32_t)sector++, 1);
         if (ret == MSD_OK )
         {
+          /* A missing/wrong completion message must remain an error. */
+          ret = MSD_ERROR;
           /* wait until the read is successful or a timeout occurs */
 #if (osCMSIS < 0x20000U)
           /* wait for a message from the queue or a timeout */
@@ -350,7 +358,6 @@ DRESULT SD_read(BYTE lun, BYTE *buff, DWORD sector, UINT count)
               {
                 timer = osKernelGetTickCount();
                 /* block until SDIO IP is ready or a timeout occur */
-                ret = MSD_ERROR;
                 while(osKernelGetTickCount() - timer < SD_TIMEOUT)
 #endif
                 {
@@ -360,6 +367,9 @@ DRESULT SD_read(BYTE lun, BYTE *buff, DWORD sector, UINT count)
                   {
                     break;
                   }
+                  /* yield while the card is busy so this poll cannot
+                     starve lower priority tasks */
+                  osDelay(1);
                 }
 
                 if (ret != MSD_OK)
@@ -372,6 +382,10 @@ DRESULT SD_read(BYTE lun, BYTE *buff, DWORD sector, UINT count)
 #else
           }
 #endif
+          if (ret != MSD_OK)
+          {
+            break;
+          }
 #if (ENABLE_SD_DMA_CACHE_MAINTENANCE == 1)
           /*
           *
@@ -479,6 +493,9 @@ DRESULT SD_write(BYTE lun, const BYTE *buff, DWORD sector, UINT count)
             res = RES_OK;
             break;
           }
+          /* yield while the card is busy so this poll cannot starve lower
+             priority tasks */
+          osDelay(1);
         }
 #if (osCMSIS < 0x20000U)
       }
@@ -492,39 +509,38 @@ DRESULT SD_write(BYTE lun, const BYTE *buff, DWORD sector, UINT count)
     /* Slow path, fetch each sector a part and memcpy to destination buffer */
     int i;
 
-#if (ENABLE_SD_DMA_CACHE_MAINTENANCE == 1)
-    /*
-     * invalidate the scratch buffer before the next write to get the actual data instead of the cached one
-     */
-     SCB_InvalidateDCache_by_Addr((uint32_t*)scratch, BLOCKSIZE);
-#endif
       for (i = 0; i < count; i++)
       {
         memcpy((void *)scratch, buff, BLOCKSIZE);
         buff += BLOCKSIZE;
+#if (ENABLE_SD_DMA_CACHE_MAINTENANCE == 1)
+        /* Publish the copied sector to SD DMA before starting the transfer. */
+        SCB_CleanDCache_by_Addr((uint32_t*)scratch, BLOCKSIZE);
+#endif
 
         ret = BSP_SD_WriteBlocks_DMA((uint32_t*)scratch, (uint32_t)sector++, 1);
         if (ret == MSD_OK )
         {
-          /* wait until the read is successful or a timeout occurs */
+          /* A missing/wrong completion message must remain an error. */
+          ret = MSD_ERROR;
+          /* wait until the write is successful or a timeout occurs */
 #if (osCMSIS < 0x20000U)
           /* wait for a message from the queue or a timeout */
           event = osMessageGet(SDQueueID, SD_TIMEOUT);
 
           if (event.status == osEventMessage)
           {
-            if (event.value.v == READ_CPLT_MSG)
+            if (event.value.v == WRITE_CPLT_MSG)
             {
               timer = osKernelSysTick();
               /* block until SDIO IP is ready or a timeout occur */
               while(osKernelSysTick() - timer <SD_TIMEOUT)
 #else
                 status = osMessageQueueGet(SDQueueID, (void *)&event, NULL, SD_TIMEOUT);
-              if ((status == osOK) && (event == READ_CPLT_MSG))
+              if ((status == osOK) && (event == WRITE_CPLT_MSG))
               {
                 timer = osKernelGetTickCount();
                 /* block until SDIO IP is ready or a timeout occur */
-                ret = MSD_ERROR;
                 while(osKernelGetTickCount() - timer < SD_TIMEOUT)
 #endif
                 {
@@ -534,6 +550,9 @@ DRESULT SD_write(BYTE lun, const BYTE *buff, DWORD sector, UINT count)
                   {
                     break;
                   }
+                  /* yield while the card is busy so this poll cannot
+                     starve lower priority tasks */
+                  osDelay(1);
                 }
 
                 if (ret != MSD_OK)
@@ -546,6 +565,10 @@ DRESULT SD_write(BYTE lun, const BYTE *buff, DWORD sector, UINT count)
 #else
           }
 #endif
+          if (ret != MSD_OK)
+          {
+            break;
+          }
         }
         else
         {

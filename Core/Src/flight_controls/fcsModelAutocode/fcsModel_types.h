@@ -3,9 +3,9 @@
 //
 // Code generated for Simulink model 'fcsModel'.
 //
-// Model version                  : 1.118
-// Simulink Coder version         : 9.7 (R2022a) 13-Nov-2021
-// C/C++ source code generated on : Sun Jun 22 23:09:15 2025
+// Model version                  : 7.9
+// Simulink Coder version         : 25.1 (R2025a) 21-Nov-2024
+// C/C++ source code generated on : Wed Jul 29 08:20:05 2026
 //
 // Target selection: ert.tlc
 // Embedded hardware selection: ARM Compatible->ARM Cortex-M
@@ -15,12 +15,10 @@
 //    3. Traceability
 // Validation result: All passed
 //
-#ifndef RTW_HEADER_fcsModel_types_h_
-#define RTW_HEADER_fcsModel_types_h_
+#ifndef fcsModel_types_h_
+#define fcsModel_types_h_
 #include "rtwtypes.h"
 #include <array>
-
-// Model Code Variants
 #ifndef DEFINED_TYPEDEF_FOR_enumStateMachine_
 #define DEFINED_TYPEDEF_FOR_enumStateMachine_
 
@@ -145,6 +143,42 @@ struct busStateEstimate
 
 #endif
 
+#ifndef DEFINED_TYPEDEF_FOR_busExternalCmds_
+#define DEFINED_TYPEDEF_FOR_busExternalCmds_
+
+// Contains external commands that are not RC stick commands sent
+// to the controller
+struct busExternalCmds
+{
+  // 0 -  undefined
+  // 1 - Arm command issued
+  // 2 - Disarm command issued
+  uint8_T armCmdIssued;
+};
+
+#endif
+
+#ifndef DEFINED_TYPEDEF_FOR_busInnerLoopToAlloc_
+#define DEFINED_TYPEDEF_FOR_busInnerLoopToAlloc_
+
+// Bus containing data from inner loop to allocation block
+struct busInnerLoopToAlloc
+{
+  // Commanded thrust
+  real_T thrustCmd_N;
+
+  // X moment command
+  real_T xMomCmd_Nm;
+
+  // Y moment command
+  real_T yMomCmd_Nm;
+
+  // Z moment command
+  real_T zMomCmd_Nm;
+};
+
+#endif
+
 #ifndef DEFINED_TYPEDEF_FOR_busPidParams_
 #define DEFINED_TYPEDEF_FOR_busPidParams_
 
@@ -260,6 +294,7 @@ struct busVelCtrlParams
   std::array<real_T, 2> baseMassMinMax_kg;
   std::array<real_T, 2> firstOrderHeadingFilterNum;
   std::array<real_T, 2> firstOrderHeadingFilterDen;
+  real_T tiltMax_rad;
 };
 
 #endif
@@ -336,42 +371,6 @@ struct busFcsParams
   busInnerLoopCtrlParams innerLoopCtrlParams;
   busOuterLoopCtrlParams outerLoopCtrlParams;
   busSysIdInjectionParams sysIdInjectionParams;
-};
-
-#endif
-
-#ifndef DEFINED_TYPEDEF_FOR_busExternalCmds_
-#define DEFINED_TYPEDEF_FOR_busExternalCmds_
-
-// Contains external commands that are not RC stick commands sent
-// to the controller
-struct busExternalCmds
-{
-  // 0 -  undefined
-  // 1 - Arm command issued
-  // 2 - Disarm command issued
-  uint8_T armCmdIssued;
-};
-
-#endif
-
-#ifndef DEFINED_TYPEDEF_FOR_busInnerLoopToAlloc_
-#define DEFINED_TYPEDEF_FOR_busInnerLoopToAlloc_
-
-// Bus containing data from inner loop to allocation block
-struct busInnerLoopToAlloc
-{
-  // Commanded thrust
-  real_T thrustCmd_N;
-
-  // X moment command
-  real_T xMomCmd_Nm;
-
-  // Y moment command
-  real_T yMomCmd_Nm;
-
-  // Z moment command
-  real_T zMomCmd_Nm;
 };
 
 #endif
@@ -601,17 +600,6 @@ struct busOuterLoopToInnerLoop
 
 #endif
 
-#ifndef DEFINED_TYPEDEF_FOR_busAngRateCtrlInputs_
-#define DEFINED_TYPEDEF_FOR_busAngRateCtrlInputs_
-
-// Bus containing all the inputs necessary for angular rate controllers
-struct busAngRateCtrlInputs
-{
-  std::array<busCtrlInputs, 3> ctrlInputsArray;
-};
-
-#endif
-
 #ifndef DEFINED_TYPEDEF_FOR_busRcOutCmds_
 #define DEFINED_TYPEDEF_FOR_busRcOutCmds_
 
@@ -668,18 +656,6 @@ struct busPosCtrlInputs
 {
   std::array<busCtrlInputs, 3> ctrlInputsArray;
   busGeodeticPos originGeodeticPos;
-};
-
-#endif
-
-#ifndef DEFINED_TYPEDEF_FOR_struct_YSjXhEpMC1LYZqGeNUk2hH_
-#define DEFINED_TYPEDEF_FOR_struct_YSjXhEpMC1LYZqGeNUk2hH_
-
-struct struct_YSjXhEpMC1LYZqGeNUk2hH
-{
-  real_T center;
-  real_T posDeltaFromCenter;
-  real_T negDeltaFromCenter;
 };
 
 #endif
@@ -759,7 +735,7 @@ struct struct_eOoIfVNgmaQXa53hgj2ZoG
 };
 
 #endif
-#endif                                 // RTW_HEADER_fcsModel_types_h_
+#endif                                 // fcsModel_types_h_
 
 //
 // File trailer for generated code.

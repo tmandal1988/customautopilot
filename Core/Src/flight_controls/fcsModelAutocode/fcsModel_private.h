@@ -3,9 +3,9 @@
 //
 // Code generated for Simulink model 'fcsModel'.
 //
-// Model version                  : 1.118
-// Simulink Coder version         : 9.7 (R2022a) 13-Nov-2021
-// C/C++ source code generated on : Sun Jun 22 23:09:15 2025
+// Model version                  : 7.9
+// Simulink Coder version         : 25.1 (R2025a) 21-Nov-2024
+// C/C++ source code generated on : Wed Jul 29 08:20:05 2026
 //
 // Target selection: ert.tlc
 // Embedded hardware selection: ARM Compatible->ARM Cortex-M
@@ -15,9 +15,10 @@
 //    3. Traceability
 // Validation result: All passed
 //
-#ifndef RTW_HEADER_fcsModel_private_h_
-#define RTW_HEADER_fcsModel_private_h_
+#ifndef fcsModel_private_h_
+#define fcsModel_private_h_
 #include "rtwtypes.h"
+#include "fcsModel_types.h"
 #include "fcsModel.h"
 
 extern real_T rt_urand_Upu32_Yd_f_pw(uint32_T *u);
@@ -29,7 +30,7 @@ extern real_T intrp1d_la(uint32_T bpIndex, real_T frac, const real_T table[],
 extern uint32_T binsearch_u32d_prevIdx(real_T u, const real_T bp[], uint32_T
   startIndex, uint32_T maxIndex);
 
-#endif                                 // RTW_HEADER_fcsModel_private_h_
+#endif                                 // fcsModel_private_h_
 
 //
 // File trailer for generated code.

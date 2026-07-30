@@ -1,0 +1,28 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "CMake: configure",
+      "type": "shell",
+      "command": "cmake --preset debug",
+      "problemMatcher": []
+    },
+    {
+      "label": "CMake: build",
+      "type": "shell",
+      "command": "cmake --build --preset debug",
+      "dependsOn": "CMake: configure",
+      "dependsOrder": "sequence",
+      "group": { "kind": "build", "isDefault": true },
+      "problemMatcher": ["$gcc"]
+    },
+    {
+      "label": "CMake: clean rebuild",
+      "type": "shell",
+      "command": "cmake --build --preset debug --clean-first",
+      "dependsOn": "CMake: configure",
+      "dependsOrder": "sequence",
+      "problemMatcher": ["$gcc"]
+    }
+  ]
+}

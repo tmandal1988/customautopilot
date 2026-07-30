@@ -21,9 +21,17 @@ public:
 
     void Run() override;
     static void DmaCompleteCallback(I2C_HandleTypeDef *hi2c);
+    static void ErrorCallback(I2C_HandleTypeDef *hi2c);
     static ReadIcm20948* read_icm20948_instance_; // Static instance for DMA callback
 
 private:
+    enum class TransferResult : uint8_t {
+        kIdle,
+        kPending,
+        kComplete,
+        kError,
+    };
+
     TaskHandle_t read_icm20948_task_handle_;
     static constexpr uint16_t READ_INTERVAL_MS = 2; // 500Hz
 
@@ -171,6 +179,7 @@ private:
 	/////////////////struct PACKED TYPEDEF//////////////////////
 	uint8_t icm20948_raw_buf_[23]={0};
 	I2C_HandleTypeDef* icm20948_i2c_; // This I2C is used to communicate with ICM20948
+	volatile TransferResult transfer_result_ = TransferResult::kIdle;
 
 	// Active user bank
 	uint8_t active_usr_bank_ = 37;
@@ -207,5 +216,3 @@ private:
 
 	void Icm20948GetData(ImuData *icm20948_data);
 };
-
-

@@ -4,9 +4,9 @@
   "configurePresets": [
     {
       "name": "debug",
-      "displayName": "Debug (arm-none-eabi)",
+      "displayName": "Debug (STM32 GNU 13.3.1)",
       "generator": "Ninja",
-      "binaryDir": "${sourceDir}/build/debug",
+      "binaryDir": "${sourceDir}/build/gcc-13.3-debug",
       "toolchainFile": "${sourceDir}/cmake/gcc-arm-none-eabi.cmake",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Debug"

@@ -4,8 +4,8 @@
 // Code generated for Simulink model 'stateEstimatorEskfAutocode'.
 //
 // Model version                  : 1.47
-// Simulink Coder version         : 9.7 (R2022a) 13-Nov-2021
-// C/C++ source code generated on : Fri Nov 21 11:05:18 2025
+// Simulink Coder version         : 25.1 (R2025a) 21-Nov-2024
+// C/C++ source code generated on : Sun Jul 26 11:57:41 2026
 //
 // Target selection: ert.tlc
 // Embedded hardware selection: ARM Compatible->ARM Cortex-M
@@ -15,11 +15,9 @@
 //    3. ROM efficiency
 // Validation result: Not run
 //
-#ifndef RTW_HEADER_stateEstimatorEskfAutocode_types_h_
-#define RTW_HEADER_stateEstimatorEskfAutocode_types_h_
+#ifndef stateEstimatorEskfAutocode_types_h_
+#define stateEstimatorEskfAutocode_types_h_
 #include "rtwtypes.h"
-
-// Model Code Variants
 #ifndef DEFINED_TYPEDEF_FOR_busImuData_
 #define DEFINED_TYPEDEF_FOR_busImuData_
 
@@ -332,40 +330,7 @@ struct busStateEstimatorDebug
 };
 
 #endif
-
-#ifndef DEFINED_TYPEDEF_FOR_busPosAndVel_
-#define DEFINED_TYPEDEF_FOR_busPosAndVel_
-
-// Generic bus to contain NED Position and velocity
-struct busPosAndVel
-{
-  // 3x1 position
-  real32_T pos_m[3];
-
-  // 3x1 velocity
-  real32_T vel_mps[3];
-};
-
-#endif
-
-#ifndef DEFINED_TYPEDEF_FOR_struct_VeS2oUyqvbUeHIfMdYmLTF_
-#define DEFINED_TYPEDEF_FOR_struct_VeS2oUyqvbUeHIfMdYmLTF_
-
-struct struct_VeS2oUyqvbUeHIfMdYmLTF
-{
-  uint16_T imuInitCount;
-  uint16_T magInitCount;
-  uint16_T gpsInitCount;
-  uint16_T baroInitCount;
-  uint16_T desValidGpsCount;
-  real32_T gpsLossCheckDuration_s;
-  real32_T ofLossCheckDuration_s;
-  real32_T initMagDec_rad;
-  boolean_T useOpticalFlow;
-};
-
-#endif
-#endif                        // RTW_HEADER_stateEstimatorEskfAutocode_types_h_
+#endif                                 // stateEstimatorEskfAutocode_types_h_
 
 //
 // File trailer for generated code.

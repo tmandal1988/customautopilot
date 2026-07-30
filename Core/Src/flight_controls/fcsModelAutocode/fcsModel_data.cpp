@@ -3,9 +3,9 @@
 //
 // Code generated for Simulink model 'fcsModel'.
 //
-// Model version                  : 1.118
-// Simulink Coder version         : 9.7 (R2022a) 13-Nov-2021
-// C/C++ source code generated on : Sun Jun 22 23:09:15 2025
+// Model version                  : 7.9
+// Simulink Coder version         : 25.1 (R2025a) 21-Nov-2024
+// C/C++ source code generated on : Wed Jul 29 08:20:05 2026
 //
 // Target selection: ert.tlc
 // Embedded hardware selection: ARM Compatible->ARM Cortex-M
@@ -24,26 +24,25 @@ const fcsModel::ConstP_fcsModel_T fcsModel_ConstP{
   //    '<S3>/Constant'
   //    '<S167>/Constant'
 
-  {
-    {
+  busOuterLoopToInnerLoop{
+    busOuterLoopCmds{
       0.0                              // thrustCmd_N
     },                                 // outerLoopCmds
-
-    {
+    busAttCtrlInputs{
       { {
-          {
+          busCtrlInputs{
             0.0,                       // feedForwardCmd
             0.0,                       // cmd
             0.0,                       // meas
             false,                     // integratorReset
             0.0                        // trackingCtrlCmd
-          }, {
+          }, busCtrlInputs{
             0.0,                       // feedForwardCmd
             0.0,                       // cmd
             0.0,                       // meas
             false,                     // integratorReset
             0.0                        // trackingCtrlCmd
-          }, {
+          }, busCtrlInputs{
             0.0,                       // feedForwardCmd
             0.0,                       // cmd
             0.0,                       // meas
@@ -69,9 +68,9 @@ const fcsModel::ConstP_fcsModel_T fcsModel_ConstP{
   // Expression: allocationDataStruct.allocationMatrix
   //  Referenced by: '<S1>/Constant'
 
-  { { -18260.932199467716, -18260.932199467712, -18260.932199467716,
-      -18260.932199467712, 73043.728797870863, -73043.728797870863,
-      -73043.728797870863, 73043.728797870863, 70234.354613899181,
+  { { -18260.932199467719, -18260.932199467712, -18260.932199467719,
+      -18260.932199467712, 73043.728797870877, -73043.728797870877,
+      -73043.728797870848, 73043.728797870848, 70234.354613899181,
       70234.35461389921, -70234.35461389921, -70234.354613899181,
       -152414.08813250146, 152414.08813250146, -152414.08813250146,
       152414.08813250146 } },

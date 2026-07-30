@@ -1,7 +1,0 @@
-../Core/Src/logger/sd_utils.h:15:7:SdUtils::~SdUtils()	0	static
-../Core/Src/logger/sd_utils.h:15:7:virtual SdUtils::~SdUtils()	8	static
-../Core/Inc/task_manager/task_base.h:46:39:void __tcf_0()	0	static
-../Core/Src/logger/sd_utils.cc:12:1:SdUtils::SdUtils()	40	static
-../Core/Src/logger/sd_utils.cc:16:6:bool SdUtils::SdInit()	16	static
-../Core/Src/logger/sd_utils.cc:43:6:virtual void SdUtils::Run()	376	static,ignoring_inline_asm
-../Core/Src/logger/sd_utils.cc:179:31:cc)	0	static

@@ -11,12 +11,14 @@
 
 namespace DataBuffer {
 
-uint8_t buffers_[kNumBuffers][kBufferSize];
-size_t buffer_offsets_[kNumBuffers] = {0, 0};
-uint8_t current_buffer_index = 0;
+alignas(32) uint8_t buffers_[kNumBuffers][kBufferSize];
+size_t buffer_offsets_[kNumBuffers] = {};
 SemaphoreHandle_t mutex_ = nullptr;
-bool buffer_full_ = false;
-uint8_t flush_buffer_index_ = 0;
+bool buffer_pending_[kNumBuffers] = {};
+bool logging_enabled_ = false;
+uint32_t dropped_records_ = 0;
+uint32_t dropped_bytes_ = 0;
+TaskHandle_t sd_task_handle_ = nullptr;
 uint8_t current_buffer_index_ = 0;
 
 void DataBuffersAccessMutexInit() {

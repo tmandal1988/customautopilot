@@ -4,8 +4,8 @@
 // Code generated for Simulink model 'stateEstimatorEskfAutocode'.
 //
 // Model version                  : 1.47
-// Simulink Coder version         : 9.7 (R2022a) 13-Nov-2021
-// C/C++ source code generated on : Fri Nov 21 11:05:18 2025
+// Simulink Coder version         : 25.1 (R2025a) 21-Nov-2024
+// C/C++ source code generated on : Sun Jul 26 11:57:41 2026
 //
 // Target selection: ert.tlc
 // Embedded hardware selection: ARM Compatible->ARM Cortex-M
@@ -15,8 +15,8 @@
 //    3. ROM efficiency
 // Validation result: Not run
 //
-#ifndef RTW_HEADER_stateEstimatorEskfAutocode_h_
-#define RTW_HEADER_stateEstimatorEskfAutocode_h_
+#ifndef stateEstimatorEskfAutocode_h_
+#define stateEstimatorEskfAutocode_h_
 #include "rtwtypes.h"
 #include "stateEstimatorEskfAutocode_types.h"
 #include "stateEstimatorEskf.h"
@@ -155,7 +155,8 @@ extern const stateEstimatorAutocode::ConstP_stateEstimatorEskfAuto_T
 //-
 //  Requirements for '<Root>': stateEstimatorEskfAutocode
 
-#endif                              // RTW_HEADER_stateEstimatorEskfAutocode_h_
+
+#endif                                 // stateEstimatorEskfAutocode_h_
 
 //
 // File trailer for generated code.

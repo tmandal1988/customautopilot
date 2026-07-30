@@ -2,6 +2,9 @@ cmake_minimum_required(VERSION 3.22)
 
 project(customAutopilotBoard C CXX ASM)
 
+option(IST8310_ENABLE_DIAGNOSTICS
+       "Compile IST8310 USB debug/error output and its print task" OFF)
+
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_STANDARD 20)
@@ -138,6 +141,10 @@ add_executable(${PROJECT_NAME}.elf ${APP_SOURCES} ${LIB_SOURCES} ${ASM_SOURCES})
 
 target_include_directories(${PROJECT_NAME}.elf PRIVATE ${APP_INCLUDE_DIRS} ${LIB_INCLUDES})
 target_compile_definitions(${PROJECT_NAME}.elf PRIVATE ${PROJECT_DEFINES})
+if(IST8310_ENABLE_DIAGNOSTICS)
+    target_compile_definitions(${PROJECT_NAME}.elf PRIVATE
+        IST8310_ENABLE_DIAGNOSTICS=1)
+endif()
 
 target_compile_options(${PROJECT_NAME}.elf PRIVATE
     ${MCU_FLAGS}
@@ -146,12 +153,15 @@ target_compile_options(${PROJECT_NAME}.elf PRIVATE
     -Wall
     -fstack-usage
     -g3
+    --specs=nano.specs
     $<$<COMPILE_LANGUAGE:C>:-O0>
     $<$<COMPILE_LANGUAGE:CXX>:-Ofast>
     $<$<COMPILE_LANGUAGE:CXX>:-fno-exceptions>
     $<$<COMPILE_LANGUAGE:CXX>:-fno-rtti>
     $<$<COMPILE_LANGUAGE:CXX>:-fno-use-cxa-atexit>
     $<$<COMPILE_LANGUAGE:CXX>:-Wno-address-of-packed-member>
+    $<$<COMPILE_LANGUAGE:ASM>:-x>
+    $<$<COMPILE_LANGUAGE:ASM>:assembler-with-cpp>
 )
 
 target_link_options(${PROJECT_NAME}.elf PRIVATE
@@ -166,11 +176,22 @@ target_link_options(${PROJECT_NAME}.elf PRIVATE
     -Wl,--start-group -lc -lm -lstdc++ -lsupc++ -Wl,--end-group
 )
 
-set_target_properties(${PROJECT_NAME}.elf PROPERTIES LINK_DEPENDS ${LINKER_SCRIPT})
+set(FIRMWARE_OUTPUT_DIR "${CMAKE_BINARY_DIR}")
+set(FIRMWARE_BIN_FILE "${FIRMWARE_OUTPUT_DIR}/${PROJECT_NAME}.bin")
+set(FIRMWARE_HEX_FILE "${FIRMWARE_OUTPUT_DIR}/${PROJECT_NAME}.hex")
+
+set_target_properties(${PROJECT_NAME}.elf PROPERTIES
+    LINK_DEPENDS ${LINKER_SCRIPT}
+    RUNTIME_OUTPUT_DIRECTORY "${FIRMWARE_OUTPUT_DIR}"
+)
 
 add_custom_command(TARGET ${PROJECT_NAME}.elf POST_BUILD
-    COMMAND ${CMAKE_SIZE} $<TARGET_FILE:${PROJECT_NAME}.elf>
-    COMMAND ${CMAKE_OBJCOPY} -O binary $<TARGET_FILE:${PROJECT_NAME}.elf> ${PROJECT_NAME}.bin
-    COMMAND ${CMAKE_OBJCOPY} -O ihex   $<TARGET_FILE:${PROJECT_NAME}.elf> ${PROJECT_NAME}.hex
+    BYPRODUCTS
+        "${FIRMWARE_BIN_FILE}"
+        "${FIRMWARE_HEX_FILE}"
+    COMMAND "${CMAKE_SIZE}" "$<TARGET_FILE:${PROJECT_NAME}.elf>"
+    COMMAND "${CMAKE_OBJCOPY}" -O binary "$<TARGET_FILE:${PROJECT_NAME}.elf>" "${FIRMWARE_BIN_FILE}"
+    COMMAND "${CMAKE_OBJCOPY}" -O ihex   "$<TARGET_FILE:${PROJECT_NAME}.elf>" "${FIRMWARE_HEX_FILE}"
     COMMENT "Generating size report, .bin and .hex"
+    VERBATIM
 )

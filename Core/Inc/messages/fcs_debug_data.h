@@ -6,6 +6,10 @@
  */
 
 #pragma once
+
+#include <cstddef>
+#include <cstdint>
+
 #define PACKED __attribute__((__packed__))
 
 struct PACKED FcsDebugData {
@@ -79,7 +83,23 @@ struct PACKED FcsDebugData {
 	uint8_t chirp_type;
 	uint8_t flt_mode;
 	uint8_t sm_mode;
+
+	// Cumulative task timing telemetry. These counters are never reset when
+	// data is published, so logger decimation cannot hide task activity or
+	// late starts between recorded samples.
+	uint32_t task_run_seq;
+	uint32_t fcs_step_seq;
+	uint32_t late_start_count;
+
 	uint64_t timestamp_ms;
 };
 
-static_assert(sizeof(FcsDebugData) == 220, "Fcs Debug Data size should be 220 bytes!");
+static_assert(sizeof(FcsDebugData) == 232, "Fcs Debug Data size should be 232 bytes!");
+static_assert(offsetof(FcsDebugData, task_run_seq) == 212,
+		"Unexpected task_run_seq offset");
+static_assert(offsetof(FcsDebugData, fcs_step_seq) == 216,
+		"Unexpected fcs_step_seq offset");
+static_assert(offsetof(FcsDebugData, late_start_count) == 220,
+		"Unexpected late_start_count offset");
+static_assert(offsetof(FcsDebugData, timestamp_ms) == 224,
+		"Unexpected FCS timestamp offset");

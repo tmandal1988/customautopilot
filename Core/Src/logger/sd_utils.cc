@@ -6,173 +6,463 @@
  */
 
 #include "sd_utils.h"
+
 #include "data_buffer.h"
 #include "usb_console/usb_console.h"
 
 SdUtils::SdUtils()
-: TaskBase("SdWriteTask", 1820, osPriorityNormal){
+    // Lowest priority in the system: RAM buffering absorbs normal SD-card
+    // latency while deadline-driven producer/logger tasks keep running.
+    : TaskBase("SdWriteTask", 1820, osPriorityBelowNormal) {
 }
 
-bool SdUtils::SdInit(){
-  FRESULT f_res;
-  // Mount the SD card
-  f_res = f_mount(&SDFatFS, (TCHAR const*)SDPath, 1);
-  if (f_res != FR_OK) {
-    ERROR_PRINT("SD Card mount failed (f_mount res=%d)\n", f_res);
+void SdUtils::SetLoggingEnabled(bool enabled) {
+  xSemaphoreTake(DataBuffer::mutex_, portMAX_DELAY);
+  DataBuffer::logging_enabled_ = enabled;
+  xSemaphoreGive(DataBuffer::mutex_);
+}
+
+void SdUtils::ResetBufferState() {
+  xSemaphoreTake(DataBuffer::mutex_, portMAX_DELAY);
+  DataBuffer::logging_enabled_ = false;
+  DataBuffer::current_buffer_index_ = 0;
+  for (size_t i = 0; i < DataBuffer::kNumBuffers; ++i) {
+    DataBuffer::buffer_offsets_[i] = 0;
+    DataBuffer::buffer_pending_[i] = false;
+  }
+  xSemaphoreGive(DataBuffer::mutex_);
+  next_flush_index_ = 0;
+}
+
+void SdUtils::ResetTelemetry() {
+  write_count_ = 0;
+  sync_count_ = 0;
+  write_error_count_ = 0;
+  sync_error_count_ = 0;
+  close_error_count_ = 0;
+  partial_write_count_ = 0;
+  append_padding_bytes_ = 0;
+  max_write_ticks_ = 0;
+  max_sync_ticks_ = 0;
+  buffers_since_sync_ = 0;
+
+  xSemaphoreTake(DataBuffer::mutex_, portMAX_DELAY);
+  DataBuffer::dropped_records_ = 0;
+  DataBuffer::dropped_bytes_ = 0;
+  xSemaphoreGive(DataBuffer::mutex_);
+}
+
+void SdUtils::PrintTelemetry() {
+  uint32_t dropped_records;
+  uint32_t dropped_bytes;
+  xSemaphoreTake(DataBuffer::mutex_, portMAX_DELAY);
+  dropped_records = DataBuffer::dropped_records_;
+  dropped_bytes = DataBuffer::dropped_bytes_;
+  xSemaphoreGive(DataBuffer::mutex_);
+
+  DEBUG_PRINT(
+      "SD log stats: writes=%lu, syncs=%lu, write_errors=%lu, "
+      "partial_writes=%lu, sync_errors=%lu, close_errors=%lu, "
+      "max_write_ticks=%lu, max_sync_ticks=%lu, dropped_records=%lu, "
+      "dropped_bytes=%lu, append_padding_bytes=%lu\r\n",
+      static_cast<unsigned long>(write_count_),
+      static_cast<unsigned long>(sync_count_),
+      static_cast<unsigned long>(write_error_count_),
+      static_cast<unsigned long>(partial_write_count_),
+      static_cast<unsigned long>(sync_error_count_),
+      static_cast<unsigned long>(close_error_count_),
+      static_cast<unsigned long>(max_write_ticks_),
+      static_cast<unsigned long>(max_sync_ticks_),
+      static_cast<unsigned long>(dropped_records),
+      static_cast<unsigned long>(dropped_bytes),
+      static_cast<unsigned long>(append_padding_bytes_));
+}
+
+bool SdUtils::IsBufferPending(uint8_t buffer_index) {
+  xSemaphoreTake(DataBuffer::mutex_, portMAX_DELAY);
+  const bool pending = DataBuffer::buffer_pending_[buffer_index];
+  xSemaphoreGive(DataBuffer::mutex_);
+  return pending;
+}
+
+bool SdUtils::SyncFile() {
+  if (!file_open_ || file_ == nullptr) {
+    ++sync_error_count_;
+    ERROR_PRINT("Cannot sync: no log file is open\r\n");
     return false;
   }
 
-  DEBUG_PRINT("SD Card mounted successfully\n");
+  const TickType_t start_ticks = xTaskGetTickCount();
+  const FRESULT result = f_sync(file_);
+  const TickType_t elapsed_ticks = xTaskGetTickCount() - start_ticks;
+  ++sync_count_;
+  if (elapsed_ticks > max_sync_ticks_) {
+    max_sync_ticks_ = elapsed_ticks;
+  }
 
-  // Open file for write: always create a new file (overwrites if exists)
-  f_res = f_open(&SDFile, file_name, FA_CREATE_ALWAYS | FA_WRITE);
-  if (f_res != FR_OK) {
-    ERROR_PRINT("Failed to open %s (res=%d)\n", file_name, f_res);
+  if (result != FR_OK) {
+    ++sync_error_count_;
+    SetLoggingEnabled(false);
+    ERROR_PRINT("SD f_sync failed (res=%d)\r\n", result);
     return false;
   }
 
-  DEBUG_PRINT("%s created\n", file_name);
-  file_open_ = true;
+  buffers_since_sync_ = 0;
+  return true;
+}
 
-  // Set active file pointer for logging
+bool SdUtils::AlignFileForAppend() {
+  const FSIZE_t file_position = f_tell(file_);
+  const UINT padding_size = static_cast<UINT>(
+      (kSdSectorSize - (file_position % kSdSectorSize)) % kSdSectorSize);
+  if (padding_size == 0) {
+    return true;
+  }
+
+  // Padding is inserted only between STOP/START logging sessions. The binary
+  // decoder already resynchronizes on the 0xA5 frame header, so zero bytes are
+  // skipped. Starting actual records at a sector boundary keeps subsequent
+  // 64 KiB writes on the SD driver's fast, aligned multi-block DMA path.
+  alignas(32) static uint8_t zero_padding[kSdSectorSize] = {};
+  UINT bytes_written = 0;
+  const TickType_t start_ticks = xTaskGetTickCount();
+  const FRESULT result =
+      f_write(file_, zero_padding, padding_size, &bytes_written);
+  const TickType_t elapsed_ticks = xTaskGetTickCount() - start_ticks;
+  ++write_count_;
+  if (elapsed_ticks > max_write_ticks_) {
+    max_write_ticks_ = elapsed_ticks;
+  }
+
+  if (result != FR_OK || bytes_written != padding_size) {
+    ++write_error_count_;
+    if (bytes_written > 0 && bytes_written != padding_size) {
+      ++partial_write_count_;
+    }
+    SetLoggingEnabled(false);
+    ERROR_PRINT(
+        "Failed to sector-align append position (requested=%u, written=%u, "
+        "res=%d)\r\n",
+        static_cast<unsigned int>(padding_size),
+        static_cast<unsigned int>(bytes_written), result);
+    return false;
+  }
+
+  append_padding_bytes_ += padding_size;
+  return true;
+}
+
+bool SdUtils::WritePendingBuffer(uint8_t buffer_index) {
+  size_t bytes_to_write;
+  xSemaphoreTake(DataBuffer::mutex_, portMAX_DELAY);
+  if (!DataBuffer::buffer_pending_[buffer_index]) {
+    xSemaphoreGive(DataBuffer::mutex_);
+    return true;
+  }
+  bytes_to_write = DataBuffer::buffer_offsets_[buffer_index];
+  xSemaphoreGive(DataBuffer::mutex_);
+
+  UINT bytes_written = 0;
+  const TickType_t start_ticks = xTaskGetTickCount();
+  const FRESULT result =
+      f_write(file_, DataBuffer::buffers_[buffer_index],
+              static_cast<UINT>(bytes_to_write), &bytes_written);
+  const TickType_t elapsed_ticks = xTaskGetTickCount() - start_ticks;
+  ++write_count_;
+  if (elapsed_ticks > max_write_ticks_) {
+    max_write_ticks_ = elapsed_ticks;
+  }
+
+  if (result != FR_OK || bytes_written != bytes_to_write) {
+    ++write_error_count_;
+    if (bytes_written > 0 && bytes_written != bytes_to_write) {
+      ++partial_write_count_;
+    }
+    SetLoggingEnabled(false);
+    ERROR_PRINT(
+        "SD f_write failed (buffer=%u, requested=%lu, written=%u, res=%d)"
+        "\r\n",
+        static_cast<unsigned int>(buffer_index),
+        static_cast<unsigned long>(bytes_to_write),
+        static_cast<unsigned int>(bytes_written), result);
+    // Do not clear this buffer. A retry is deliberately not automatic: a
+    // short write may already have advanced the file pointer and replaying
+    // the entire buffer would duplicate data.
+    return false;
+  }
+
+  // f_write() has consumed the source bytes, so release this RAM buffer
+  // before a potentially slow periodic f_sync().
+  xSemaphoreTake(DataBuffer::mutex_, portMAX_DELAY);
+  DataBuffer::buffer_offsets_[buffer_index] = 0;
+  DataBuffer::buffer_pending_[buffer_index] = false;
+  xSemaphoreGive(DataBuffer::mutex_);
+
+  ++buffers_since_sync_;
+  return true;
+}
+
+bool SdUtils::CloseFile() {
+  if (!file_open_) {
+    return true;
+  }
+
+  const FRESULT result = f_close(file_);
+  if (result != FR_OK) {
+    ++close_error_count_;
+    ERROR_PRINT("SD f_close failed (res=%d)\r\n", result);
+    return false;
+  }
+  file_open_ = false;
+  return true;
+}
+
+void SdUtils::BeginStop() {
+  // Disable logging and hand the active partial buffer to the SD task while
+  // holding the same mutex used for record copies. Thus STOP can never cut a
+  // record in half in RAM.
+  xSemaphoreTake(DataBuffer::mutex_, portMAX_DELAY);
+  DataBuffer::logging_enabled_ = false;
+  const uint8_t active = DataBuffer::current_buffer_index_;
+  if (DataBuffer::buffer_offsets_[active] > 0 &&
+      !DataBuffer::buffer_pending_[active]) {
+    DataBuffer::buffer_pending_[active] = true;
+  }
+  xSemaphoreGive(DataBuffer::mutex_);
+}
+
+bool SdUtils::SdInit() {
   file_ = &SDFile;
-  f_sync(file_);
+
+  FRESULT result = f_mount(&SDFatFS, (TCHAR const*)SDPath, 1);
+  if (result != FR_OK) {
+    ERROR_PRINT("SD Card mount failed (f_mount res=%d)\r\n", result);
+    return false;
+  }
+  DEBUG_PRINT("SD Card mounted successfully\r\n");
+
+  result = f_open(file_, file_name, FA_CREATE_ALWAYS | FA_WRITE);
+  if (result != FR_OK) {
+    ERROR_PRINT("Failed to open %s (res=%d)\r\n", file_name, result);
+    return false;
+  }
+
+  file_open_ = true;
+  DEBUG_PRINT("%s created\r\n", file_name);
+  if (!SyncFile()) {
+    CloseFile();
+    return false;
+  }
   return true;
 }
 
 void SdUtils::Run() {
-	osDelay(500);
-	SdInit();
-	osDelay(500);
-	UINT bytes_written;
-//	int blink_counter = 0;
-	CardState state_ = CardState::IDLEREADY;
-	UsbCommand usb_cmd_{UsbCommand::NONE};
-	while (true) {
-//		if (++blink_counter >= 2) {
-//			blink_counter = 0;
-//			UBaseType_t highWaterMark = uxTaskGetStackHighWaterMark(NULL);
-//			uint32_t used = 1820 - highWaterMark * sizeof(StackType_t);
-//			DEBUG_PRINT("Used: %lu bytes, Free: %lu bytes (of %d total)\n",
-//			used, highWaterMark * sizeof(StackType_t), 1820);
-//		}
-		if(UsbConsole::Instance().HasNewCommand()){
-			DIR dir;
-			FILINFO fno;
-			FRESULT res;
-			usb_cmd_ = UsbConsole::Instance().GetLatestCommand();
-			switch(usb_cmd_){
-				case UsbCommand::STOP:
-					state_ = CardState::IDLESTOP;
-					break;
+  DataBuffer::sd_task_handle_ = xTaskGetCurrentTaskHandle();
 
-				case UsbCommand::START:
-					state_ = CardState::IDLESTART;
-					break;
+  // main() creates the coordination mutex before any task starts.
+  configASSERT(DataBuffer::mutex_ != nullptr);
+  ResetBufferState();
+  ResetTelemetry();
 
-				case UsbCommand::LIST:
-					if(!file_open_){
-						res = f_opendir(&dir, "/");  // Only able to list files in root dir
-						if (res != FR_OK) {
-							DEBUG_PRINT("Failed to open root dir\n");
-						}
-						while (1) {
-							res = f_readdir(&dir, &fno);  // Read next entry
-							if (res != FR_OK || fno.fname[0] == 0) break;  // Error or end
+  const bool initialized = SdInit();
+  SetLoggingEnabled(initialized);
+  CardState state = initialized ? CardState::IDLEREADY : CardState::ERROR;
+  UsbCommand usb_cmd{UsbCommand::NONE};
 
-							if (fno.fattrib & AM_DIR) {
-								//We don't handle directories
-								__NOP();
-							} else {
-								// It's a file
-								DEBUG_PRINT("[FILE] %-20s %lu B\r\n", fno.fname, (uint32_t)fno.fsize);
-							}
+  while (true) {
+    if (UsbConsole::Instance().HasNewCommand()) {
+      DIR dir;
+      FILINFO file_info;
+      FRESULT result;
+      usb_cmd = UsbConsole::Instance().GetLatestCommand();
+      switch (usb_cmd) {
+        case UsbCommand::STOP:
+          if (state == CardState::ERROR) {
+            ERROR_PRINT(
+                "Logging is in an SD error state; reboot before stopping or "
+                "restarting\r\n");
+          } else if (file_open_ && state != CardState::DRAININGSTOP) {
+            BeginStop();
+            state = CardState::DRAININGSTOP;
+          }
+          break;
 
-							osDelay(1);  // Prevent USB CDC buffer overrun
-						}
-					}else{
-						DEBUG_PRINT("SD Card write in progress, issue a STOP command first\n");
-					}
-					break;
+        case UsbCommand::START:
+          if (state == CardState::IDLESTOP && !file_open_) {
+            state = CardState::IDLESTART;
+          } else if (state == CardState::ERROR) {
+            ERROR_PRINT(
+                "Logging is in an SD error state; reboot before restarting"
+                "\r\n");
+          } else {
+            DEBUG_PRINT("Log file is already open or still draining\r\n");
+          }
+          break;
 
-				case UsbCommand::COPY:
-					if(!file_open_){
-						res = f_open(file_, file_name, FA_READ);
-						if (res != FR_OK) {
-							DEBUG_PRINT("Failed to open file: %s\r\n", file_name);
-							return;
-						}
+        case UsbCommand::LIST:
+          if (!file_open_) {
+            result = f_opendir(&dir, "/");
+            if (result != FR_OK) {
+              DEBUG_PRINT("Failed to open root dir\r\n");
+              break;
+            }
+            while (true) {
+              result = f_readdir(&dir, &file_info);
+              if (result != FR_OK || file_info.fname[0] == 0) {
+                break;
+              }
+              if (!(file_info.fattrib & AM_DIR)) {
+                DEBUG_PRINT("[FILE] %-20s %lu B\r\n", file_info.fname,
+                            static_cast<unsigned long>(file_info.fsize));
+              }
+              osDelay(1);
+            }
+            f_closedir(&dir);
+          } else {
+            DEBUG_PRINT(
+                "SD Card write in progress, issue a STOP command first\r\n");
+          }
+          break;
 
-						DEBUG_PRINT("== Contents of %s ==\r\n", file_name);
-						UINT bytes_read;
-						char buffer[128];  // Small buffer to fit USB CDC comfortably
+        case UsbCommand::COPY:
+          if (!file_open_) {
+            result = f_open(file_, file_name, FA_READ);
+            if (result != FR_OK) {
+              DEBUG_PRINT("Failed to open file: %s\r\n", file_name);
+              break;
+            }
 
-						while (1) {
-							res = f_read(file_, buffer, sizeof(buffer) - 1, &bytes_read);
-							if (res != FR_OK || bytes_read == 0) break;
+            DEBUG_PRINT("== Contents of %s ==\r\n", file_name);
+            UINT bytes_read;
+            char buffer[128];
+            while (true) {
+              result =
+                  f_read(file_, buffer, sizeof(buffer) - 1, &bytes_read);
+              if (result != FR_OK || bytes_read == 0) {
+                break;
+              }
+              buffer[bytes_read] = '\0';
+              DEBUG_PRINT("%s", buffer);
+              osDelay(1);
+            }
+            f_close(file_);
+            DEBUG_PRINT("\r\n== End of file ==\r\n");
+          } else {
+            DEBUG_PRINT(
+                "SD Card write in progress, issue a STOP command first\r\n");
+          }
+          break;
 
-							buffer[bytes_read] = '\0';  // Null-terminate to be safe for printing
-							DEBUG_PRINT("%s", buffer);  // Use your task-safe print
+        default:
+          break;
+      }
+    }
 
-							osDelay(1);  // Let USB catch up
-						}
+    switch (state) {
+      case CardState::IDLESTART: {
+        ResetBufferState();
+        ResetTelemetry();
+        const FRESULT result =
+            f_open(file_, file_name, FA_OPEN_APPEND | FA_WRITE);
+        if (result != FR_OK) {
+          ERROR_PRINT("Failed to reopen %s (res=%d)\r\n", file_name,
+                      result);
+          state = CardState::ERROR;
+          break;
+        }
 
-						f_close(file_);
-						DEBUG_PRINT("\r\n== End of file ==\r\n");
-					}
-					else{
-						DEBUG_PRINT("SD Card write in progress, issue a STOP command first\n");
-					}
-					break;
+        file_open_ = true;
+        if (!AlignFileForAppend()) {
+          CloseFile();
+          PrintTelemetry();
+          state = CardState::ERROR;
+          break;
+        }
+        if (!SyncFile()) {
+          CloseFile();
+          PrintTelemetry();
+          state = CardState::ERROR;
+          break;
+        }
+        SetLoggingEnabled(true);
+        DEBUG_PRINT("Reopened the log file to append logs\r\n");
+        state = CardState::IDLEREADY;
+        break;
+      }
 
-				default:
-					break;
-			}
-		}
+      case CardState::IDLEREADY:
+        if (IsBufferPending(next_flush_index_)) {
+          state = CardState::WRITING;
+          continue;
+        }
+        // Do not spend the available buffer headroom on f_sync while older
+        // buffers are queued. Once writes catch up, a sync starts with no
+        // pending buffer and the producer has maximum ring capacity available.
+        if (buffers_since_sync_ >= kSyncEveryBuffers) {
+          if (!SyncFile()) {
+            CloseFile();
+            PrintTelemetry();
+            state = CardState::ERROR;
+            break;
+          }
+          continue;
+        }
+        break;
 
-		switch(state_){
-			case CardState::IDLESTART:
-				if(file_ != NULL){
-					f_open(file_, file_name, FA_OPEN_APPEND | FA_WRITE);
-					f_sync(file_);
-					DEBUG_PRINT("Reopened the log file to append logs\n");
-				}else{
-					f_open(&SDFile, file_name, FA_CREATE_ALWAYS | FA_WRITE);
-					DEBUG_PRINT("Creating the log file while restarting the log file\n");
-					file_ = &SDFile;
-					f_sync(file_);
-				}
-				file_open_ = true;
-				state_ = CardState::IDLEREADY;
-				break;
+      case CardState::WRITING:
+        if (!WritePendingBuffer(next_flush_index_)) {
+          SetLoggingEnabled(false);
+          CloseFile();
+          PrintTelemetry();
+          state = CardState::ERROR;
+          break;
+        }
+        next_flush_index_ =
+            (next_flush_index_ + 1) % DataBuffer::kNumBuffers;
+        state = CardState::IDLEREADY;
+        continue;
 
-			case CardState::IDLEREADY:
-				if(DataBuffer::buffer_full_){
-					state_ = CardState::WRITING;
-				}
-				break;
+      case CardState::DRAININGSTOP:
+        if (IsBufferPending(next_flush_index_)) {
+          if (!WritePendingBuffer(next_flush_index_)) {
+            CloseFile();
+            PrintTelemetry();
+            state = CardState::ERROR;
+            break;
+          }
+          next_flush_index_ =
+              (next_flush_index_ + 1) % DataBuffer::kNumBuffers;
+          continue;
+        }
 
-			case CardState::WRITING:
-				f_write(file_, DataBuffer::buffers_[DataBuffer::flush_buffer_index_], DataBuffer::buffer_offsets_[DataBuffer::flush_buffer_index_], &bytes_written);
-				f_sync(file_);
-//				DEBUG_PRINT("WRITE COMPLETE from buffer %u, %u bytes written\n", DataBuffer::flush_buffer_index_, DataBuffer::buffer_offsets_[DataBuffer::flush_buffer_index_]);
-				DataBuffer::buffer_offsets_[DataBuffer::flush_buffer_index_] = 0;
-				state_ = CardState::IDLEREADY;
-				xSemaphoreTake(DataBuffer::mutex_, portMAX_DELAY);
-				DataBuffer::buffer_full_ = false;
-				xSemaphoreGive(DataBuffer::mutex_);
-				break;
+        // f_sync is unconditional at a controlled stop so both data and
+        // filesystem metadata are committed before f_close returns.
+        if (!SyncFile()) {
+          CloseFile();
+          PrintTelemetry();
+          state = CardState::ERROR;
+          break;
+        }
+        if (!CloseFile()) {
+          PrintTelemetry();
+          state = CardState::ERROR;
+          break;
+        }
+        PrintTelemetry();
+        ResetBufferState();
+        DEBUG_PRINT("Closed file for logging\r\n");
+        state = CardState::IDLESTOP;
+        break;
 
-			case CardState::IDLESTOP:
-				if(file_open_){
-					f_close(file_);
-					file_open_ = false;
-					DEBUG_PRINT("Closed file for logging\n");
-				}
-		}
-		// loop at desired rate
-		osDelay(INTERVAL_MS);
-	}
+      case CardState::IDLESTOP:
+      case CardState::ERROR:
+        break;
+    }
+
+    // A full buffer wakes this task immediately; the timeout preserves USB
+    // command polling while no buffer needs service.
+    ulTaskNotifyTake(pdTRUE, pdMS_TO_TICKS(INTERVAL_MS));
+  }
 }
 
 // Static instance for self-registration

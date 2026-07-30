@@ -3,9 +3,9 @@
 //
 // Code generated for Simulink model 'stateEstimatorEskf'.
 //
-// Model version                  : 1.145
-// Simulink Coder version         : 9.7 (R2022a) 13-Nov-2021
-// C/C++ source code generated on : Fri Nov 21 11:04:20 2025
+// Model version                  : 7.0
+// Simulink Coder version         : 25.1 (R2025a) 21-Nov-2024
+// C/C++ source code generated on : Sat Jul 25 13:23:09 2026
 //
 // Target selection: ert.tlc
 // Embedded hardware selection: ARM Compatible->ARM Cortex-M
@@ -15,16 +15,17 @@
 //    3. ROM efficiency
 // Validation result: Not run
 //
-#ifndef RTW_HEADER_stateEstimatorEskf_private_h_
-#define RTW_HEADER_stateEstimatorEskf_private_h_
+#ifndef stateEstimatorEskf_private_h_
+#define stateEstimatorEskf_private_h_
 #include "rtwtypes.h"
+#include "stateEstimatorEskf_types.h"
 
 extern const real32_T rtCP_pooled_hgQumAwLKgQK[20];
 
-#define rtCP_UnitDelay_InitialCondition rtCP_pooled_hgQumAwLKgQK // Computed Parameter: rtCP_UnitDelay_InitialCondition
+#define rtCP_UnitDelay_InitialConditi_m rtCP_pooled_hgQumAwLKgQK // Computed Parameter: rtCP_UnitDelay_InitialConditi_m
                                                                  //  Referenced by: '<Root>/Unit Delay'
 
-#endif                              // RTW_HEADER_stateEstimatorEskf_private_h_
+#endif                                 // stateEstimatorEskf_private_h_
 
 //
 // File trailer for generated code.

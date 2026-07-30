@@ -262,9 +262,9 @@ void ReadBmp390l::Run() {
 //	int blink_counter = 0;
 	TickType_t xLastWakeTime;
 	const TickType_t xFrequency = pdMS_TO_TICKS(READ_INTERVAL_MS);
-	// Initialize the xLastWakeTime variable with the current time.
-	xLastWakeTime = xTaskGetTickCount();
 	osDelay(100);
+	// Initialize the periodic schedule after the startup delay.
+	xLastWakeTime = xTaskGetTickCount();
     /* Infinite loop */
     for (;;) {
     	if(status){

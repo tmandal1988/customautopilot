@@ -26,7 +26,7 @@
 */
 
 //#define MODE_TEST
-//#define MODE_PASSTHROUGH
+// #define MODE_PASSTHROUGH
 
 #ifdef MODE_PASSTHROUGH
 #include "messages/rc_channels.h"
@@ -43,7 +43,7 @@ private:
 	TIM_HandleTypeDef* pwm_timer2_;  // PWM Timer 1 Handle
 	TIM_HandleTypeDef* pwm_timer3_;  // PWM Timer 1 Handle
 
-	static constexpr uint16_t LOOP_INTERVAL_MS = 1; // 1000Hz
+	static constexpr uint16_t LOOP_INTERVAL_MS = 4; // 250Hz, matches FlightControls publish rate
 
 	static constexpr uint16_t kMinPwmVal = 24000;
 	static constexpr uint16_t kMaxPwmVal = 48000;

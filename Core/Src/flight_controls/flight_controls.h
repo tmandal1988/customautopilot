@@ -17,13 +17,11 @@
 #include "messages/pwm_data.h"
 #include "messages/fcs_debug_data.h"
 #include "messages/mavlink_data.h"
-#include "messages/mavlink_params_data.h"
 #include "pubsub/subscriber.h"
 #include "pubsub/publisher.h"
 #include "debug.h"
 
 #include "fcsModelAutocode/fcsModel.h"
-#include "fcsModelAutocode/fcs_params.h"
 
 class FlightControls : public TaskBase {
 public:
@@ -31,15 +29,15 @@ public:
     void Run() override;
 
 private:
-    fcsModel fcsModelObj_;
-
     static const uint16_t kMinPwmThreshold = 982; //Lowest pwm command
     static const uint16_t kMinPwmCheckThreshold = 1005; //Below this RC Throttle command value motor will follow RC Throttle command
     static constexpr uint16_t LOOP_INTERVAL_MS = 4; // 250Hz
     static constexpr int kOneSecIntervalCount = 1000 / LOOP_INTERVAL_MS;
+    static constexpr uint32_t kAllowedStartLatenessTicks = 0;
 
-    fcsModel::ExtU_fcsModel_T fcs_model_autocode_u_ = {0};
-    fcsModel::ExtY_fcsModel_T fcs_model_autocode_y_ = {0};
+    // The generated model retains this input pointer for its lifetime.
+    fcsModel::ExtUPointer_fcsModel_T fcs_model_autocode_u_{};
+    fcsModel fcsModelObj_;
 
     Subscriber<BaroData> baro_sub_ = Subscriber<BaroData>(TopicID::BMP390L);
     BaroData baro_data_ = {0};
@@ -59,8 +57,6 @@ private:
     Subscriber<MavlinkData> mavlink_sub_ = Subscriber<MavlinkData>(TopicID::MAVLINK);
     MavlinkData mavlink_data_ = {0};
 
-    Subscriber<MavlinkParamsData> mavlink_params_sub_ = Subscriber<MavlinkParamsData>(TopicID::MAVLINKPARAMS);
-	MavlinkParamsData mavlink_params_data_ = {0};
 };
 
 

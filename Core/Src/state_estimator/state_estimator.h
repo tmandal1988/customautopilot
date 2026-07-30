@@ -13,8 +13,10 @@
 #include "messages/baro_data.h"
 #include "messages/gps_data.h"
 #include "messages/mtf01p_data.h"
+#include "messages/magnetometer_data.h"
 #include "messages/ekf_data.h"
 #include "constants.h"
+#include "sensor_config.h"
 #include "pubsub/subscriber.h"
 #include "pubsub/publisher.h"
 #include "debug.h"
@@ -31,8 +33,10 @@ private:
     stateEstimatorAutocode::ExtU_stateEstimatorEskfAutoco_T state_estimator_autocode_u_ = {0};
     stateEstimatorAutocode::ExtY_stateEstimatorEskfAutoco_T state_estimator_autocode_y_ = {0};
 
-    Subscriber<ImuData> imu_sub_ = Subscriber<ImuData>(TopicID::ICM20948);
-    Subscriber<BaroData> baro_sub_ = Subscriber<BaroData>(TopicID::BMP390L);
+	    Subscriber<ImuData> imu_sub_ = Subscriber<ImuData>(TopicID::ICM20948);
+	    Subscriber<MagnetometerData> ist8310_mag_sub_ =
+	        Subscriber<MagnetometerData>(TopicID::IST8310);
+	    Subscriber<BaroData> baro_sub_ = Subscriber<BaroData>(TopicID::BMP390L);
     Subscriber<GpsData> gps_sub_ = Subscriber<GpsData>(TopicID::UBLOXM9N);
     Subscriber<Mtf01pData> mtf01p_sub_ = Subscriber<Mtf01pData>(TopicID::MTF01P);
 
@@ -43,4 +47,5 @@ private:
     static constexpr float OF_DIST_SCALE = 0.001;
 
     static constexpr uint16_t READ_INTERVAL_MS = 4; // 250Hz
+    static constexpr uint32_t kAllowedStartLatenessTicks = 0;
 };

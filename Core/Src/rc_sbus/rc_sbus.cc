@@ -39,9 +39,9 @@ void RcSbus::Run(){
 	TickType_t xLastWakeTime;
 	const TickType_t xFrequency = pdMS_TO_TICKS(READ_INTERVAL_MS);
 
-	// Initialize the xLastWakeTime variable with the current time.
-	xLastWakeTime = xTaskGetTickCount();
 	osDelay(500);
+	// Initialize the periodic schedule after the startup delay.
+	xLastWakeTime = xTaskGetTickCount();
 	for(;;){
 //		if (++blink_counter >= 20) {
 //			blink_counter = 0;

@@ -946,9 +946,9 @@ void ReadUbloxM9nRb::Run() {
 	TickType_t xLastWakeTime;
 	const TickType_t xFrequency = pdMS_TO_TICKS(READ_INTERVAL_MS);
 
-	// Initialize the xLastWakeTime variable with the current time.
-	xLastWakeTime = xTaskGetTickCount();
 	osDelay(250);
+	// Initialize the periodic schedule after the startup delay.
+	xLastWakeTime = xTaskGetTickCount();
 	UbloxM9nNavPvt nav_pvt_data_{};
 //	int blink_counter = 0;
     /* Infinite loop */
@@ -994,6 +994,5 @@ void ReadUbloxM9nRb::Run() {
 		vTaskDelayUntil(&xLastWakeTime, xFrequency);
     }
 }
-
 
 

@@ -8,141 +8,115 @@
 #include "logger.h"
 
 Logger::Logger()
-: TaskBase("LoggerTask", 4096, osPriorityAboveNormal){
-
+    // Must outrank SdWriteTask: the logger samples latest-value topics on a
+    // deadline, while the SD task has seconds of multi-buffer slack.
+    : TaskBase("LoggerTask", 4096, osPriorityNormal) {
 }
 
 void Logger::SetupTopics() {
-  if (log_config_count_ < kMaxLogConfigs) {
-	log_configs_[log_config_count_++] =
-	new LogConfig<ImuData>(TopicID::ICM20948, pdMS_TO_TICKS(4));
-  }
-
-  if (log_config_count_ < kMaxLogConfigs) {
-	log_configs_[log_config_count_++] =
-	new LogConfig<BaroData>(TopicID::BMP390L, pdMS_TO_TICKS(10));
-  }
-
-  if (log_config_count_ < kMaxLogConfigs) {
-	log_configs_[log_config_count_++] =
-	new LogConfig<RcChannels>(TopicID::RCCHANNELS, pdMS_TO_TICKS(10));
-  }
-
-  if (log_config_count_ < kMaxLogConfigs) {
-	log_configs_[log_config_count_++] =
-	new LogConfig<GpsData>(TopicID::UBLOXM9N, pdMS_TO_TICKS(20));
-  }
-
-  if (log_config_count_ < kMaxLogConfigs) {
-	log_configs_[log_config_count_++] =
-	new LogConfig<EkfData>(TopicID::EKF, pdMS_TO_TICKS(10));
-  }
-
-  if (log_config_count_ < kMaxLogConfigs) {
-	log_configs_[log_config_count_++] =
-	new LogConfig<FcsDebugData>(TopicID::FCSDEBUG, pdMS_TO_TICKS(10));
-  }
-
-  if (log_config_count_ < kMaxLogConfigs) {
-	log_configs_[log_config_count_++] =
-	new LogConfig<PwmData>(TopicID::PWM, pdMS_TO_TICKS(20));
-  }
-
-  if (log_config_count_ < kMaxLogConfigs) {
-  	log_configs_[log_config_count_++] =
-  	new LogConfig<MavlinkParamsData>(TopicID::MAVLINKPARAMS, pdMS_TO_TICKS(1000));
-  }
-
-  if (log_config_count_ < kMaxLogConfigs) {
-    	log_configs_[log_config_count_++] =
-    	new LogConfig<Mtf01pData>(TopicID::MTF01P, pdMS_TO_TICKS(10));
-    }
-
-  // Add more safely up to TopicID::MAX_TOPICS
+  // Add more safely up to TopicID::MAX_TOPICS.
+  AddLogConfig<ImuData>(TopicID::ICM20948, 4);
+  AddLogConfig<BaroData>(TopicID::BMP390L, 16);
+  AddLogConfig<RcChannels>(TopicID::RCCHANNELS, 20);
+  AddLogConfig<GpsData>(TopicID::UBLOXM9N, 20);
+  AddLogConfig<EkfData>(TopicID::EKF, 8);
+  AddLogConfig<FcsDebugData>(TopicID::FCSDEBUG, 8);
+  AddLogConfig<PwmData>(TopicID::PWM, 20);
+  AddLogConfig<Mtf01pData>(TopicID::MTF01P, 10);
+  AddLogConfig<MagnetometerData>(TopicID::IST8310, 10);
 }
 
 void Logger::Run() {
-	SetupTopics();
-	osDelay(500);
-	DataBuffer::DataBuffersAccessMutexInit();
+  SetupTopics();
 
-	TickType_t xLastWakeTime;
-	const TickType_t xFrequency = pdMS_TO_TICKS(INTERVAL_MS);
+  const TickType_t interval_ticks = pdMS_TO_TICKS(INTERVAL_MS);
+  osDelay(1000);
+  TickType_t last_wake_time = xTaskGetTickCount();
 
-	// Initialize the xLastWakeTime variable with the current time.
-	xLastWakeTime = xTaskGetTickCount();
-	osDelay(500);
-//	int blink_counter = 0;
-	while (true) {
-//		if (++blink_counter >= 20) {
-//			blink_counter = 0;
-//			UBaseType_t highWaterMark = uxTaskGetStackHighWaterMark(NULL);
-//			uint32_t used = 2048 - highWaterMark * sizeof(StackType_t);
-//			DEBUG_PRINT("Used: %lu bytes, Free: %lu bytes (of %d total)\n",
-//			used, highWaterMark * sizeof(StackType_t), 2048);
-//		}
-		uint32_t now_ticks = xTaskGetTickCount();
-		for (size_t i = 0; i < log_config_count_; ++i) {
-		  log_configs_[i]->TryLog(now_ticks, this);
-		}
+  while (true) {
+    const uint32_t now_ticks = xTaskGetTickCount();
+    for (size_t i = 0; i < log_config_count_; ++i) {
+      log_configs_[i]->TryLog(now_ticks, this);
+    }
 
-		// Wait until the next cycle
-		vTaskDelayUntil(&xLastWakeTime, xFrequency);
-	}
+    // Wait until the next cycle.
+    vTaskDelayUntil(&last_wake_time, interval_ticks);
+  }
 }
 
 void Logger::WriteBuffered(const uint8_t* data, size_t len) {
-  // To keep things simple, assume len is never larger than kBufferSize.
-	if (len > DataBuffer::kBufferSize){
-		return;
-	}
+  namespace db = DataBuffer;
 
-	  // Calculate how many bytes are available in the current active buffer.
-	  xSemaphoreTake(DataBuffer::mutex_, portMAX_DELAY);
-	  size_t available = DataBuffer::kBufferSize - DataBuffer::buffer_offsets_[DataBuffer::current_buffer_index_];
+  // A record is never larger than one buffer.
+  if (len > db::kBufferSize) {
+    return;
+  }
 
-	  if (len <= available) {
-		// All of the data fits in the current active buffer.
-		std::memcpy(DataBuffer::buffers_[DataBuffer::current_buffer_index_] + DataBuffer::buffer_offsets_[DataBuffer::current_buffer_index_],
-					data, len);
-		DataBuffer::buffer_offsets_[DataBuffer::current_buffer_index_] += len;
+  bool notify_sd = false;
 
-		// If this write fills up the active buffer, flush it.
-		if (DataBuffer::buffer_offsets_[DataBuffer::current_buffer_index_] == DataBuffer::kBufferSize) {
-			DataBuffer::flush_buffer_index_ = DataBuffer::current_buffer_index_;
-		  DataBuffer::current_buffer_index_ = (DataBuffer::current_buffer_index_ + 1) % DataBuffer::kNumBuffers;
-		  DataBuffer::buffer_full_ = true;
-		}
-	  } else {
-		// The data does not completely fit in the current active buffer.
-		// 1. Copy the chunk that will fill the active buffer.
-		std::memcpy(DataBuffer::buffers_[DataBuffer::current_buffer_index_] + DataBuffer::buffer_offsets_[DataBuffer::current_buffer_index_],
-					data, available);
-		DataBuffer::buffer_offsets_[DataBuffer::current_buffer_index_] += available;
+  xSemaphoreTake(db::mutex_, portMAX_DELAY);
+  if (!db::logging_enabled_) {
+    xSemaphoreGive(db::mutex_);
+    return;
+  }
 
-		// 2. Flush the now-full active buffer and swap to the other.
-		DataBuffer::flush_buffer_index_= DataBuffer::current_buffer_index_;
-		DataBuffer::current_buffer_index_ = (DataBuffer::current_buffer_index_ + 1) % DataBuffer::kNumBuffers;
-		DataBuffer::buffer_full_ = true;
+  uint8_t cur = db::current_buffer_index_;
+  uint8_t next = (cur + 1) % db::kNumBuffers;
 
-		// 3. Copy the remaining part into the new active buffer.
-		size_t remaining = len - available;
-		std::memcpy(DataBuffer::buffers_[DataBuffer::current_buffer_index_],
-					data + available, remaining);
-		DataBuffer::buffer_offsets_[DataBuffer::current_buffer_index_] = remaining;
+  // If the active buffer is full and already handed to the SD task, move on
+  // to the next buffer if that one is free.
+  if (db::buffer_pending_[cur] && !db::buffer_pending_[next]) {
+    db::current_buffer_index_ = next;
+    cur = next;
+    next = (cur + 1) % db::kNumBuffers;
+  }
 
-		// If the remaining copy exactly fills the buffer, flush it immediately.
-		if (DataBuffer::buffer_offsets_[DataBuffer::current_buffer_index_] == DataBuffer::kBufferSize) {
-			DataBuffer::flush_buffer_index_ = DataBuffer::current_buffer_index_;
-		  DataBuffer::current_buffer_index_ = (DataBuffer::current_buffer_index_ + 1) % DataBuffer::kNumBuffers;
-		  DataBuffer::buffer_full_ = true;
-		}
-	  }
-	  xSemaphoreGive(DataBuffer::mutex_);
+  const size_t available = db::kBufferSize - db::buffer_offsets_[cur];
+
+  if (db::buffer_pending_[cur] ||
+      (len > available && db::buffer_pending_[next])) {
+    // Every buffer the record would touch is still waiting on the SD card.
+    // Drop the whole record rather than overwriting unflushed data.
+    ++db::dropped_records_;
+    db::dropped_bytes_ += len;
+  } else if (len <= available) {
+    // The record fits in the active buffer.
+    std::memcpy(db::buffers_[cur] + db::buffer_offsets_[cur], data, len);
+    db::buffer_offsets_[cur] += len;
+
+    // If this write fills the buffer, hand it to the SD task.
+    if (db::buffer_offsets_[cur] == db::kBufferSize) {
+      db::buffer_pending_[cur] = true;
+      // Advance ownership immediately. If SD finishes this buffer before the
+      // next logger call, leaving current_buffer_index_ on cur would let the
+      // logger reuse cur out of ring order and the SD task could miss it.
+      db::current_buffer_index_ = next;
+      notify_sd = true;
+    }
+  } else {
+    // The record spills over: fill the active buffer, hand it to the SD
+    // task and put the remainder in the next (flushed, empty) buffer.
+    // len <= kBufferSize and available >= 1 here, so the remainder can
+    // never fill the other buffer.
+    std::memcpy(db::buffers_[cur] + db::buffer_offsets_[cur], data, available);
+    db::buffer_offsets_[cur] = db::kBufferSize;
+    db::buffer_pending_[cur] = true;
+    notify_sd = true;
+
+    const size_t remaining = len - available;
+    std::memcpy(db::buffers_[next], data + available, remaining);
+    db::buffer_offsets_[next] = remaining;
+    db::current_buffer_index_ = next;
+  }
+  xSemaphoreGive(db::mutex_);
+
+  // Wake the SD task so a full buffer is flushed immediately.
+  if (notify_sd && db::sd_task_handle_ != nullptr) {
+    xTaskNotifyGive(db::sd_task_handle_);
+  }
 }
 
-template<typename T>
-uint16_t Logger::LogConfig<T>::ComputeCrc16(const uint8_t* data, size_t length) {
+uint16_t Logger::ComputeCrc16(const uint8_t* data, size_t length) {
   static const uint16_t table[256] = {
     0x0000, 0x1021, 0x2042, 0x3063, 0x4084, 0x50A5, 0x60C6, 0x70E7,
     0x8108, 0x9129, 0xA14A, 0xB16B, 0xC18C, 0xD1AD, 0xE1CE, 0xF1EF,

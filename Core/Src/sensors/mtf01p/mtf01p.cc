@@ -41,10 +41,10 @@ void ReadMtf01p::Run() {
 	if (result != HAL_OK) {
 	    DEBUG_PRINT("UART DMA start failed with code: %d\n", result);
 	}
-	TickType_t xLastWakeTime = xTaskGetTickCount();
 	const TickType_t xFrequency = pdMS_TO_TICKS(READ_INTERVAL_MS);
 	int hb_counter = 0;
 	osDelay(500);
+	TickType_t xLastWakeTime = xTaskGetTickCount();
 	for(;;){
 //		HAL_UART_Receive(mtf01_uart_, rx_buffer_, 1, 10);
 //		DEBUG_PRINT("Byte Received: %02X\n", rx_buffer_[0]);
@@ -74,6 +74,7 @@ void ReadMtf01p::Run() {
 			}
 			DEBUG_PRINT("Restarted MTP01 Comm\n");
 			osDelay(100);
+			xLastWakeTime = xTaskGetTickCount();
 		}
 
 		if (++hb_counter >= kHeartbeatIntervalCount) {
@@ -207,4 +208,3 @@ bool ReadMtf01p::ComputeCheckSum()
     else
         return false;
 }
-

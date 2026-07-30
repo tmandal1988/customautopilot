@@ -23,7 +23,12 @@ _Min_Stack_Size = 0x400;
 /* Specify the memory areas */
 MEMORY
 {
-  FLASH     (rx)  : ORIGIN = 0x08000000, LENGTH = 2048K
+  /* Keep all executable code/constants in Bank 1. Runtime parameter writes
+     then use true dual-bank read-while-write and cannot stall the control
+     code fetch path. */
+  FLASH     (rx)  : ORIGIN = 0x08000000, LENGTH = 1024K
+  PARAM_A   (r)   : ORIGIN = 0x081C0000, LENGTH = 128K
+  PARAM_B   (r)   : ORIGIN = 0x081E0000, LENGTH = 128K
   DTCMRAM   (xrw) : ORIGIN = 0x20000000, LENGTH = 128K
   RAM_D1    (xrw) : ORIGIN = 0x24000000, LENGTH = 512K
   RAM_D2    (xrw) : ORIGIN = 0x30000000, LENGTH = 288K
@@ -34,6 +39,22 @@ MEMORY
 /* Define output sections */
 SECTIONS
 {
+  /* Raw append-journal sectors. No loadable section may be placed here. */
+  __parameter_flash_a_start__ = ORIGIN(PARAM_A);
+  __parameter_flash_a_end__ = ORIGIN(PARAM_A) + LENGTH(PARAM_A);
+  __parameter_flash_b_start__ = ORIGIN(PARAM_B);
+  __parameter_flash_b_end__ = ORIGIN(PARAM_B) + LENGTH(PARAM_B);
+  ASSERT((ORIGIN(PARAM_A) & 127) == 0,
+         "Parameter sector A must be CRC-burst aligned")
+  ASSERT((ORIGIN(PARAM_B) & 127) == 0,
+         "Parameter sector B must be CRC-burst aligned")
+  ASSERT((LENGTH(PARAM_A) & 127) == 0,
+         "Parameter sector A size must be CRC-burst aligned")
+  ASSERT((LENGTH(PARAM_B) & 127) == 0,
+         "Parameter sector B size must be CRC-burst aligned")
+  ASSERT(ORIGIN(PARAM_A) + LENGTH(PARAM_A) == ORIGIN(PARAM_B),
+         "Parameter sectors must be adjacent Bank-2 sectors 6 and 7")
+
   /* Interrupt vector table */
   .isr_vector :
   {

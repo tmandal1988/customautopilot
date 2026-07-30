@@ -489,7 +489,7 @@ bool ReadIcm20948::Icm20948Init(){
 
 void ReadIcm20948::Run() {
 	Icm20948Init();
-	ImuData imu_data;
+	ImuData imu_data = {};
 	Publisher<ImuData> icm20948_pub(TopicID::ICM20948);
 
 	read_icm20948_task_handle_ = xTaskGetCurrentTaskHandle();
@@ -498,12 +498,23 @@ void ReadIcm20948::Run() {
 	TickType_t xLastWakeTime;
 	const TickType_t xFrequency = pdMS_TO_TICKS(READ_INTERVAL_MS);
 
-	// Initialize the xLastWakeTime variable with the current time.
-	xLastWakeTime = xTaskGetTickCount();
 	osDelay(500);
+	// Initialize the periodic schedule after the startup delay.
+	xLastWakeTime = xTaskGetTickCount();
+	bool first_iteration = true;
     /* Infinite loop */
     for (;;) {
-    	// Blink LED every 100 iterations
+		const TickType_t actual_start_tick = xTaskGetTickCount();
+		const int32_t start_lateness_ticks =
+				static_cast<int32_t>(actual_start_tick - xLastWakeTime);
+
+		++imu_data.task_run_seq;
+		if (!first_iteration && start_lateness_ticks > 0) {
+			++imu_data.late_start_count;
+		}
+		first_iteration = false;
+
+		// Blink LED every 100 iterations
 		if (++blink_counter >= 100) {
 			HAL_GPIO_TogglePin(LED2_GPIO_Port, LED2_Pin);
 			blink_counter = 0;
@@ -512,16 +523,40 @@ void ReadIcm20948::Run() {
 //			DEBUG_PRINT("Used: %lu bytes, Free: %lu bytes (of %d total)\n",
 //				   used, highWaterMark * sizeof(StackType_t), 1068);
 		}
-    	if(HAL_I2C_GetState(icm20948_i2c_) == HAL_I2C_STATE_READY){
-    		HAL_I2C_Mem_Read_DMA(icm20948_i2c_, ICM20948_ADDR << 1, UB0_ACCEL_XOUT_H, I2C_MEMADD_SIZE_8BIT,
-    				icm20948_raw_buf_, 23);
-    	}
+
+		if (HAL_I2C_GetState(icm20948_i2c_) != HAL_I2C_STATE_READY) {
+			vTaskDelayUntil(&xLastWakeTime, xFrequency);
+			continue;
+		}
+
+		// A notification always belongs to the DMA transaction started below.
+		// Discarding a stale notification prevents a late callback from making a
+		// new sample appear complete immediately.
+		(void)ulTaskNotifyTake(pdTRUE, 0);
+		transfer_result_ = TransferResult::kPending;
+		const HAL_StatusTypeDef dma_start_status = HAL_I2C_Mem_Read_DMA(
+				icm20948_i2c_, ICM20948_ADDR << 1, UB0_ACCEL_XOUT_H,
+				I2C_MEMADD_SIZE_8BIT, icm20948_raw_buf_, 23);
+		if (dma_start_status != HAL_OK) {
+			transfer_result_ = TransferResult::kIdle;
+			vTaskDelayUntil(&xLastWakeTime, xFrequency);
+			continue;
+		}
 
     	// Wait for DMA completion using task notification
 		ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
 
+		const TransferResult transfer_result = transfer_result_;
+		transfer_result_ = TransferResult::kIdle;
+
+		if (transfer_result != TransferResult::kComplete) {
+			vTaskDelayUntil(&xLastWakeTime, xFrequency);
+			continue;
+		}
+
 		Icm20948GetData(&imu_data);
 
+		++imu_data.publish_seq;
 		icm20948_pub.publish(imu_data);
 
 //		DEBUG_PRINT("Ax = %g, Ay = %g, Az = %g\n", imu_data.accel_mps2[0], imu_data.accel_mps2[1], imu_data.accel_mps2[2]);
@@ -535,24 +570,36 @@ void ReadIcm20948::Run() {
 }
 
 void ReadIcm20948::DmaCompleteCallback(I2C_HandleTypeDef *hi2c) {
-    if (read_icm20948_instance_->read_icm20948_task_handle_ != nullptr) {
+    ReadIcm20948* instance = read_icm20948_instance_;
+	if ((instance != nullptr) && (hi2c == instance->icm20948_i2c_) &&
+		(instance->read_icm20948_task_handle_ != nullptr) &&
+		(instance->transfer_result_ == TransferResult::kPending)) {
+		instance->transfer_result_ = TransferResult::kComplete;
         BaseType_t xHigherPriorityTaskWoken = pdFALSE;
-        vTaskNotifyGiveFromISR(read_icm20948_instance_->read_icm20948_task_handle_, &xHigherPriorityTaskWoken);
+        vTaskNotifyGiveFromISR(instance->read_icm20948_task_handle_,
+                              &xHigherPriorityTaskWoken);
         portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
     }
 }
 
-extern "C" void HAL_I2C_MemRxCpltCallback(I2C_HandleTypeDef *hi2c) {
-	if(hi2c->Instance == ICM20948I2C && ReadIcm20948::read_icm20948_instance_ != nullptr){
-		ReadIcm20948::DmaCompleteCallback(hi2c);
-	}
+void ReadIcm20948::ErrorCallback(I2C_HandleTypeDef *hi2c) {
+    ReadIcm20948* instance = read_icm20948_instance_;
+	if ((instance != nullptr) && (hi2c == instance->icm20948_i2c_) &&
+		(instance->read_icm20948_task_handle_ != nullptr) &&
+		(instance->transfer_result_ == TransferResult::kPending)) {
+		instance->transfer_result_ = TransferResult::kError;
+        BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+        vTaskNotifyGiveFromISR(instance->read_icm20948_task_handle_,
+                              &xHigherPriorityTaskWoken);
+        portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
+    }
 }
 
 /* Read all the sensor data
  *
  */
 void ReadIcm20948::Icm20948GetData(ImuData *icm20948_data){
-	int16_t data_buf[9] ={0};
+	int16_t data_buf[10] ={0};
 
 		  data_buf[0] = ((icm20948_raw_buf_[0] << 8) | (icm20948_raw_buf_[1] & 0xFF));
 		  data_buf[1] = ((icm20948_raw_buf_[2] << 8) | (icm20948_raw_buf_[3] & 0xFF));
@@ -624,6 +671,3 @@ void ReadIcm20948::Icm20948GetData(ImuData *icm20948_data){
 //		icm20948_instance_handles_[id]->SetDataReadyFlag();
 //	}
 //}
-
-
-

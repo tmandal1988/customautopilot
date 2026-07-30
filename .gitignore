@@ -1,6 +1,10 @@
 # CMake build output
 /build/
 
+# STM32CubeIDE managed-build output
+/Debug/
+/Release/
+
 # Generated firmware artifacts (produced by the CMake build)
 *.elf
 *.bin
@@ -10,3 +14,9 @@
 
 # Editor / OS cruft
 .DS_Store
+
+# Per-machine CMake overrides
+/CMakeUserPresets.json
+
+# Host-local agent permissions
+**/.claude/settings.local.json

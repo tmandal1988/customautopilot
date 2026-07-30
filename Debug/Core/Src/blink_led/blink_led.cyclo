@@ -1,5 +1,0 @@
-../Core/Src/blink_led/blink_led.h:15:7:BlinkLedTask::~BlinkLedTask()	1
-../Core/Src/blink_led/blink_led.cc:10:6:virtual void BlinkLedTask::Run()	2
-../Core/Src/blink_led/blink_led.h:15:7:virtual BlinkLedTask::~BlinkLedTask()	1
-../Core/Inc/task_manager/task_base.h:46:39:void __tcf_0()	2
-../Core/Src/blink_led/blink_led.cc:17:1:cc)	10

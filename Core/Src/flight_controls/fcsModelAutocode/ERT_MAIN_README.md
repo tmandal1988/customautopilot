@@ -6,9 +6,9 @@
 //
 // Code generated for Simulink model 'fcsModel'.
 //
-// Model version                  : 1.118
-// Simulink Coder version         : 9.7 (R2022a) 13-Nov-2021
-// C/C++ source code generated on : Sun Jun 22 23:09:15 2025
+// Model version                  : 7.9
+// Simulink Coder version         : 25.1 (R2025a) 21-Nov-2024
+// C/C++ source code generated on : Wed Jul 29 08:20:05 2026
 //
 // Target selection: ert.tlc
 // Embedded hardware selection: ARM Compatible->ARM Cortex-M
@@ -21,7 +21,661 @@
 #include <stdio.h>              // This example main program uses printf/fflush
 #include "fcsModel.h"                  // Model header file
 
-static fcsModel fcsModel_Obj;          // Instance of model class
+// External inputs (root inport signals)
+static fcsModel::ExtUPointer_fcsModel_T fcsModel_ExtUPointer;// '<Root>/stateEstimate' 
+
+// instance parameters
+static fcsModel::InstP_fcsModel_T fcsModel_InstP{
+  // Variable: fcsParamsArg
+  //  Referenced by: '<Root>/fcsParams'
+
+  busFcsParams{
+    busInnerLoopCtrlParams{
+      busAttCtrlParams{
+        {
+          {
+            busPidParams{
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+
+              { { 0.0, 0.0 } },
+
+              { { 0.0, 0.0 } }
+            }, busPidParams{
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+
+              { { 0.0, 0.0 } },
+
+              { { 0.0, 0.0 } }
+            }, busPidParams{
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+
+              { { 0.0, 0.0 } },
+
+              { { 0.0, 0.0 } }
+            } }
+        }
+        ,
+
+        {
+          {
+            busSignalConditioningParams{
+              { { 0.0, 0.0 } },
+
+              { { 0.0, 0.0 } },
+
+              { { 0.0, 0.0 } },
+
+              { { 0.0, 0.0 } },
+              busSecondOrderFilterParam{
+                0.0,
+                0.0
+              }
+            }, busSignalConditioningParams{
+              { { 0.0, 0.0 } },
+
+              { { 0.0, 0.0 } },
+
+              { { 0.0, 0.0 } },
+
+              { { 0.0, 0.0 } },
+              busSecondOrderFilterParam{
+                0.0,
+                0.0
+              }
+            }, busSignalConditioningParams{
+              { { 0.0, 0.0 } },
+
+              { { 0.0, 0.0 } },
+
+              { { 0.0, 0.0 } },
+
+              { { 0.0, 0.0 } },
+              busSecondOrderFilterParam{
+                0.0,
+                0.0
+              }
+            } }
+        }
+        ,
+
+        {
+          {
+            busSignalConditioningParams{
+              { { 0.0, 0.0 } },
+
+              { { 0.0, 0.0 } },
+
+              { { 0.0, 0.0 } },
+
+              { { 0.0, 0.0 } },
+              busSecondOrderFilterParam{
+                0.0,
+                0.0
+              }
+            }, busSignalConditioningParams{
+              { { 0.0, 0.0 } },
+
+              { { 0.0, 0.0 } },
+
+              { { 0.0, 0.0 } },
+
+              { { 0.0, 0.0 } },
+              busSecondOrderFilterParam{
+                0.0,
+                0.0
+              }
+            }, busSignalConditioningParams{
+              { { 0.0, 0.0 } },
+
+              { { 0.0, 0.0 } },
+
+              { { 0.0, 0.0 } },
+
+              { { 0.0, 0.0 } },
+              busSecondOrderFilterParam{
+                0.0,
+                0.0
+              }
+            } }
+        }
+      },
+      busAngRateCtrlParams{
+        {
+          {
+            busPidParams{
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+
+              { { 0.0, 0.0 } },
+
+              { { 0.0, 0.0 } }
+            }, busPidParams{
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+
+              { { 0.0, 0.0 } },
+
+              { { 0.0, 0.0 } }
+            }, busPidParams{
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+
+              { { 0.0, 0.0 } },
+
+              { { 0.0, 0.0 } }
+            } }
+        }
+        ,
+
+        {
+          {
+            busSignalConditioningParams{
+              { { 0.0, 0.0 } },
+
+              { { 0.0, 0.0 } },
+
+              { { 0.0, 0.0 } },
+
+              { { 0.0, 0.0 } },
+              busSecondOrderFilterParam{
+                0.0,
+                0.0
+              }
+            }, busSignalConditioningParams{
+              { { 0.0, 0.0 } },
+
+              { { 0.0, 0.0 } },
+
+              { { 0.0, 0.0 } },
+
+              { { 0.0, 0.0 } },
+              busSecondOrderFilterParam{
+                0.0,
+                0.0
+              }
+            }, busSignalConditioningParams{
+              { { 0.0, 0.0 } },
+
+              { { 0.0, 0.0 } },
+
+              { { 0.0, 0.0 } },
+
+              { { 0.0, 0.0 } },
+              busSecondOrderFilterParam{
+                0.0,
+                0.0
+              }
+            } }
+        }
+        ,
+
+        {
+          {
+            busSignalConditioningParams{
+              { { 0.0, 0.0 } },
+
+              { { 0.0, 0.0 } },
+
+              { { 0.0, 0.0 } },
+
+              { { 0.0, 0.0 } },
+              busSecondOrderFilterParam{
+                0.0,
+                0.0
+              }
+            }, busSignalConditioningParams{
+              { { 0.0, 0.0 } },
+
+              { { 0.0, 0.0 } },
+
+              { { 0.0, 0.0 } },
+
+              { { 0.0, 0.0 } },
+              busSecondOrderFilterParam{
+                0.0,
+                0.0
+              }
+            }, busSignalConditioningParams{
+              { { 0.0, 0.0 } },
+
+              { { 0.0, 0.0 } },
+
+              { { 0.0, 0.0 } },
+
+              { { 0.0, 0.0 } },
+              busSecondOrderFilterParam{
+                0.0,
+                0.0
+              }
+            } }
+        }
+      }
+    },
+    busOuterLoopCtrlParams{
+      busPosCtrlParams{
+        {
+          {
+            busPidParams{
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+
+              { { 0.0, 0.0 } },
+
+              { { 0.0, 0.0 } }
+            }, busPidParams{
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+
+              { { 0.0, 0.0 } },
+
+              { { 0.0, 0.0 } }
+            }, busPidParams{
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+
+              { { 0.0, 0.0 } },
+
+              { { 0.0, 0.0 } }
+            } }
+        }
+        ,
+
+        {
+          {
+            busSignalConditioningParams{
+              { { 0.0, 0.0 } },
+
+              { { 0.0, 0.0 } },
+
+              { { 0.0, 0.0 } },
+
+              { { 0.0, 0.0 } },
+              busSecondOrderFilterParam{
+                0.0,
+                0.0
+              }
+            }, busSignalConditioningParams{
+              { { 0.0, 0.0 } },
+
+              { { 0.0, 0.0 } },
+
+              { { 0.0, 0.0 } },
+
+              { { 0.0, 0.0 } },
+              busSecondOrderFilterParam{
+                0.0,
+                0.0
+              }
+            }, busSignalConditioningParams{
+              { { 0.0, 0.0 } },
+
+              { { 0.0, 0.0 } },
+
+              { { 0.0, 0.0 } },
+
+              { { 0.0, 0.0 } },
+              busSecondOrderFilterParam{
+                0.0,
+                0.0
+              }
+            } }
+        }
+        ,
+
+        {
+          {
+            busSignalConditioningParams{
+              { { 0.0, 0.0 } },
+
+              { { 0.0, 0.0 } },
+
+              { { 0.0, 0.0 } },
+
+              { { 0.0, 0.0 } },
+              busSecondOrderFilterParam{
+                0.0,
+                0.0
+              }
+            }, busSignalConditioningParams{
+              { { 0.0, 0.0 } },
+
+              { { 0.0, 0.0 } },
+
+              { { 0.0, 0.0 } },
+
+              { { 0.0, 0.0 } },
+              busSecondOrderFilterParam{
+                0.0,
+                0.0
+              }
+            }, busSignalConditioningParams{
+              { { 0.0, 0.0 } },
+
+              { { 0.0, 0.0 } },
+
+              { { 0.0, 0.0 } },
+
+              { { 0.0, 0.0 } },
+              busSecondOrderFilterParam{
+                0.0,
+                0.0
+              }
+            } }
+        }
+      },
+      busVelCtrlParams{
+        {
+          {
+            busPidParams{
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+
+              { { 0.0, 0.0 } },
+
+              { { 0.0, 0.0 } }
+            }, busPidParams{
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+
+              { { 0.0, 0.0 } },
+
+              { { 0.0, 0.0 } }
+            }, busPidParams{
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+
+              { { 0.0, 0.0 } },
+
+              { { 0.0, 0.0 } }
+            } }
+        }
+        ,
+
+        {
+          {
+            busSignalConditioningParams{
+              { { 0.0, 0.0 } },
+
+              { { 0.0, 0.0 } },
+
+              { { 0.0, 0.0 } },
+
+              { { 0.0, 0.0 } },
+              busSecondOrderFilterParam{
+                0.0,
+                0.0
+              }
+            }, busSignalConditioningParams{
+              { { 0.0, 0.0 } },
+
+              { { 0.0, 0.0 } },
+
+              { { 0.0, 0.0 } },
+
+              { { 0.0, 0.0 } },
+              busSecondOrderFilterParam{
+                0.0,
+                0.0
+              }
+            }, busSignalConditioningParams{
+              { { 0.0, 0.0 } },
+
+              { { 0.0, 0.0 } },
+
+              { { 0.0, 0.0 } },
+
+              { { 0.0, 0.0 } },
+              busSecondOrderFilterParam{
+                0.0,
+                0.0
+              }
+            } }
+        }
+        ,
+
+        {
+          {
+            busSignalConditioningParams{
+              { { 0.0, 0.0 } },
+
+              { { 0.0, 0.0 } },
+
+              { { 0.0, 0.0 } },
+
+              { { 0.0, 0.0 } },
+              busSecondOrderFilterParam{
+                0.0,
+                0.0
+              }
+            }, busSignalConditioningParams{
+              { { 0.0, 0.0 } },
+
+              { { 0.0, 0.0 } },
+
+              { { 0.0, 0.0 } },
+
+              { { 0.0, 0.0 } },
+              busSecondOrderFilterParam{
+                0.0,
+                0.0
+              }
+            }, busSignalConditioningParams{
+              { { 0.0, 0.0 } },
+
+              { { 0.0, 0.0 } },
+
+              { { 0.0, 0.0 } },
+
+              { { 0.0, 0.0 } },
+              busSecondOrderFilterParam{
+                0.0,
+                0.0
+              }
+            } }
+        }
+        ,
+
+        {
+          {
+            busSignalConditioningParams{
+              { { 0.0, 0.0 } },
+
+              { { 0.0, 0.0 } },
+
+              { { 0.0, 0.0 } },
+
+              { { 0.0, 0.0 } },
+              busSecondOrderFilterParam{
+                0.0,
+                0.0
+              }
+            }, busSignalConditioningParams{
+              { { 0.0, 0.0 } },
+
+              { { 0.0, 0.0 } },
+
+              { { 0.0, 0.0 } },
+
+              { { 0.0, 0.0 } },
+              busSecondOrderFilterParam{
+                0.0,
+                0.0
+              }
+            }, busSignalConditioningParams{
+              { { 0.0, 0.0 } },
+
+              { { 0.0, 0.0 } },
+
+              { { 0.0, 0.0 } },
+
+              { { 0.0, 0.0 } },
+              busSecondOrderFilterParam{
+                0.0,
+                0.0
+              }
+            } }
+        }
+        ,
+
+        { { 0.0, 0.0, 0.0 } },
+
+        { { 0.0, 0.0, 0.0 } },
+
+        { { 0.0, 0.0, 0.0 } },
+        0.0,
+
+        { { 0.0, 0.0 } },
+
+        { { 0.0, 0.0 } },
+
+        { { 0.0, 0.0 } },
+        0.0
+      },
+      busXyBodyAccelCtrlParams{
+        {
+          {
+            busPidParams{
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+
+              { { 0.0, 0.0 } },
+
+              { { 0.0, 0.0 } }
+            }, busPidParams{
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+
+              { { 0.0, 0.0 } },
+
+              { { 0.0, 0.0 } }
+            } }
+        }
+        ,
+
+        { { 0.0, 0.0 } }
+      },
+      busZaccelCtrlParams{
+        busPidParams{
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+
+          { { 0.0, 0.0 } },
+
+          { { 0.0, 0.0 } }
+        },
+        busSignalConditioningParams{
+          { { 0.0, 0.0 } },
+
+          { { 0.0, 0.0 } },
+
+          { { 0.0, 0.0 } },
+
+          { { 0.0, 0.0 } },
+          busSecondOrderFilterParam{
+            0.0,
+            0.0
+          }
+        },
+        busSignalConditioningParams{
+          { { 0.0, 0.0 } },
+
+          { { 0.0, 0.0 } },
+
+          { { 0.0, 0.0 } },
+
+          { { 0.0, 0.0 } },
+          busSecondOrderFilterParam{
+            0.0,
+            0.0
+          }
+        },
+        0.0
+      }
+    },
+    busSysIdInjectionParams{
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+
+      { { 0.0, 0.0 } },
+
+      { { 0.0, 0.0 } }
+    }
+  }
+};
+
+static fcsModel fcsModel_Obj{ &fcsModel_ExtUPointer, &fcsModel_InstP };// Instance of model class 
 
 //
 // Associating rt_OneStep with a real-time clock or interrupt service routine

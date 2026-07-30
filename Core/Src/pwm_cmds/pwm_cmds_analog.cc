@@ -17,7 +17,7 @@ extern TIM_HandleTypeDef htim3;
 PwmCmds pwm_cmds_task_instance_(&htim1, &htim2, &htim3);
 
 PwmCmds::PwmCmds(TIM_HandleTypeDef* htim1, TIM_HandleTypeDef* htim2, TIM_HandleTypeDef* htim3):
-TaskBase("PwmCmdsTask", 1024, osPriorityNormal),
+TaskBase("PwmCmdsTask", 1024, osPriorityHigh),
 pwm_timer1_(htim1),
 pwm_timer2_(htim2),
 pwm_timer3_(htim3){
@@ -59,10 +59,7 @@ void PwmCmds::Run() {
 #endif
 
 #ifndef MODE_TEST
-	TickType_t xLastWakeTime = xTaskGetTickCount();
 	const TickType_t loop_frequency = pdMS_TO_TICKS(LOOP_INTERVAL_MS);  // 1000Hz
-	// Initialize the xLastWakeTime variable with the current time.
-	xLastWakeTime = xTaskGetTickCount();
 #endif
 
 #ifdef MODE_TEST
@@ -71,6 +68,9 @@ void PwmCmds::Run() {
 	uint8_t current_mtr_idx = 0;
 #endif
 	osDelay(2000);
+#ifndef MODE_TEST
+	TickType_t xLastWakeTime = xTaskGetTickCount();
+#endif
 	while(1){
 #ifdef MODE_TEST
 		//Sequence through each motors
@@ -168,6 +168,5 @@ void PwmCmds::Run() {
 #endif
 	}
 }
-
 
 
