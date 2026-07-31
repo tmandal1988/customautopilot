@@ -5,6 +5,7 @@
 #include <cstring>
 
 #include "FreeRTOS.h"
+#include "fcsModel_types.h"
 #include "parameters/parameter_store.h"
 #include "stm32h7xx_hal.h"
 #include "stm32h7xx_hal_flash_ex.h"
@@ -25,6 +26,18 @@ constexpr std::uint32_t kExpectedSectorABase = 0x081C0000UL;
 constexpr std::uint32_t kExpectedSectorBBase = 0x081E0000UL;
 constexpr std::uint32_t kPersistenceDebounceMs = 2000U;
 constexpr std::uint32_t kLowVoltageRecheckMs = 1000U;
+
+constexpr bool PersistenceFlightStateAllowsFlash(
+    parameters::PersistenceFlightState state) noexcept {
+  return state == parameters::PersistenceFlightState::NotInFlight;
+}
+
+static_assert(!PersistenceFlightStateAllowsFlash(
+    parameters::PersistenceFlightState::Unknown));
+static_assert(PersistenceFlightStateAllowsFlash(
+    parameters::PersistenceFlightState::NotInFlight));
+static_assert(!PersistenceFlightStateAllowsFlash(
+    parameters::PersistenceFlightState::InFlight));
 
 std::uint32_t LinkerAddress(const std::uint8_t* symbol) noexcept {
   return static_cast<std::uint32_t>(
@@ -94,11 +107,15 @@ void ReadFlashword(std::uint32_t address, Flashword* destination) noexcept {
 
 namespace parameters {
 
-static_assert(ParameterStore::kParameterCount <=
+static_assert(generated::kPersistentParameterCount <=
                   persistence_format::kRecordCapacity,
               "The complete override snapshot must fit one parameter sector");
 static_assert(static_cast<std::uint8_t>(ParameterValueType::Real32) ==
               persistence_format::kReal32Type);
+static_assert(static_cast<std::uint8_t>(ParameterValueType::Int32) ==
+              persistence_format::kInt32Type);
+static_assert(static_cast<std::uint8_t>(ParameterValueType::Bool) ==
+              persistence_format::kBoolType);
 
 ParameterPersistence& ParameterPersistence::Instance() noexcept {
   // Constructed from ParameterStore::Initialize() before TaskManager starts
@@ -130,8 +147,41 @@ bool ParameterPersistence::SupplyIsSafeForProgramming() const noexcept {
 bool ParameterPersistence::CanStartFlashOperation(
     const ParameterStore& store) const noexcept {
   return SupplyIsSafeForProgramming() &&
-         (store.runtime_state_.load(std::memory_order_acquire) ==
-          ParameterRuntimeState::Disarmed);
+         PersistenceFlightStateAllowsFlash(
+             store.persistence_flight_state_.load(std::memory_order_acquire));
+}
+
+void ParameterPersistence::RefreshFlightState(
+    ParameterStore& store) noexcept {
+  // Nonblocking latest-value read in the idle worker. FCS already publishes
+  // this topic, so this adds no operation to the control loop and closes the
+  // 1 Hz telemetry-observation window before any Flash operation starts.
+  if (!fcs_state_subscriber_.copy(latest_fcs_state_)) {
+    return;
+  }
+
+  PersistenceFlightState observed = PersistenceFlightState::Unknown;
+  switch (static_cast<enumStateMachine>(latest_fcs_state_.sm_mode)) {
+    case enumStateMachine::INACTIVE:
+      observed = PersistenceFlightState::NotInFlight;
+      break;
+    case enumStateMachine::MTR_ARMED:
+    case enumStateMachine::INFLIGHT:
+      // Armed on the ground already blocks Flash: takeoff can follow at any
+      // moment and a running sector erase cannot be aborted.
+      observed = PersistenceFlightState::InFlight;
+      break;
+    default:
+      break;
+  }
+  store.persistence_flight_state_.store(observed,
+                                         std::memory_order_release);
+}
+
+bool ParameterPersistence::FlashStillPermitted(
+    ParameterStore& store) noexcept {
+  RefreshFlightState(store);
+  return CanStartFlashOperation(store);
 }
 
 bool ParameterPersistence::ProbeFlashRegion(std::uint32_t start_address,
@@ -254,8 +304,10 @@ bool ParameterPersistence::ScanSector(
     snapshot_crc32 = persistence_format::Crc32Update(
         snapshot_crc32, &record, offsetof(ParameterRecord, crc32));
     result->next_sequence = record.sequence + 1U;
-    if (!store.ApplyBootReal32Override(record.name, sizeof(record.name),
-                                       record.value_bits)) {
+    if (!store.ApplyBootOverride(
+            record.name, sizeof(record.name),
+            static_cast<ParameterValueType>(record.value_type),
+            record.value_bits)) {
       // Removed/renamed/type-changed/out-of-range entries are ignored while
       // defaults and other valid overrides remain usable.
       invalid_boot_record_count_.fetch_add(1U, std::memory_order_relaxed);
@@ -300,8 +352,10 @@ bool ParameterPersistence::ScanSector(
 
     result->next_sequence = record.sequence + 1U;
     result->next_record_offset = offset + persistence_format::kRecordStride;
-    if (!store.ApplyBootReal32Override(record.name, sizeof(record.name),
-                                       record.value_bits)) {
+    if (!store.ApplyBootOverride(
+            record.name, sizeof(record.name),
+            static_cast<ParameterValueType>(record.value_type),
+            record.value_bits)) {
       // Removed/renamed/type-changed/out-of-range entries are ignored while
       // defaults and other valid overrides remain usable.
       invalid_boot_record_count_.fetch_add(1U, std::memory_order_relaxed);
@@ -395,7 +449,7 @@ bool ParameterPersistence::Restore(ParameterStore& store) noexcept {
       return true;
     }
     // ScanSector may already have overlaid records before detecting a corrupt
-    // committed snapshot. Restore the validated fcs_params.h defaults before
+    // committed snapshot. Restore every native module default provider before
     // trying the older generation.
     store.ResetBootOverridesToDefaults();
     return false;
@@ -526,7 +580,9 @@ bool ParameterPersistence::HasRoomFor(std::size_t record_count) const noexcept {
 
 bool ParameterPersistence::CompactTo(std::uint32_t destination_base,
                                      ParameterStore& store) noexcept {
-  if (!CanStartFlashOperation(store)) {
+  // The erase is the one unabortable operation; take the freshest possible
+  // FCS state immediately before starting it.
+  if (!FlashStillPermitted(store)) {
     return false;
   }
   if (!EraseSector(destination_base)) {
@@ -537,7 +593,7 @@ bool ParameterPersistence::CompactTo(std::uint32_t destination_base,
       (active_sector_base_ == 0U) ? 1U : (active_generation_ + 1U);
   alignas(persistence_format::kFlashwordSize) const SectorHeader header =
       persistence_format::MakeSectorHeader(generation);
-  if (!CanStartFlashOperation(store) ||
+  if (!FlashStillPermitted(store) ||
       !ProgramFlashword(destination_base + persistence_format::kHeaderOffset,
                         &header)) {
     return false;
@@ -559,21 +615,25 @@ bool ParameterPersistence::CompactTo(std::uint32_t destination_base,
       const std::size_t index = (word * 32U) + bit;
       if ((index >= store.Count()) ||
           (offset >= persistence_format::kCommitOffset) ||
-          !CanStartFlashOperation(store)) {
+          !FlashStillPermitted(store)) {
         return false;
       }
 
       const ParameterDescriptor* descriptor =
           store.Descriptor(static_cast<std::uint16_t>(index));
       if ((descriptor == nullptr) ||
-          (descriptor->type != ParameterValueType::Real32)) {
+          !persistence_format::IsSupportedValueType(
+              static_cast<std::uint8_t>(descriptor->type)) ||
+          (descriptor->persistence_policy !=
+           ParameterPersistencePolicy::RetainedOverride)) {
         return false;
       }
       const std::uint32_t value_bits =
           store.published_value_bits_[index].load(std::memory_order_acquire);
       alignas(persistence_format::kFlashwordSize) const ParameterRecord record =
-          persistence_format::MakeReal32Record(descriptor->name, value_bits,
-                                               sequence);
+          persistence_format::MakeRecord(
+              descriptor->name, value_bits,
+              static_cast<std::uint8_t>(descriptor->type), sequence);
       if (!ProgramFlashword(
               destination_base + static_cast<std::uint32_t>(offset), &record)) {
         return false;
@@ -589,7 +649,7 @@ bool ParameterPersistence::CompactTo(std::uint32_t destination_base,
   alignas(persistence_format::kFlashwordSize) const SectorCommit commit =
       persistence_format::MakeSectorCommit(header, snapshot_record_count,
                                             snapshot_crc32);
-  if (!CanStartFlashOperation(store) ||
+  if (!FlashStillPermitted(store) ||
       !ProgramFlashword(destination_base + persistence_format::kCommitOffset,
                         &commit)) {
     return false;
@@ -604,7 +664,7 @@ bool ParameterPersistence::CompactTo(std::uint32_t destination_base,
 }
 
 bool ParameterPersistence::AppendDirty(ParameterStore& store) noexcept {
-  if (!CanStartFlashOperation(store)) {
+  if (!FlashStillPermitted(store)) {
     return false;
   }
   using DirtyMask =
@@ -655,7 +715,7 @@ bool ParameterPersistence::AppendDirty(ParameterStore& store) noexcept {
       const std::uint32_t bit = std::countr_zero(captured[word]);
       const std::uint32_t mask = 1UL << bit;
       const std::size_t index = (word * 32U) + bit;
-      if ((index >= store.Count()) || !CanStartFlashOperation(store)) {
+      if ((index >= store.Count()) || !FlashStillPermitted(store)) {
         restore_dirty();
         return false;
       }
@@ -663,15 +723,19 @@ bool ParameterPersistence::AppendDirty(ParameterStore& store) noexcept {
       const ParameterDescriptor* descriptor =
           store.Descriptor(static_cast<std::uint16_t>(index));
       if ((descriptor == nullptr) ||
-          (descriptor->type != ParameterValueType::Real32)) {
+          !persistence_format::IsSupportedValueType(
+              static_cast<std::uint8_t>(descriptor->type)) ||
+          (descriptor->persistence_policy !=
+           ParameterPersistencePolicy::RetainedOverride)) {
         restore_dirty();
         return false;
       }
       const std::uint32_t value_bits =
           store.published_value_bits_[index].load(std::memory_order_acquire);
       alignas(persistence_format::kFlashwordSize) const ParameterRecord record =
-          persistence_format::MakeReal32Record(descriptor->name, value_bits,
-                                               next_sequence_);
+          persistence_format::MakeRecord(
+              descriptor->name, value_bits,
+              static_cast<std::uint8_t>(descriptor->type), next_sequence_);
       if (!ProgramFlashword(
               active_sector_base_ +
                   static_cast<std::uint32_t>(next_record_offset_),
@@ -704,6 +768,7 @@ void ParameterPersistence::Run() {
       pdMS_TO_TICKS(kLowVoltageRecheckMs);
 
   for (;;) {
+    RefreshFlightState(store);
     bool has_dirty = false;
     for (const auto& word : store.dirty_mask_) {
       if (word.load(std::memory_order_acquire) != 0U) {
@@ -713,8 +778,8 @@ void ParameterPersistence::Run() {
     }
 
     if (!has_dirty || !available_.load(std::memory_order_acquire) ||
-        (store.runtime_state_.load(std::memory_order_acquire) !=
-         ParameterRuntimeState::Disarmed)) {
+        !PersistenceFlightStateAllowsFlash(
+            store.persistence_flight_state_.load(std::memory_order_acquire))) {
       static_cast<void>(ulTaskNotifyTake(pdTRUE, portMAX_DELAY));
       continue;
     }
@@ -724,8 +789,9 @@ void ParameterPersistence::Run() {
     if (ulTaskNotifyTake(pdTRUE, kDebounceTicks) != 0U) {
       continue;
     }
-    if (store.runtime_state_.load(std::memory_order_acquire) !=
-        ParameterRuntimeState::Disarmed) {
+    RefreshFlightState(store);
+    if (!PersistenceFlightStateAllowsFlash(
+            store.persistence_flight_state_.load(std::memory_order_acquire))) {
       continue;
     }
     if (!SupplyIsSafeForProgramming()) {
@@ -733,7 +799,12 @@ void ParameterPersistence::Run() {
           ulTaskNotifyTake(pdTRUE, kLowVoltageRecheckTicks));
       continue;
     }
+    // The flag is raised before AppendDirty captures the dirty mask, so a
+    // quiescence probe that sees an empty mask and a lowered flag can only
+    // observe a fully completed commit.
+    commit_in_progress_.store(true, std::memory_order_release);
     static_cast<void>(AppendDirty(store));
+    commit_in_progress_.store(false, std::memory_order_release);
   }
 }
 
@@ -751,6 +822,10 @@ std::uint32_t ParameterPersistence::InvalidBootRecordCount() const noexcept {
 
 bool ParameterPersistence::IsAvailable() const noexcept {
   return available_.load(std::memory_order_acquire);
+}
+
+bool ParameterPersistence::IsCommitIdle() const noexcept {
+  return !commit_in_progress_.load(std::memory_order_acquire);
 }
 
 }  // namespace parameters

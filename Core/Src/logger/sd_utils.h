@@ -18,14 +18,6 @@ class SdUtils : public TaskBase {
   void Run() override;
 
  private:
-  // Idle wake-up period: USB commands are polled at this rate. Full data
-  // buffers do not wait for it — the logger wakes this task immediately
-  // via task notification.
-  static constexpr uint16_t INTERVAL_MS = 500;
-  // f_write() still runs for every full RAM buffer.  f_sync() is the
-  // expensive durability barrier, so perform it periodically instead of
-  // after every 64 KiB write, and once more when logging stops.
-  static constexpr uint8_t kSyncEveryBuffers = 8;
   static constexpr uint16_t kSdSectorSize = 512;
 
   const char* file_name = "log_file.bin";
@@ -38,12 +30,18 @@ class SdUtils : public TaskBase {
   bool SyncFile();
   bool WritePendingBuffer(uint8_t buffer_index);
   bool CloseFile();
+  void RequestParameterLogStop();
   void BeginStop();
   void ResetBufferState();
   void ResetTelemetry();
   void SetLoggingEnabled(bool enabled);
   void PrintTelemetry();
+  void LoadBootParameters();
 
+  // LOG_SYNC_BUFS and LOG_IDLE_MS require a reboot. They are copied once at
+  // task startup, so parameter access never enters the steady-state SD loop.
+  uint32_t sync_every_buffers_;
+  TickType_t idle_wait_ticks_;
   uint8_t next_flush_index_ = 0;
   uint32_t buffers_since_sync_ = 0;
   uint32_t write_count_ = 0;
@@ -61,6 +59,7 @@ class SdUtils : public TaskBase {
       IDLESTART,
       IDLEREADY,
       WRITING,
+      WAITINGPARAMSTOP,
       DRAININGSTOP,
       ERROR
   };

@@ -44,8 +44,6 @@ void FlightControls::Run(){
 	// Start the periodic schedule after all controller initialization is complete.
 	xLastWakeTime = xTaskGetTickCount();
 	bool first_iteration = true;
-	auto parameter_runtime_state =
-			parameters::ParameterRuntimeState::Unknown;
 	for(;;){
 		const TickType_t actual_start_tick = xTaskGetTickCount();
 		const int32_t start_lateness_ticks =
@@ -120,14 +118,6 @@ void FlightControls::Run(){
 			// The generated getter returns references to model-owned output data.
 			const auto& outputs = fcsModelObj_.getExternalOutputs();
 			const auto& model_debug = outputs.fcsDebug;
-			// The model-owner supplies the authoritative state used by gated
-			// parameters and persistence. Always-policy gains remain live-tunable;
-			// any non-INACTIVE state is conservatively classified as armed.
-			parameter_runtime_state =
-					(model_debug.state == enumStateMachine::INACTIVE)
-							? parameters::ParameterRuntimeState::Disarmed
-							: parameters::ParameterRuntimeState::Armed;
-
 			if(model_debug.state != enumStateMachine::INACTIVE){
 				if (fcs_model_autocode_u_.rcCmdsIn.throttleCmd_nd <= kMinPwmCheckThreshold){
 					pwm_data_.pwm_cmds[0] = fcs_model_autocode_u_.rcCmdsIn.throttleCmd_nd;
@@ -228,7 +218,7 @@ void FlightControls::Run(){
 		// Apply at most one request after observing this tick's authoritative
 		// model state. The new value becomes visible to the next model step; no
 		// queue-draining loop or parameter-bus copy is performed.
-		parameter_store.ApplyOneFcsUpdate(parameter_runtime_state);
+		parameter_store.ApplyOneFcsUpdate();
 
 		vTaskDelayUntil(&xLastWakeTime, xFrequency);
 	}

@@ -12,6 +12,31 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_C_EXTENSIONS ON)
 set(CMAKE_CXX_EXTENSIONS ON)
 
+# Parameter manifests are the single authoring source for the firmware catalog,
+# typed module adapters, persistence mapping, and QGC metadata. Generate once at
+# configure time so a newly added module's generated .cc file is visible to the
+# source glob below, then validate/regenerate before every firmware build. The
+# generator preserves mtimes when output is unchanged.
+find_package(Python3 REQUIRED COMPONENTS Interpreter)
+set(PARAMETER_GENERATOR
+    "${CMAKE_SOURCE_DIR}/tools/parameters/generate_qgc_parameter_metadata.py")
+file(GLOB_RECURSE PARAMETER_MANIFESTS CONFIGURE_DEPENDS
+    "${CMAKE_SOURCE_DIR}/Core/Src/**/parameters.json")
+execute_process(
+    COMMAND "${Python3_EXECUTABLE}" "${PARAMETER_GENERATOR}"
+    WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+    RESULT_VARIABLE PARAMETER_GENERATION_RESULT
+    ERROR_VARIABLE PARAMETER_GENERATION_ERROR
+)
+if(NOT PARAMETER_GENERATION_RESULT EQUAL 0)
+    message(FATAL_ERROR
+        "Parameter catalog generation failed: ${PARAMETER_GENERATION_ERROR}")
+endif()
+file(GLOB_RECURSE PARAMETER_GENERATED_OUTPUTS CONFIGURE_DEPENDS
+    "${CMAKE_SOURCE_DIR}/Core/Src/parameters/generated/*.h"
+    "${CMAKE_SOURCE_DIR}/Core/Src/parameters/generated/*.cc"
+    "${CMAKE_SOURCE_DIR}/Core/Src/parameters/generated/metadata/*.json")
+
 set(MCU_FLAGS
     -mcpu=cortex-m7
     -mfpu=fpv5-d16
@@ -138,6 +163,25 @@ set(ASM_SOURCES
 set(LINKER_SCRIPT ${CMAKE_SOURCE_DIR}/STM32H743ZITX_FLASH.ld)
 
 add_executable(${PROJECT_NAME}.elf ${APP_SOURCES} ${LIB_SOURCES} ${ASM_SOURCES})
+
+set(PARAMETER_GENERATION_STAMP
+    "${CMAKE_BINARY_DIR}/parameter_generation.stamp")
+add_custom_command(
+    OUTPUT "${PARAMETER_GENERATION_STAMP}"
+    BYPRODUCTS ${PARAMETER_GENERATED_OUTPUTS}
+    COMMAND "${Python3_EXECUTABLE}" "${PARAMETER_GENERATOR}"
+    COMMAND "${CMAKE_COMMAND}" -E touch "${PARAMETER_GENERATION_STAMP}"
+    WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+    DEPENDS
+        "${PARAMETER_GENERATOR}"
+        ${PARAMETER_MANIFESTS}
+        "${CMAKE_SOURCE_DIR}/Core/Src/flight_controls/fcsModelAutocode/fcs_params.h"
+    COMMENT "Generating and validating parameter catalogs"
+    VERBATIM
+)
+add_custom_target(generate_parameters
+    DEPENDS "${PARAMETER_GENERATION_STAMP}")
+add_dependencies(${PROJECT_NAME}.elf generate_parameters)
 
 target_include_directories(${PROJECT_NAME}.elf PRIVATE ${APP_INCLUDE_DIRS} ${LIB_INCLUDES})
 target_compile_definitions(${PROJECT_NAME}.elf PRIVATE ${PROJECT_DEFINES})

@@ -12,7 +12,7 @@ __attribute__((optimize("Os")))
 inline void AssignFcsCtrlParams(busFcsParams& fcs_ctrl_params) noexcept {
 	fcs_ctrl_params = {};
 	//**************************************************
-	fcs_ctrl_params.innerLoopCtrlParams.attCtrlParams.ctrlParamsArray[0].Kp = 2.30000000;
+	fcs_ctrl_params.innerLoopCtrlParams.attCtrlParams.ctrlParamsArray[0].Kp = 2.40000000;
 	//#################################################*
 
 	//**************************************************
@@ -46,7 +46,7 @@ inline void AssignFcsCtrlParams(busFcsParams& fcs_ctrl_params) noexcept {
 	//#################################################*
 
 	//**************************************************
-	fcs_ctrl_params.innerLoopCtrlParams.attCtrlParams.ctrlParamsArray[1].Kp = 2.15000000;
+	fcs_ctrl_params.innerLoopCtrlParams.attCtrlParams.ctrlParamsArray[1].Kp = 2.25000000;
 	//#################################################*
 
 	//**************************************************
@@ -282,11 +282,11 @@ inline void AssignFcsCtrlParams(busFcsParams& fcs_ctrl_params) noexcept {
 	//#################################################*
 
 	//**************************************************
-	fcs_ctrl_params.innerLoopCtrlParams.angRateCtrlParams.ctrlParamsArray[0].Kp = 30.00000000;
+	fcs_ctrl_params.innerLoopCtrlParams.angRateCtrlParams.ctrlParamsArray[0].Kp = 32.00000000;
 	//#################################################*
 
 	//**************************************************
-	fcs_ctrl_params.innerLoopCtrlParams.angRateCtrlParams.ctrlParamsArray[0].Ki = 0.75000000;
+	fcs_ctrl_params.innerLoopCtrlParams.angRateCtrlParams.ctrlParamsArray[0].Ki = 0.50000000;
 	//#################################################*
 
 	//**************************************************
@@ -316,11 +316,11 @@ inline void AssignFcsCtrlParams(busFcsParams& fcs_ctrl_params) noexcept {
 	//#################################################*
 
 	//**************************************************
-	fcs_ctrl_params.innerLoopCtrlParams.angRateCtrlParams.ctrlParamsArray[1].Kp = 30.00000000;
+	fcs_ctrl_params.innerLoopCtrlParams.angRateCtrlParams.ctrlParamsArray[1].Kp = 32.00000000;
 	//#################################################*
 
 	//**************************************************
-	fcs_ctrl_params.innerLoopCtrlParams.angRateCtrlParams.ctrlParamsArray[1].Ki = 0.75000000;
+	fcs_ctrl_params.innerLoopCtrlParams.angRateCtrlParams.ctrlParamsArray[1].Ki = 0.55000000;
 	//#################################################*
 
 	//**************************************************
@@ -552,7 +552,7 @@ inline void AssignFcsCtrlParams(busFcsParams& fcs_ctrl_params) noexcept {
 	//#################################################*
 
 	//**************************************************
-	fcs_ctrl_params.outerLoopCtrlParams.posCtrlParams.ctrlParamsArray[0].Kp = 1.00000000;
+	fcs_ctrl_params.outerLoopCtrlParams.posCtrlParams.ctrlParamsArray[0].Kp = 0.50000000;
 	//#################################################*
 
 	//**************************************************
@@ -586,7 +586,7 @@ inline void AssignFcsCtrlParams(busFcsParams& fcs_ctrl_params) noexcept {
 	//#################################################*
 
 	//**************************************************
-	fcs_ctrl_params.outerLoopCtrlParams.posCtrlParams.ctrlParamsArray[1].Kp = 1.00000000;
+	fcs_ctrl_params.outerLoopCtrlParams.posCtrlParams.ctrlParamsArray[1].Kp = 0.50000000;
 	//#################################################*
 
 	//**************************************************
@@ -822,11 +822,11 @@ inline void AssignFcsCtrlParams(busFcsParams& fcs_ctrl_params) noexcept {
 	//#################################################*
 
 	//**************************************************
-	fcs_ctrl_params.outerLoopCtrlParams.velCtrlParams.ctrlParamsArray[0].Kp = 1.50000000;
+	fcs_ctrl_params.outerLoopCtrlParams.velCtrlParams.ctrlParamsArray[0].Kp = 1.25000000;
 	//#################################################*
 
 	//**************************************************
-	fcs_ctrl_params.outerLoopCtrlParams.velCtrlParams.ctrlParamsArray[0].Ki = 0.60000000;
+	fcs_ctrl_params.outerLoopCtrlParams.velCtrlParams.ctrlParamsArray[0].Ki = 0.20000000;
 	//#################################################*
 
 	//**************************************************
@@ -856,11 +856,11 @@ inline void AssignFcsCtrlParams(busFcsParams& fcs_ctrl_params) noexcept {
 	//#################################################*
 
 	//**************************************************
-	fcs_ctrl_params.outerLoopCtrlParams.velCtrlParams.ctrlParamsArray[1].Kp = 1.50000000;
+	fcs_ctrl_params.outerLoopCtrlParams.velCtrlParams.ctrlParamsArray[1].Kp = 1.25000000;
 	//#################################################*
 
 	//**************************************************
-	fcs_ctrl_params.outerLoopCtrlParams.velCtrlParams.ctrlParamsArray[1].Ki = 0.60000000;
+	fcs_ctrl_params.outerLoopCtrlParams.velCtrlParams.ctrlParamsArray[1].Ki = 0.20000000;
 	//#################################################*
 
 	//**************************************************
@@ -1176,8 +1176,8 @@ inline void AssignFcsCtrlParams(busFcsParams& fcs_ctrl_params) noexcept {
 	//#################################################*
 
 	//**************************************************
-	fcs_ctrl_params.outerLoopCtrlParams.velCtrlParams.accelFbGainsArray[0] = 0.60000000;
-	fcs_ctrl_params.outerLoopCtrlParams.velCtrlParams.accelFbGainsArray[1] = 0.60000000;
+	fcs_ctrl_params.outerLoopCtrlParams.velCtrlParams.accelFbGainsArray[0] = 0.75000000;
+	fcs_ctrl_params.outerLoopCtrlParams.velCtrlParams.accelFbGainsArray[1] = 0.75000000;
 	fcs_ctrl_params.outerLoopCtrlParams.velCtrlParams.accelFbGainsArray[2] = 0.00000000;
 	//#################################################*
 
@@ -1213,7 +1213,7 @@ inline void AssignFcsCtrlParams(busFcsParams& fcs_ctrl_params) noexcept {
 	//#################################################*
 
 	//**************************************************
-	fcs_ctrl_params.outerLoopCtrlParams.velCtrlParams.tiltMax_rad = 0.52359878;
+	fcs_ctrl_params.outerLoopCtrlParams.velCtrlParams.tiltMax_rad = 0.69813170;
 	//#################################################*
 
 	//**************************************************

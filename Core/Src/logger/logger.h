@@ -7,6 +7,8 @@
 
 #pragma once
 
+#include <array>
+
 #include "task_manager/task_base.h"
 #include "pubsub/subscriber.h"
 #include "messages/imu_data.h"
@@ -18,6 +20,8 @@
 #include "messages/pwm_data.h"
 #include "messages/mtf01p_data.h"
 #include "messages/magnetometer_data.h"
+#include "parameters/parameter_change_event.h"
+#include "parameter_catalog.h"
 #include "debug.h"
 #include "data_buffer.h"
 
@@ -57,22 +61,10 @@ class Logger : public TaskBase {
       T data;
       if (!subscriber_.copy(data)) return;
 
-      // Frame the record in the shared scratch buffer:
-      // [0xA5][topic id][payload][crc16 over header + payload]
-      constexpr size_t payload_size = sizeof(T);
-      constexpr size_t total_size = 1 + 1 + payload_size + 2;
-      static_assert(total_size <= kScratchBufferSize,
+      static_assert((1U + 1U + sizeof(T) + 2U) <= kScratchBufferSize,
                     "record does not fit in the scratch buffer");
-      uint8_t* record = logger->GetScratchBuffer();
-
-      record[0] = kHeaderByte;
-      record[1] = static_cast<uint8_t>(topic_id_);
-      std::memcpy(record + 2, &data, payload_size);
-
-      const uint16_t crc = ComputeCrc16(record, 2 + payload_size);
-      std::memcpy(record + 2 + payload_size, &crc, sizeof(crc));
-
-      logger->WriteBuffered(record, total_size);
+      static_cast<void>(logger->WriteFramedRecord(
+          topic_id_, &data, sizeof(T)));
       last_log_tick_ = now_ticks;
     }
 
@@ -99,10 +91,33 @@ class Logger : public TaskBase {
 
   // Appends one framed record to the active DataBuffer, handing full
   // buffers to the SD task.
-  void WriteBuffered(const uint8_t* data, size_t len);
+  bool WriteBuffered(const uint8_t* data, size_t len,
+                     bool count_drop = true);
+  bool WriteFramedRecord(TopicID topic_id, const void* payload,
+                         size_t payload_size, bool count_drop = true);
+  void ServiceOneParameterRecord();
 
   // CRC-16/CCITT-FALSE over the record header and payload.
   static uint16_t ComputeCrc16(const uint8_t* data, size_t length);
 
-  uint8_t* GetScratchBuffer() { return scratch_buffer_; }
+  uint32_t parameter_session_epoch_ = 0U;
+  uint32_t parameter_event_session_epoch_ = 0U;
+  uint32_t parameter_session_sequence_cutoff_ = 0U;
+  uint32_t next_expected_parameter_sequence_ = 1U;
+  uint16_t parameter_snapshot_cursor_ = 0U;
+  uint64_t parameter_session_start_ms_ = 0U;
+  std::array<parameters::ParameterValue,
+             parameters::generated::kParameterCount>
+      parameter_snapshot_configured_{};
+  std::array<parameters::ParameterValue,
+             parameters::generated::kParameterCount>
+      parameter_snapshot_active_{};
+  std::array<uint32_t, parameters::generated::kParameterCount>
+      parameter_snapshot_state_revision_{};
+  parameters::ParameterChangeEvent pending_parameter_event_{};
+  bool has_pending_parameter_event_ = false;
+  parameters::ParameterChangeEvent pending_parameter_gap_{};
+  bool has_pending_parameter_gap_ = false;
+  uint32_t trailing_gap_candidate_ = 0U;
+  bool has_trailing_gap_candidate_ = false;
 };

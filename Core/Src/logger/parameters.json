@@ -1,0 +1,51 @@
+{
+  "schemaVersion": 1,
+  "module": "logger",
+  "domain": "Logger",
+  "domainId": 1,
+  "cppPrefix": "Logger",
+  "storage": {
+    "kind": "generated_struct",
+    "cppType": "LoggerParameterValues"
+  },
+  "parameters": [
+    {
+      "name": "LOG_SYNC_BUFS",
+      "type": "int32",
+      "minimum": 1,
+      "maximum": 64,
+      "default": 8,
+      "persistence": "retained_override",
+      "activation": "on_reboot",
+      "binding": { "field": "log_sync_bufs" },
+      "ui": {
+        "shortDesc": "Log buffers between syncs",
+        "longDesc": "Number of completed log buffers written between filesystem synchronization operations.",
+        "units": "buffers",
+        "decimalPlaces": 0,
+        "increment": 1,
+        "group": "Storage",
+        "category": "Logger"
+      }
+    },
+    {
+      "name": "LOG_IDLE_MS",
+      "type": "int32",
+      "minimum": 50,
+      "maximum": 5000,
+      "default": 500,
+      "persistence": "retained_override",
+      "activation": "on_reboot",
+      "binding": { "field": "log_idle_ms" },
+      "ui": {
+        "shortDesc": "Log idle flush interval",
+        "longDesc": "Maximum idle wait between USB command polls when no full log buffer is pending.",
+        "units": "ms",
+        "decimalPlaces": 0,
+        "increment": 50,
+        "group": "Storage",
+        "category": "Logger"
+      }
+    }
+  ]
+}

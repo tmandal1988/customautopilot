@@ -7,6 +7,49 @@
 
 #include "logger.h"
 
+#include <limits>
+
+#include "parameters/parameter_store.h"
+#include "pubsub/topic.h"
+
+namespace {
+
+constexpr bool SequenceAfter(uint32_t candidate, uint32_t reference) {
+  return static_cast<int32_t>(candidate - reference) > 0;
+}
+
+constexpr bool SequenceAtOrAfter(uint32_t candidate, uint32_t reference) {
+  return (candidate == reference) || SequenceAfter(candidate, reference);
+}
+
+static_assert(SequenceAfter(1U, 0U));
+static_assert(SequenceAfter(0U, UINT32_MAX));
+static_assert(!SequenceAfter(UINT32_MAX, 0U));
+
+parameters::ParameterChangeEvent MakeGapEvent(
+    uint32_t first_missing, uint32_t last_missing,
+    uint32_t session_epoch) {
+  parameters::ParameterChangeEvent gap{};
+  static constexpr char kGapName[] = "PARAM_LOG_GAP";
+  static_assert(sizeof(kGapName) <= sizeof(gap.name));
+  std::memcpy(gap.name, kGapName, sizeof(kGapName));
+  gap.timestamp_ms = getCurrentTimeMs();
+  // For EventsDropped records these fields are sequence metadata rather than
+  // parameter values: [previous, value] is the missing inclusive range and
+  // active_value_bits is the modulo-32-bit missing-event count.
+  gap.previous_value_bits = first_missing;
+  gap.value_bits = last_missing;
+  gap.active_value_bits = last_missing - first_missing + 1U;
+  gap.sequence = last_missing;
+  gap.session_epoch = session_epoch;
+  gap.catalog_index = std::numeric_limits<uint16_t>::max();
+  gap.type = parameters::ParameterValueType::Int32;
+  gap.kind = parameters::ParameterChangeKind::EventsDropped;
+  return gap;
+}
+
+}  // namespace
+
 Logger::Logger()
     // Must outrank SdWriteTask: the logger samples latest-value topics on a
     // deadline, while the SD task has seconds of multi-buffer slack.
@@ -35,29 +78,279 @@ void Logger::Run() {
 
   while (true) {
     const uint32_t now_ticks = xTaskGetTickCount();
-    for (size_t i = 0; i < log_config_count_; ++i) {
-      log_configs_[i]->TryLog(now_ticks, this);
+    // STOP freezes the ordinary-record boundary before it closes the
+    // parameter application epoch. Parameter tail records may then drain
+    // without flight data being written under an unrepresented new value.
+    if (DataBuffer::parameter_stop_requested_.load(
+            std::memory_order_acquire) == 0U) {
+      for (size_t i = 0; i < log_config_count_; ++i) {
+        log_configs_[i]->TryLog(now_ticks, this);
+      }
     }
+    // At most one exact change/gap and one paced snapshot row per cycle. This
+    // is a fixed SPSC pop, never a catalog-draining burst.
+    ServiceOneParameterRecord();
 
     // Wait until the next cycle.
     vTaskDelayUntil(&last_wake_time, interval_ticks);
   }
 }
 
-void Logger::WriteBuffered(const uint8_t* data, size_t len) {
-  namespace db = DataBuffer;
+void Logger::ServiceOneParameterRecord() {
+  const uint32_t state_epoch =
+      DataBuffer::logging_state_epoch_.load(std::memory_order_acquire);
+  auto& store = parameters::ParameterStore::Instance();
 
-  // A record is never larger than one buffer.
-  if (len > db::kBufferSize) {
+  if ((state_epoch & 1U) == 0U) {
+    // No file exists for these events. Drain one per cycle so pre-session
+    // tuning cannot consume capacity needed in flight; the next session starts
+    // with an explicit configured/active snapshot.
+    has_pending_parameter_event_ = false;
+    has_pending_parameter_gap_ = false;
+    has_trailing_gap_candidate_ = false;
+    parameters::ParameterChangeEvent ignored{};
+    static_cast<void>(store.PopChangeEvent(&ignored));
     return;
   }
 
+  if (state_epoch != parameter_session_epoch_) {
+    parameter_session_epoch_ = state_epoch;
+    parameter_snapshot_cursor_ = 0U;
+    parameter_session_start_ms_ = getCurrentTimeMs();
+    has_pending_parameter_event_ = false;
+    has_pending_parameter_gap_ = false;
+    has_trailing_gap_candidate_ = false;
+
+    // SdUtils opened parameter admission before it enabled ordinary file
+    // writes. The logging-state acquire above makes this session ID visible.
+    parameter_event_session_epoch_ =
+        DataBuffer::parameter_log_session_epoch_.load(
+            std::memory_order_relaxed);
+    parameter_session_sequence_cutoff_ =
+        DataBuffer::parameter_log_start_sequence_.load(
+            std::memory_order_relaxed);
+    next_expected_parameter_sequence_ =
+        parameter_session_sequence_cutoff_ + 1U;
+
+    // Necessary one-time session capture in the non-control Logger task. The
+    // paced writes below use this fixed image; each row's seqlock revision
+    // states exactly which concurrent update it already incorporates.
+    for (uint16_t index = 0U; index < store.Count(); ++index) {
+      const bool captured = store.ReadSnapshotValues(
+          index, &parameter_snapshot_configured_[index],
+          &parameter_snapshot_active_[index],
+          &parameter_snapshot_state_revision_[index]);
+      configASSERT(captured);
+      if (!captured) {
+        parameter_snapshot_configured_[index] = {};
+        parameter_snapshot_active_[index] = {};
+        parameter_snapshot_state_revision_[index] = 0U;
+      }
+    }
+  }
+
+  const uint32_t stop_phase =
+      DataBuffer::parameter_stop_requested_.load(
+          std::memory_order_acquire);
+  const bool cutoff_ready = stop_phase == 2U;
+  const uint32_t stop_cutoff =
+      DataBuffer::parameter_stop_cutoff_sequence_.load(
+          std::memory_order_relaxed);
+
+  // Retry a gap marker before the event that follows it. This prevents a later
+  // successful event from being serialized ahead of an earlier queue loss.
+  if (has_pending_parameter_gap_) {
+    if (!WriteFramedRecord(TopicID::PARAMETER_UPDATE,
+                           &pending_parameter_gap_,
+                           sizeof(pending_parameter_gap_), false)) {
+      return;
+    }
+    next_expected_parameter_sequence_ =
+        pending_parameter_gap_.value_bits + 1U;
+    has_pending_parameter_gap_ = false;
+    return;
+  }
+
+  // Pop at most one live event per cycle. The exact START sequence discards
+  // events already assigned before the baseline. An application from the
+  // preceding epoch whose completion is assigned later is intentionally
+  // logged as well; its per-value revision makes baseline overlap explicit.
+  bool queue_was_empty = false;
+  if (!has_pending_parameter_event_) {
+    has_pending_parameter_event_ =
+        store.PopChangeEvent(&pending_parameter_event_);
+    queue_was_empty = !has_pending_parameter_event_;
+    if (has_pending_parameter_event_) {
+      has_trailing_gap_candidate_ = false;
+    }
+  }
+  if (has_pending_parameter_event_ &&
+      (!SequenceAfter(pending_parameter_event_.sequence,
+                      parameter_session_sequence_cutoff_))) {
+    has_pending_parameter_event_ = false;
+  }
+
+  if (has_pending_parameter_event_ && cutoff_ready &&
+      SequenceAfter(pending_parameter_event_.sequence, stop_cutoff)) {
+    // Queue order proves no successful event at or below the finite cutoff can
+    // remain behind this one. Close a failed included tail before discarding
+    // the post-cutoff event; otherwise continuous later updates could keep
+    // STOP waiting forever on the missing final sequence.
+    if (!SequenceAfter(next_expected_parameter_sequence_, stop_cutoff)) {
+      pending_parameter_gap_ = MakeGapEvent(
+          next_expected_parameter_sequence_, stop_cutoff,
+          parameter_event_session_epoch_);
+      has_pending_parameter_gap_ = true;
+      if (!WriteFramedRecord(TopicID::PARAMETER_UPDATE,
+                             &pending_parameter_gap_,
+                             sizeof(pending_parameter_gap_), false)) {
+        return;
+      }
+      next_expected_parameter_sequence_ = stop_cutoff + 1U;
+      has_pending_parameter_gap_ = false;
+    }
+    has_pending_parameter_event_ = false;
+  }
+
+  if (has_pending_parameter_event_) {
+    const uint32_t event_sequence = pending_parameter_event_.sequence;
+    if (SequenceAfter(next_expected_parameter_sequence_, event_sequence)) {
+      // A duplicate or stale event cannot move the monotonic cursor backward.
+      has_pending_parameter_event_ = false;
+    } else if (SequenceAfter(event_sequence,
+                             next_expected_parameter_sequence_)) {
+      uint32_t gap_last = event_sequence - 1U;
+      if (cutoff_ready && SequenceAfter(gap_last, stop_cutoff)) {
+        gap_last = stop_cutoff;
+      }
+      pending_parameter_gap_ = MakeGapEvent(
+          next_expected_parameter_sequence_, gap_last,
+          parameter_event_session_epoch_);
+      has_pending_parameter_gap_ = true;
+      if (!WriteFramedRecord(TopicID::PARAMETER_UPDATE,
+                             &pending_parameter_gap_,
+                             sizeof(pending_parameter_gap_), false)) {
+        return;
+      }
+      next_expected_parameter_sequence_ = gap_last + 1U;
+      has_pending_parameter_gap_ = false;
+      return;
+    }
+
+    if (has_pending_parameter_event_) {
+      if (!WriteFramedRecord(TopicID::PARAMETER_UPDATE,
+                             &pending_parameter_event_,
+                             sizeof(pending_parameter_event_), false)) {
+        return;
+      }
+      next_expected_parameter_sequence_ = event_sequence + 1U;
+      has_pending_parameter_event_ = false;
+    }
+  }
+
+  // If the producer has reported a failed tail enqueue and no surviving later
+  // event exists yet, close that gap now. A successful enqueue never updates
+  // LatestFailedChangeSequence(), so a producer/consumer race cannot create a
+  // false gap for an event that is merely waiting in the SPSC ring.
+  if (queue_was_empty) {
+    uint32_t latest_failed = store.LatestFailedChangeSequence();
+    if (cutoff_ready && SequenceAfter(latest_failed, stop_cutoff)) {
+      latest_failed = stop_cutoff;
+    }
+    if (SequenceAtOrAfter(latest_failed,
+                          next_expected_parameter_sequence_)) {
+      // Require two consecutive empty observations before declaring a tail
+      // gap. This closes the bounded race where the producer enqueues a
+      // successful event immediately after the first empty probe.
+      if (has_trailing_gap_candidate_ &&
+          (trailing_gap_candidate_ == latest_failed)) {
+        pending_parameter_gap_ = MakeGapEvent(
+            next_expected_parameter_sequence_, latest_failed,
+            parameter_event_session_epoch_);
+        has_pending_parameter_gap_ = true;
+        if (!WriteFramedRecord(TopicID::PARAMETER_UPDATE,
+                               &pending_parameter_gap_,
+                               sizeof(pending_parameter_gap_), false)) {
+          return;
+        }
+        next_expected_parameter_sequence_ = latest_failed + 1U;
+        has_pending_parameter_gap_ = false;
+        has_trailing_gap_candidate_ = false;
+      } else {
+        trailing_gap_candidate_ = latest_failed;
+        has_trailing_gap_candidate_ = true;
+      }
+    } else {
+      has_trailing_gap_candidate_ = false;
+    }
+  }
+
+  // Emit the fixed configured+active baseline at every logging-session start.
+  // One row per 2 ms bounds each buffer operation. Live event service above
+  // continues during the snapshot, so catalog growth cannot fill the event
+  // queue merely because baseline serialization is in progress.
+  if (parameter_snapshot_cursor_ < store.Count()) {
+    parameters::ParameterChangeEvent snapshot{};
+    if (store.MakeConfiguredSnapshotEvent(
+            parameter_snapshot_cursor_, parameter_session_start_ms_,
+            parameter_session_sequence_cutoff_,
+            parameter_event_session_epoch_,
+            parameter_snapshot_state_revision_[parameter_snapshot_cursor_],
+            parameter_snapshot_configured_[parameter_snapshot_cursor_],
+            parameter_snapshot_active_[parameter_snapshot_cursor_],
+            &snapshot) &&
+        WriteFramedRecord(TopicID::PARAMETER_UPDATE, &snapshot,
+                          sizeof(snapshot), false)) {
+      ++parameter_snapshot_cursor_;
+    }
+  }
+
+  if (cutoff_ready &&
+      (parameter_snapshot_cursor_ >= store.Count()) &&
+      SequenceAfter(next_expected_parameter_sequence_, stop_cutoff) &&
+      SequenceAtOrAfter(store.LatestRecordedChangeSequence(), stop_cutoff) &&
+      !has_pending_parameter_event_ && !has_pending_parameter_gap_) {
+    if (DataBuffer::parameter_stop_acknowledged_.exchange(
+            1U, std::memory_order_acq_rel) == 0U) {
+      if (DataBuffer::sd_task_handle_ != nullptr) {
+        xTaskNotifyGive(DataBuffer::sd_task_handle_);
+      }
+    }
+  }
+}
+
+bool Logger::WriteFramedRecord(TopicID topic_id, const void* payload,
+                               size_t payload_size, bool count_drop) {
+  const size_t total_size = 1U + 1U + payload_size + sizeof(uint16_t);
+  if ((payload == nullptr) || (total_size > kScratchBufferSize)) {
+    return false;
+  }
+
+  scratch_buffer_[0] = kHeaderByte;
+  scratch_buffer_[1] = static_cast<uint8_t>(topic_id);
+  std::memcpy(scratch_buffer_ + 2U, payload, payload_size);
+  const uint16_t crc =
+      ComputeCrc16(scratch_buffer_, 2U + payload_size);
+  std::memcpy(scratch_buffer_ + 2U + payload_size, &crc, sizeof(crc));
+  return WriteBuffered(scratch_buffer_, total_size, count_drop);
+}
+
+bool Logger::WriteBuffered(const uint8_t* data, size_t len,
+                           bool count_drop) {
+  namespace db = DataBuffer;
+
+  // A record is never larger than one buffer.
+  if ((data == nullptr) || (len > db::kBufferSize)) {
+    return false;
+  }
+
   bool notify_sd = false;
+  bool buffered = false;
 
   xSemaphoreTake(db::mutex_, portMAX_DELAY);
   if (!db::logging_enabled_) {
     xSemaphoreGive(db::mutex_);
-    return;
+    return false;
   }
 
   uint8_t cur = db::current_buffer_index_;
@@ -77,12 +370,15 @@ void Logger::WriteBuffered(const uint8_t* data, size_t len) {
       (len > available && db::buffer_pending_[next])) {
     // Every buffer the record would touch is still waiting on the SD card.
     // Drop the whole record rather than overwriting unflushed data.
-    ++db::dropped_records_;
-    db::dropped_bytes_ += len;
+    if (count_drop) {
+      ++db::dropped_records_;
+      db::dropped_bytes_ += len;
+    }
   } else if (len <= available) {
     // The record fits in the active buffer.
     std::memcpy(db::buffers_[cur] + db::buffer_offsets_[cur], data, len);
     db::buffer_offsets_[cur] += len;
+    buffered = true;
 
     // If this write fills the buffer, hand it to the SD task.
     if (db::buffer_offsets_[cur] == db::kBufferSize) {
@@ -107,6 +403,7 @@ void Logger::WriteBuffered(const uint8_t* data, size_t len) {
     std::memcpy(db::buffers_[next], data + available, remaining);
     db::buffer_offsets_[next] = remaining;
     db::current_buffer_index_ = next;
+    buffered = true;
   }
   xSemaphoreGive(db::mutex_);
 
@@ -114,6 +411,7 @@ void Logger::WriteBuffered(const uint8_t* data, size_t len) {
   if (notify_sd && db::sd_task_handle_ != nullptr) {
     xTaskNotifyGive(db::sd_task_handle_);
   }
+  return buffered;
 }
 
 uint16_t Logger::ComputeCrc16(const uint8_t* data, size_t length) {

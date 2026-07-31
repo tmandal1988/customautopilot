@@ -21,10 +21,13 @@ enum class TopicID {
 	MTF01P,
 	// Append persisted log topics here so existing numeric IDs stay stable.
 	IST8310,
+	PARAMETER_UPDATE,
     MAX_TOPICS
 };
 
 static_assert(static_cast<int>(TopicID::IST8310) == 10,
               "Topic 10 is part of the persisted binary log format");
+static_assert(static_cast<int>(TopicID::PARAMETER_UPDATE) == 11,
+              "Topic 11 is part of the persisted binary log format");
 
 constexpr int MAX_SUBSCRIBERS = 32;

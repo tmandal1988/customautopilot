@@ -5,6 +5,8 @@
 #include <cstdint>
 
 #include "parameters/parameter_persistence_format.h"
+#include "messages/fcs_debug_data.h"
+#include "pubsub/subscriber.h"
 #include "task_manager/task_base.h"
 
 namespace parameters {
@@ -26,6 +28,9 @@ class ParameterPersistence final : public TaskBase {
   std::uint32_t FlashErrorCount() const noexcept;
   std::uint32_t InvalidBootRecordCount() const noexcept;
   bool IsAvailable() const noexcept;
+  // False only while a Flash append/compaction is executing. Combined with an
+  // empty dirty mask this lets a requested reboot avoid truncating a commit.
+  bool IsCommitIdle() const noexcept;
 
   ParameterPersistence(const ParameterPersistence&) = delete;
   ParameterPersistence& operator=(const ParameterPersistence&) = delete;
@@ -47,6 +52,11 @@ class ParameterPersistence final : public TaskBase {
   bool BankLayoutSupported() const noexcept;
   bool SupplyIsSafeForProgramming() const noexcept;
   bool CanStartFlashOperation(const ParameterStore& store) const noexcept;
+  void RefreshFlightState(ParameterStore& store) noexcept;
+  // Refreshes the FCS state immediately before deciding, so every flashword
+  // boundary reacts to arming within one control tick instead of the 1 Hz
+  // telemetry observation window.
+  bool FlashStillPermitted(ParameterStore& store) noexcept;
   bool ProbeFlashRegion(std::uint32_t start_address,
                         std::size_t size) noexcept;
   bool InspectSector(std::uint32_t sector_base,
@@ -71,9 +81,12 @@ class ParameterPersistence final : public TaskBase {
   std::size_t next_record_offset_{persistence_format::kFirstRecordOffset};
   bool append_usable_{false};
   std::atomic<bool> available_{false};
+  std::atomic<bool> commit_in_progress_{false};
   std::atomic<std::uint32_t> successful_commit_count_{0U};
   std::atomic<std::uint32_t> flash_error_count_{0U};
   std::atomic<std::uint32_t> invalid_boot_record_count_{0U};
+  Subscriber<FcsDebugData> fcs_state_subscriber_{TopicID::FCSDEBUG};
+  FcsDebugData latest_fcs_state_{};
 };
 
 }  // namespace parameters

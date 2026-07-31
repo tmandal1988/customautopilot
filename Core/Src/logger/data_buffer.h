@@ -7,6 +7,8 @@
 
 #pragma once
 
+#include <atomic>
+
 #include "FreeRTOS.h"
 #include "semphr.h"
 #include "task.h"
@@ -41,6 +43,23 @@ extern bool buffer_pending_[kNumBuffers];
 // False while the SD task is stopped, draining, or in an error state.
 // The logger checks this under mutex_ before modifying a buffer.
 extern bool logging_enabled_;
+
+// Monotonic session state for lock-free observation by Logger: odd values mean
+// enabled, even values mean disabled. It increments exactly once per state
+// transition while mutex_ protects the corresponding buffer handoff.
+extern std::atomic<uint32_t> logging_state_epoch_;
+
+// Parameter-log session handoff. SdUtils opens admission before enabling the
+// file, and on a controlled STOP waits for Logger to serialize every assigned
+// change through parameter_stop_cutoff_sequence_. All fields are lock-free and
+// are outside flight-control execution.
+extern std::atomic<uint32_t> parameter_log_session_epoch_;
+extern std::atomic<uint32_t> parameter_log_start_sequence_;
+extern std::atomic<uint32_t> parameter_stop_cutoff_sequence_;
+// 0: inactive, 1: ordinary records frozen while closed-epoch applications
+// reach MAVLink logging, 2: finite sequence cutoff ready for Logger drain.
+extern std::atomic<uint32_t> parameter_stop_requested_;
+extern std::atomic<uint32_t> parameter_stop_acknowledged_;
 
 // Records/bytes dropped because every buffer needed by a record was pending.
 extern uint32_t dropped_records_;

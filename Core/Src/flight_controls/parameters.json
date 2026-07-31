@@ -1,0 +1,724 @@
+{
+  "schemaVersion": 1,
+  "module": "flight_controls",
+  "domain": "FlightControls",
+  "domainId": 0,
+  "cppPrefix": "Fcs",
+  "storage": {
+    "kind": "external",
+    "header": "fcsModel_types.h",
+    "cppType": "busFcsParams",
+    "defaultsHeader": "fcs_params.h"
+  },
+  "enforce": {
+    "type": "real32",
+    "persistence": "volatile",
+    "activation": "live"
+  },
+  "parameters": [
+    {
+      "name": "VELZ_KP",
+      "type": "real32",
+      "minimum": 0.0,
+      "maximum": 20.0,
+      "default": { "source": "fcs_params" },
+      "persistence": "volatile",
+      "activation": "live",
+      "binding": {
+        "read": "outerLoopCtrlParams.velCtrlParams.ctrlParamsArray[2].Kp",
+        "write": ["outerLoopCtrlParams.velCtrlParams.ctrlParamsArray[2].Kp"]
+      },
+      "ui": {
+        "shortDesc": "Vertical velocity proportional gain",
+        "longDesc": "Proportional feedback gain for the down-axis velocity controller.",
+        "units": "",
+        "decimalPlaces": 3,
+        "increment": 0.01,
+        "group": "Vertical Velocity Control",
+        "category": "Flight Control"
+      }
+    },
+    {
+      "name": "VELZ_KI",
+      "type": "real32",
+      "minimum": 0.0,
+      "maximum": 5.0,
+      "default": { "source": "fcs_params" },
+      "persistence": "volatile",
+      "activation": "live",
+      "binding": {
+        "read": "outerLoopCtrlParams.velCtrlParams.ctrlParamsArray[2].Ki",
+        "write": ["outerLoopCtrlParams.velCtrlParams.ctrlParamsArray[2].Ki"]
+      },
+      "ui": {
+        "shortDesc": "Vertical velocity integral gain",
+        "longDesc": "Integral feedback gain for the down-axis velocity controller.",
+        "units": "",
+        "decimalPlaces": 3,
+        "increment": 0.01,
+        "group": "Vertical Velocity Control",
+        "category": "Flight Control"
+      }
+    },
+    {
+      "name": "VELZ_KFF",
+      "type": "real32",
+      "minimum": 0.0,
+      "maximum": 3.0,
+      "default": { "source": "fcs_params" },
+      "persistence": "volatile",
+      "activation": "live",
+      "binding": {
+        "read": "outerLoopCtrlParams.velCtrlParams.ffGainsArray[2]",
+        "write": ["outerLoopCtrlParams.velCtrlParams.ffGainsArray[2]"]
+      },
+      "ui": {
+        "shortDesc": "Vertical velocity feedforward gain",
+        "longDesc": "Primary feedforward gain for the down-axis velocity controller.",
+        "units": "",
+        "decimalPlaces": 3,
+        "increment": 0.01,
+        "group": "Vertical Velocity Control",
+        "category": "Flight Control"
+      }
+    },
+    {
+      "name": "VELZ_KFF2",
+      "type": "real32",
+      "minimum": 0.0,
+      "maximum": 3.0,
+      "default": { "source": "fcs_params" },
+      "persistence": "volatile",
+      "activation": "live",
+      "binding": {
+        "read": "outerLoopCtrlParams.velCtrlParams.ff2GainsArray[2]",
+        "write": ["outerLoopCtrlParams.velCtrlParams.ff2GainsArray[2]"]
+      },
+      "ui": {
+        "shortDesc": "Vertical velocity secondary feedforward gain",
+        "longDesc": "Secondary feedforward gain for the down-axis velocity controller.",
+        "units": "",
+        "decimalPlaces": 3,
+        "increment": 0.01,
+        "group": "Vertical Velocity Control",
+        "category": "Flight Control"
+      }
+    },
+    {
+      "name": "VELZ_ACCEL_KFB",
+      "type": "real32",
+      "minimum": 0.0,
+      "maximum": 1.0,
+      "default": { "source": "fcs_params" },
+      "persistence": "volatile",
+      "activation": "live",
+      "binding": {
+        "read": "outerLoopCtrlParams.velCtrlParams.accelFbGainsArray[2]",
+        "write": ["outerLoopCtrlParams.velCtrlParams.accelFbGainsArray[2]"]
+      },
+      "ui": {
+        "shortDesc": "Vertical acceleration feedback gain",
+        "longDesc": "Acceleration feedback gain used by the down-axis velocity controller.",
+        "units": "",
+        "decimalPlaces": 3,
+        "increment": 0.01,
+        "group": "Vertical Velocity Control",
+        "category": "Flight Control"
+      }
+    },
+    {
+      "name": "POSZ_KP",
+      "type": "real32",
+      "minimum": 0.0,
+      "maximum": 3.0,
+      "default": { "source": "fcs_params" },
+      "persistence": "volatile",
+      "activation": "live",
+      "binding": {
+        "read": "outerLoopCtrlParams.posCtrlParams.ctrlParamsArray[2].Kp",
+        "write": ["outerLoopCtrlParams.posCtrlParams.ctrlParamsArray[2].Kp"]
+      },
+      "ui": {
+        "shortDesc": "Vertical position proportional gain",
+        "longDesc": "Proportional feedback gain for the down-axis position controller.",
+        "units": "",
+        "decimalPlaces": 3,
+        "increment": 0.01,
+        "group": "Vertical Position Control",
+        "category": "Flight Control"
+      }
+    },
+    {
+      "name": "VELN_KP",
+      "type": "real32",
+      "minimum": 0.0,
+      "maximum": 5.0,
+      "default": { "source": "fcs_params" },
+      "persistence": "volatile",
+      "activation": "live",
+      "binding": {
+        "read": "outerLoopCtrlParams.velCtrlParams.ctrlParamsArray[0].Kp",
+        "write": ["outerLoopCtrlParams.velCtrlParams.ctrlParamsArray[0].Kp"]
+      },
+      "ui": {
+        "shortDesc": "North velocity proportional gain",
+        "longDesc": "Proportional feedback gain for the north-axis velocity controller.",
+        "units": "",
+        "decimalPlaces": 3,
+        "increment": 0.01,
+        "group": "Horizontal Velocity Control",
+        "category": "Flight Control"
+      }
+    },
+    {
+      "name": "VELE_KP",
+      "type": "real32",
+      "minimum": 0.0,
+      "maximum": 5.0,
+      "default": { "source": "fcs_params" },
+      "persistence": "volatile",
+      "activation": "live",
+      "binding": {
+        "read": "outerLoopCtrlParams.velCtrlParams.ctrlParamsArray[1].Kp",
+        "write": ["outerLoopCtrlParams.velCtrlParams.ctrlParamsArray[1].Kp"]
+      },
+      "ui": {
+        "shortDesc": "East velocity proportional gain",
+        "longDesc": "Proportional feedback gain for the east-axis velocity controller.",
+        "units": "",
+        "decimalPlaces": 3,
+        "increment": 0.01,
+        "group": "Horizontal Velocity Control",
+        "category": "Flight Control"
+      }
+    },
+    {
+      "name": "VELN_KI",
+      "type": "real32",
+      "minimum": 0.0,
+      "maximum": 2.0,
+      "default": { "source": "fcs_params" },
+      "persistence": "volatile",
+      "activation": "live",
+      "binding": {
+        "read": "outerLoopCtrlParams.velCtrlParams.ctrlParamsArray[0].Ki",
+        "write": ["outerLoopCtrlParams.velCtrlParams.ctrlParamsArray[0].Ki"]
+      },
+      "ui": {
+        "shortDesc": "North velocity integral gain",
+        "longDesc": "Integral feedback gain for the north-axis velocity controller.",
+        "units": "",
+        "decimalPlaces": 3,
+        "increment": 0.01,
+        "group": "Horizontal Velocity Control",
+        "category": "Flight Control"
+      }
+    },
+    {
+      "name": "VELE_KI",
+      "type": "real32",
+      "minimum": 0.0,
+      "maximum": 2.0,
+      "default": { "source": "fcs_params" },
+      "persistence": "volatile",
+      "activation": "live",
+      "binding": {
+        "read": "outerLoopCtrlParams.velCtrlParams.ctrlParamsArray[1].Ki",
+        "write": ["outerLoopCtrlParams.velCtrlParams.ctrlParamsArray[1].Ki"]
+      },
+      "ui": {
+        "shortDesc": "East velocity integral gain",
+        "longDesc": "Integral feedback gain for the east-axis velocity controller.",
+        "units": "",
+        "decimalPlaces": 3,
+        "increment": 0.01,
+        "group": "Horizontal Velocity Control",
+        "category": "Flight Control"
+      }
+    },
+    {
+      "name": "VELN_KFF",
+      "type": "real32",
+      "minimum": 0.0,
+      "maximum": 2.0,
+      "default": { "source": "fcs_params" },
+      "persistence": "volatile",
+      "activation": "live",
+      "binding": {
+        "read": "outerLoopCtrlParams.velCtrlParams.ffGainsArray[0]",
+        "write": ["outerLoopCtrlParams.velCtrlParams.ffGainsArray[0]"]
+      },
+      "ui": {
+        "shortDesc": "North velocity feedforward gain",
+        "longDesc": "Primary feedforward gain for the north-axis velocity controller.",
+        "units": "",
+        "decimalPlaces": 3,
+        "increment": 0.01,
+        "group": "Horizontal Velocity Control",
+        "category": "Flight Control"
+      }
+    },
+    {
+      "name": "VELE_KFF",
+      "type": "real32",
+      "minimum": 0.0,
+      "maximum": 2.0,
+      "default": { "source": "fcs_params" },
+      "persistence": "volatile",
+      "activation": "live",
+      "binding": {
+        "read": "outerLoopCtrlParams.velCtrlParams.ffGainsArray[1]",
+        "write": ["outerLoopCtrlParams.velCtrlParams.ffGainsArray[1]"]
+      },
+      "ui": {
+        "shortDesc": "East velocity feedforward gain",
+        "longDesc": "Primary feedforward gain for the east-axis velocity controller.",
+        "units": "",
+        "decimalPlaces": 3,
+        "increment": 0.01,
+        "group": "Horizontal Velocity Control",
+        "category": "Flight Control"
+      }
+    },
+    {
+      "name": "VELN_KFF2",
+      "type": "real32",
+      "minimum": 0.0,
+      "maximum": 2.0,
+      "default": { "source": "fcs_params" },
+      "persistence": "volatile",
+      "activation": "live",
+      "binding": {
+        "read": "outerLoopCtrlParams.velCtrlParams.ff2GainsArray[0]",
+        "write": ["outerLoopCtrlParams.velCtrlParams.ff2GainsArray[0]"]
+      },
+      "ui": {
+        "shortDesc": "North velocity secondary feedforward gain",
+        "longDesc": "Secondary feedforward gain for the north-axis velocity controller.",
+        "units": "",
+        "decimalPlaces": 3,
+        "increment": 0.01,
+        "group": "Horizontal Velocity Control",
+        "category": "Flight Control"
+      }
+    },
+    {
+      "name": "VELE_KFF2",
+      "type": "real32",
+      "minimum": 0.0,
+      "maximum": 2.0,
+      "default": { "source": "fcs_params" },
+      "persistence": "volatile",
+      "activation": "live",
+      "binding": {
+        "read": "outerLoopCtrlParams.velCtrlParams.ff2GainsArray[1]",
+        "write": ["outerLoopCtrlParams.velCtrlParams.ff2GainsArray[1]"]
+      },
+      "ui": {
+        "shortDesc": "East velocity secondary feedforward gain",
+        "longDesc": "Secondary feedforward gain for the east-axis velocity controller.",
+        "units": "",
+        "decimalPlaces": 3,
+        "increment": 0.01,
+        "group": "Horizontal Velocity Control",
+        "category": "Flight Control"
+      }
+    },
+    {
+      "name": "VELN_ACCEL_KFB",
+      "type": "real32",
+      "minimum": 0.0,
+      "maximum": 1.0,
+      "default": { "source": "fcs_params" },
+      "persistence": "volatile",
+      "activation": "live",
+      "binding": {
+        "read": "outerLoopCtrlParams.velCtrlParams.accelFbGainsArray[0]",
+        "write": ["outerLoopCtrlParams.velCtrlParams.accelFbGainsArray[0]"]
+      },
+      "ui": {
+        "shortDesc": "North acceleration feedback gain",
+        "longDesc": "Acceleration feedback gain for the north-axis velocity controller.",
+        "units": "",
+        "decimalPlaces": 3,
+        "increment": 0.01,
+        "group": "Horizontal Velocity Control",
+        "category": "Flight Control"
+      }
+    },
+    {
+      "name": "VELE_ACCEL_KFB",
+      "type": "real32",
+      "minimum": 0.0,
+      "maximum": 1.0,
+      "default": { "source": "fcs_params" },
+      "persistence": "volatile",
+      "activation": "live",
+      "binding": {
+        "read": "outerLoopCtrlParams.velCtrlParams.accelFbGainsArray[1]",
+        "write": ["outerLoopCtrlParams.velCtrlParams.accelFbGainsArray[1]"]
+      },
+      "ui": {
+        "shortDesc": "East acceleration feedback gain",
+        "longDesc": "Acceleration feedback gain for the east-axis velocity controller.",
+        "units": "",
+        "decimalPlaces": 3,
+        "increment": 0.01,
+        "group": "Horizontal Velocity Control",
+        "category": "Flight Control"
+      }
+    },
+    {
+      "name": "POSN_KP",
+      "type": "real32",
+      "minimum": 0.0,
+      "maximum": 2.0,
+      "default": { "source": "fcs_params" },
+      "persistence": "volatile",
+      "activation": "live",
+      "binding": {
+        "read": "outerLoopCtrlParams.posCtrlParams.ctrlParamsArray[0].Kp",
+        "write": ["outerLoopCtrlParams.posCtrlParams.ctrlParamsArray[0].Kp"]
+      },
+      "ui": {
+        "shortDesc": "North position proportional gain",
+        "longDesc": "Proportional feedback gain for the north-axis position controller.",
+        "units": "",
+        "decimalPlaces": 3,
+        "increment": 0.01,
+        "group": "Horizontal Position Control",
+        "category": "Flight Control"
+      }
+    },
+    {
+      "name": "POSE_KP",
+      "type": "real32",
+      "minimum": 0.0,
+      "maximum": 2.0,
+      "default": { "source": "fcs_params" },
+      "persistence": "volatile",
+      "activation": "live",
+      "binding": {
+        "read": "outerLoopCtrlParams.posCtrlParams.ctrlParamsArray[1].Kp",
+        "write": ["outerLoopCtrlParams.posCtrlParams.ctrlParamsArray[1].Kp"]
+      },
+      "ui": {
+        "shortDesc": "East position proportional gain",
+        "longDesc": "Proportional feedback gain for the east-axis position controller.",
+        "units": "",
+        "decimalPlaces": 3,
+        "increment": 0.01,
+        "group": "Horizontal Position Control",
+        "category": "Flight Control"
+      }
+    },
+    {
+      "name": "BASE_MASS_KG",
+      "type": "real32",
+      "minimum": 1.5,
+      "maximum": 3.0,
+      "default": { "source": "fcs_params" },
+      "persistence": "volatile",
+      "activation": "live",
+      "binding": {
+        "read": "outerLoopCtrlParams.velCtrlParams.baseMass_kg",
+        "write": ["outerLoopCtrlParams.velCtrlParams.baseMass_kg"]
+      },
+      "ui": {
+        "shortDesc": "Vehicle base mass",
+        "longDesc": "Nominal vehicle mass used by the thrust and vertical acceleration control calculations.",
+        "units": "kg",
+        "decimalPlaces": 3,
+        "increment": 0.01,
+        "group": "Vehicle",
+        "category": "Flight Control"
+      }
+    },
+    {
+      "name": "ATT_ROLL_KP",
+      "type": "real32",
+      "minimum": 0.0,
+      "maximum": 10.0,
+      "default": { "source": "fcs_params" },
+      "persistence": "volatile",
+      "activation": "live",
+      "binding": {
+        "read": "innerLoopCtrlParams.attCtrlParams.ctrlParamsArray[0].Kp",
+        "write": ["innerLoopCtrlParams.attCtrlParams.ctrlParamsArray[0].Kp"]
+      },
+      "ui": {
+        "shortDesc": "Roll attitude proportional gain",
+        "longDesc": "Proportional feedback gain mapping roll angle error to a commanded roll rate.",
+        "units": "",
+        "decimalPlaces": 3,
+        "increment": 0.01,
+        "group": "Attitude Control",
+        "category": "Flight Control"
+      }
+    },
+    {
+      "name": "ATT_ROLL_KI",
+      "type": "real32",
+      "minimum": 0.0,
+      "maximum": 2.0,
+      "default": { "source": "fcs_params" },
+      "persistence": "volatile",
+      "activation": "live",
+      "binding": {
+        "read": "innerLoopCtrlParams.attCtrlParams.ctrlParamsArray[0].Ki",
+        "write": ["innerLoopCtrlParams.attCtrlParams.ctrlParamsArray[0].Ki"]
+      },
+      "ui": {
+        "shortDesc": "Roll attitude integral gain",
+        "longDesc": "Integral feedback gain for the roll attitude controller.",
+        "units": "",
+        "decimalPlaces": 3,
+        "increment": 0.01,
+        "group": "Attitude Control",
+        "category": "Flight Control"
+      }
+    },
+    {
+      "name": "ATT_PITCH_KP",
+      "type": "real32",
+      "minimum": 0.0,
+      "maximum": 10.0,
+      "default": { "source": "fcs_params" },
+      "persistence": "volatile",
+      "activation": "live",
+      "binding": {
+        "read": "innerLoopCtrlParams.attCtrlParams.ctrlParamsArray[1].Kp",
+        "write": ["innerLoopCtrlParams.attCtrlParams.ctrlParamsArray[1].Kp"]
+      },
+      "ui": {
+        "shortDesc": "Pitch attitude proportional gain",
+        "longDesc": "Proportional feedback gain mapping pitch angle error to a commanded pitch rate.",
+        "units": "",
+        "decimalPlaces": 3,
+        "increment": 0.01,
+        "group": "Attitude Control",
+        "category": "Flight Control"
+      }
+    },
+    {
+      "name": "ATT_PITCH_KI",
+      "type": "real32",
+      "minimum": 0.0,
+      "maximum": 2.0,
+      "default": { "source": "fcs_params" },
+      "persistence": "volatile",
+      "activation": "live",
+      "binding": {
+        "read": "innerLoopCtrlParams.attCtrlParams.ctrlParamsArray[1].Ki",
+        "write": ["innerLoopCtrlParams.attCtrlParams.ctrlParamsArray[1].Ki"]
+      },
+      "ui": {
+        "shortDesc": "Pitch attitude integral gain",
+        "longDesc": "Integral feedback gain for the pitch attitude controller.",
+        "units": "",
+        "decimalPlaces": 3,
+        "increment": 0.01,
+        "group": "Attitude Control",
+        "category": "Flight Control"
+      }
+    },
+    {
+      "name": "ATT_YAW_KP",
+      "type": "real32",
+      "minimum": 0.0,
+      "maximum": 10.0,
+      "default": { "source": "fcs_params" },
+      "persistence": "volatile",
+      "activation": "live",
+      "binding": {
+        "read": "innerLoopCtrlParams.attCtrlParams.ctrlParamsArray[2].Kp",
+        "write": ["innerLoopCtrlParams.attCtrlParams.ctrlParamsArray[2].Kp"]
+      },
+      "ui": {
+        "shortDesc": "Yaw attitude proportional gain",
+        "longDesc": "Proportional feedback gain mapping heading error to a commanded yaw rate.",
+        "units": "",
+        "decimalPlaces": 3,
+        "increment": 0.01,
+        "group": "Attitude Control",
+        "category": "Flight Control"
+      }
+    },
+    {
+      "name": "ATT_YAW_KI",
+      "type": "real32",
+      "minimum": 0.0,
+      "maximum": 3.0,
+      "default": { "source": "fcs_params" },
+      "persistence": "volatile",
+      "activation": "live",
+      "binding": {
+        "read": "innerLoopCtrlParams.attCtrlParams.ctrlParamsArray[2].Ki",
+        "write": ["innerLoopCtrlParams.attCtrlParams.ctrlParamsArray[2].Ki"]
+      },
+      "ui": {
+        "shortDesc": "Yaw attitude integral gain",
+        "longDesc": "Integral feedback gain for the yaw attitude controller.",
+        "units": "",
+        "decimalPlaces": 3,
+        "increment": 0.01,
+        "group": "Attitude Control",
+        "category": "Flight Control"
+      }
+    },
+    {
+      "name": "RATE_ROLL_KP",
+      "type": "real32",
+      "minimum": 0.0,
+      "maximum": 100.0,
+      "default": { "source": "fcs_params" },
+      "persistence": "volatile",
+      "activation": "live",
+      "binding": {
+        "read": "innerLoopCtrlParams.angRateCtrlParams.ctrlParamsArray[0].Kp",
+        "write": ["innerLoopCtrlParams.angRateCtrlParams.ctrlParamsArray[0].Kp"]
+      },
+      "ui": {
+        "shortDesc": "Roll rate proportional gain",
+        "longDesc": "Proportional feedback gain for the roll angular-rate controller.",
+        "units": "",
+        "decimalPlaces": 3,
+        "increment": 0.1,
+        "group": "Angular Rate Control",
+        "category": "Flight Control"
+      }
+    },
+    {
+      "name": "RATE_ROLL_KI",
+      "type": "real32",
+      "minimum": 0.0,
+      "maximum": 3.0,
+      "default": { "source": "fcs_params" },
+      "persistence": "volatile",
+      "activation": "live",
+      "binding": {
+        "read": "innerLoopCtrlParams.angRateCtrlParams.ctrlParamsArray[0].Ki",
+        "write": ["innerLoopCtrlParams.angRateCtrlParams.ctrlParamsArray[0].Ki"]
+      },
+      "ui": {
+        "shortDesc": "Roll rate integral gain",
+        "longDesc": "Integral feedback gain for the roll angular-rate controller.",
+        "units": "",
+        "decimalPlaces": 3,
+        "increment": 0.01,
+        "group": "Angular Rate Control",
+        "category": "Flight Control"
+      }
+    },
+    {
+      "name": "RATE_PITCH_KP",
+      "type": "real32",
+      "minimum": 0.0,
+      "maximum": 100.0,
+      "default": { "source": "fcs_params" },
+      "persistence": "volatile",
+      "activation": "live",
+      "binding": {
+        "read": "innerLoopCtrlParams.angRateCtrlParams.ctrlParamsArray[1].Kp",
+        "write": ["innerLoopCtrlParams.angRateCtrlParams.ctrlParamsArray[1].Kp"]
+      },
+      "ui": {
+        "shortDesc": "Pitch rate proportional gain",
+        "longDesc": "Proportional feedback gain for the pitch angular-rate controller.",
+        "units": "",
+        "decimalPlaces": 3,
+        "increment": 0.1,
+        "group": "Angular Rate Control",
+        "category": "Flight Control"
+      }
+    },
+    {
+      "name": "RATE_PITCH_KI",
+      "type": "real32",
+      "minimum": 0.0,
+      "maximum": 3.0,
+      "default": { "source": "fcs_params" },
+      "persistence": "volatile",
+      "activation": "live",
+      "binding": {
+        "read": "innerLoopCtrlParams.angRateCtrlParams.ctrlParamsArray[1].Ki",
+        "write": ["innerLoopCtrlParams.angRateCtrlParams.ctrlParamsArray[1].Ki"]
+      },
+      "ui": {
+        "shortDesc": "Pitch rate integral gain",
+        "longDesc": "Integral feedback gain for the pitch angular-rate controller.",
+        "units": "",
+        "decimalPlaces": 3,
+        "increment": 0.01,
+        "group": "Angular Rate Control",
+        "category": "Flight Control"
+      }
+    },
+    {
+      "name": "RATE_YAW_KP",
+      "type": "real32",
+      "minimum": 0.0,
+      "maximum": 100.0,
+      "default": { "source": "fcs_params" },
+      "persistence": "volatile",
+      "activation": "live",
+      "binding": {
+        "read": "innerLoopCtrlParams.angRateCtrlParams.ctrlParamsArray[2].Kp",
+        "write": ["innerLoopCtrlParams.angRateCtrlParams.ctrlParamsArray[2].Kp"]
+      },
+      "ui": {
+        "shortDesc": "Yaw rate proportional gain",
+        "longDesc": "Proportional feedback gain for the yaw angular-rate controller.",
+        "units": "",
+        "decimalPlaces": 3,
+        "increment": 0.1,
+        "group": "Angular Rate Control",
+        "category": "Flight Control"
+      }
+    },
+    {
+      "name": "RATE_YAW_KI",
+      "type": "real32",
+      "minimum": 0.0,
+      "maximum": 4.0,
+      "default": { "source": "fcs_params" },
+      "persistence": "volatile",
+      "activation": "live",
+      "binding": {
+        "read": "innerLoopCtrlParams.angRateCtrlParams.ctrlParamsArray[2].Ki",
+        "write": ["innerLoopCtrlParams.angRateCtrlParams.ctrlParamsArray[2].Ki"]
+      },
+      "ui": {
+        "shortDesc": "Yaw rate integral gain",
+        "longDesc": "Integral feedback gain for the yaw angular-rate controller.",
+        "units": "",
+        "decimalPlaces": 3,
+        "increment": 0.01,
+        "group": "Angular Rate Control",
+        "category": "Flight Control"
+      }
+    },
+    {
+      "name": "VELNE_TILT_MAX",
+      "type": "real32",
+      "minimum": 0.0,
+      "maximum": 1.0471976,
+      "default": { "source": "fcs_params" },
+      "persistence": "volatile",
+      "activation": "live",
+      "binding": {
+        "read": "outerLoopCtrlParams.velCtrlParams.tiltMax_rad",
+        "write": ["outerLoopCtrlParams.velCtrlParams.tiltMax_rad"]
+      },
+      "ui": {
+        "shortDesc": "Maximum commanded bank/tilt angle",
+        "longDesc": "Upper bound on the lean angle the horizontal velocity controller may command, applied symmetrically to roll and pitch.",
+        "units": "rad",
+        "decimalPlaces": 3,
+        "increment": 0.01,
+        "group": "Horizontal Velocity Control",
+        "category": "Flight Control"
+      }
+    }
+  ]
+}

@@ -10,8 +10,58 @@
 
 #include "mavlink_rxtx.h"
 
+#include <cstring>
+
+#include "mavlink_ftp_protocol.h"
 #include "mavlink_parameter_protocol.h"
+#include "fcsModel_types.h"
+#include "parameter_metadata_blob.h"
 #include "parameters/parameter_store.h"
+
+namespace {
+
+// The two Component Metadata files QGC downloads over MAVLink FTP. Both live
+// in .rodata; the server is a bounds check and a copy, with no filesystem.
+struct FtpFileEntry {
+  const char* path;
+  const uint8_t* data;
+  uint32_t size;
+};
+
+constexpr FtpFileEntry kFtpFiles[] = {
+    {parameters::generated::kComponentGeneralPath,
+     parameters::generated::kComponentGeneralJson,
+     static_cast<uint32_t>(parameters::generated::kComponentGeneralJsonSize)},
+    {parameters::generated::kParameterMetadataPath,
+     parameters::generated::kParameterMetadataJson,
+     static_cast<uint32_t>(parameters::generated::kParameterMetadataJsonSize)},
+};
+
+const FtpFileEntry* FindFtpFile(const uint8_t* path,
+                                size_t max_length) noexcept {
+  if (path == nullptr) {
+    return nullptr;
+  }
+  // The request path is not guaranteed NUL-terminated and QGC may prepend '/'.
+  size_t start = 0U;
+  if ((max_length > 0U) && (path[0] == '/')) {
+    start = 1U;
+  }
+  size_t end = start;
+  while ((end < max_length) && (path[end] != '\0')) {
+    ++end;
+  }
+  const size_t path_length = end - start;
+  for (const FtpFileEntry& entry : kFtpFiles) {
+    if ((path_length == std::strlen(entry.path)) &&
+        (std::memcmp(&path[start], entry.path, path_length) == 0)) {
+      return &entry;
+    }
+  }
+  return nullptr;
+}
+
+}  // namespace
 
 // -----------------------------------------------------------------------------
 //  STATIC DATA
@@ -50,8 +100,8 @@ bool MavlinkRxTx::QueueMessage(const mavlink_message_t& msg) {
 MavlinkRxTx::ParameterTxResult MavlinkRxTx::TryQueueCurrentParameterValue(
     uint16_t index, uint16_t parameter_count) {
   const auto& store = parameters::ParameterStore::Instance();
-  float value = 0.0F;
-  if (!store.ReadReal32(index, &value)) {
+  parameters::ParameterValue value{};
+  if (!store.ReadValue(index, &value)) {
     return ParameterTxResult::InvalidParameter;
   }
 
@@ -65,7 +115,8 @@ MavlinkRxTx::ParameterTxResult MavlinkRxTx::TryQueueCurrentParameterValue(
 __attribute__((noinline, optimize("Os")))
 #endif
 MavlinkRxTx::ParameterTxResult MavlinkRxTx::TryQueueParameterValue(
-    uint16_t index, float value, uint16_t parameter_count) {
+    uint16_t index, parameters::ParameterValue value,
+    uint16_t parameter_count) {
   const auto& store = parameters::ParameterStore::Instance();
   const parameters::ParameterDescriptor* descriptor = store.Descriptor(index);
   if (descriptor == nullptr) {
@@ -81,7 +132,8 @@ MavlinkRxTx::ParameterTxResult MavlinkRxTx::TryQueueParameterValue(
 
   if (!PackAndQueue(mavlink_msg_param_value_pack,
                     kSysId, kCompId, &tx_msg_,
-                    descriptor->name, value,
+                    descriptor->name,
+                    mavlink_parameter_protocol::EncodeValue(value),
                     mavlink_parameter_protocol::ToWireType(descriptor->type),
                     parameter_count, index)) {
     return ParameterTxResult::TxFull;
@@ -92,8 +144,8 @@ MavlinkRxTx::ParameterTxResult MavlinkRxTx::TryQueueParameterValue(
 
 bool MavlinkRxTx::EnqueueCurrentParameterReply(uint16_t index) {
   const auto& store = parameters::ParameterStore::Instance();
-  float value = 0.0F;
-  if (!store.ReadReal32(index, &value)) {
+  parameters::ParameterValue value{};
+  if (!store.ReadValue(index, &value)) {
     return false;
   }
 
@@ -116,25 +168,28 @@ void MavlinkRxTx::RequestParameterList(TickType_t now) {
 }
 
 void MavlinkRxTx::ProcessOneParameterResponse(TickType_t now) {
-  // One parameter response may be in the active or DMA-owned TX buffer. Wait
-  // for its UART completion before admitting another PARAM_VALUE frame.
+  auto& store = parameters::ParameterStore::Instance();
+  if (!has_pending_parameter_completion_) {
+    if (store.PopOneCompletion(&pending_parameter_completion_)) {
+      has_pending_parameter_completion_ = true;
+      // PopOneCompletion records the owner timestamp exactly once before this
+      // ACK can be retried.
+    }
+  }
+
+  // One parameter response may be in the active or DMA-owned TX buffer. The
+  // next completion is already logged/retained above, but its PARAM_VALUE ACK
+  // waits for the existing UART credit.
   if (active_buffer_has_parameter_response_ ||
       sending_buffer_has_parameter_response_) {
     return;
-  }
-
-  auto& store = parameters::ParameterStore::Instance();
-  if (!has_pending_parameter_completion_) {
-    if (store.PopFcsCompletion(&pending_parameter_completion_)) {
-      has_pending_parameter_completion_ = true;
-    }
   }
 
   if (has_pending_parameter_completion_) {
     // Use the owner-captured value; rereading could acknowledge a later write.
     const ParameterTxResult result = TryQueueParameterValue(
         pending_parameter_completion_.catalog_index,
-        pending_parameter_completion_.applied_value, store.Count());
+        pending_parameter_completion_.value, store.Count());
     if (result == ParameterTxResult::Queued) {
       has_pending_parameter_completion_ = false;
     } else if (result == ParameterTxResult::InvalidParameter) {
@@ -249,6 +304,33 @@ void MavlinkRxTx::SendBufferedDataIfReady(TickType_t now) {
 // -----------------------------------------------------------------------------
 //  MESSAGE BUILDERS (easier to extend)
 // -----------------------------------------------------------------------------
+void MavlinkRxTx::ServicePendingReboot(TickType_t now) {
+  if (!reboot_pending_) {
+    return;
+  }
+
+  // Two conditions before resetting: any retained-parameter change must have
+  // finished its debounced Flash commit (rebooting inside that window would
+  // silently discard the operator's change), and the accepted-command ACK
+  // must have drained out of both TX buffers (HAL raises TxCplt only after
+  // the UART shift register empties). The deadline guarantees a wedged link
+  // or a stuck commit cannot veto the reboot the operator asked for.
+  const bool persistence_quiescent =
+      parameters::ParameterStore::Instance().PersistenceQuiescent();
+  const bool tx_idle = (sending_length_ == 0U) && (active_index_ == 0U) &&
+                       !tx_resend_pending_;
+  if ((!tx_idle || !persistence_quiescent) &&
+      !mavlink_transport::DeadlineReached(
+          static_cast<uint32_t>(now),
+          static_cast<uint32_t>(reboot_deadline_))) {
+    return;
+  }
+
+  // Small grace period for the telemetry radio's own buffer, then reset.
+  vTaskDelay(pdMS_TO_TICKS(20U));
+  NVIC_SystemReset();
+}
+
 void MavlinkRxTx::BuildHeartbeat() {
 	if (fcs_debug_sub_.copy(fcs_debug_data_)){
 		if(fcs_debug_data_.sm_mode >= 1){
@@ -256,6 +338,29 @@ void MavlinkRxTx::BuildHeartbeat() {
 		}else{
 			base_mode_ = MAV_MODE_MANUAL_DISARMED;
 		}
+
+    // Flash admission observes the already-published FCS state here at 1 Hz,
+    // outside the flight-control task. Unknown fails closed. Only INACTIVE
+    // permits Flash: once motors are armed, takeoff can follow at any moment
+    // and an in-progress sector erase cannot be aborted, so MTR_ARMED is
+    // classified with INFLIGHT. A change made while armed stays dirty and
+    // commits after the disarm transition notifies the worker.
+    auto persistence_state =
+        parameters::PersistenceFlightState::Unknown;
+    switch (static_cast<enumStateMachine>(fcs_debug_data_.sm_mode)) {
+      case enumStateMachine::INACTIVE:
+        persistence_state =
+            parameters::PersistenceFlightState::NotInFlight;
+        break;
+      case enumStateMachine::MTR_ARMED:
+      case enumStateMachine::INFLIGHT:
+        persistence_state = parameters::PersistenceFlightState::InFlight;
+        break;
+      default:
+        break;
+    }
+    parameters::ParameterStore::Instance().ObservePersistenceFlightState(
+        persistence_state);
 	}
 
 	switch (home_state_){
@@ -288,6 +393,257 @@ void MavlinkRxTx::BuildHeartbeat() {
 			   base_mode_,
 			   0,
 			   MAV_STATE_STANDBY);
+}
+
+void MavlinkRxTx::BuildAutopilotVersion() {
+  static constexpr uint8_t kZeroVersion[8]{};
+  static constexpr uint8_t kZeroUid[18]{};
+  // QGC gates every MAVLink FTP attempt on the FTP capability bit; without it
+  // Component Metadata is never fetched regardless of the 397 response.
+  constexpr uint64_t kCapabilities =
+      mavlink_parameter_protocol::kParameterProtocolCapabilities |
+      MAV_PROTOCOL_CAPABILITY_FTP |
+      MAV_PROTOCOL_CAPABILITY_MAVLINK2;
+
+  PackAndQueue(mavlink_msg_autopilot_version_pack,
+               kSysId, kCompId, &tx_msg_, kCapabilities,
+               0U, 0U, 0U, 0U,
+               kZeroVersion, kZeroVersion, kZeroVersion,
+               0U, 0U, 0ULL, kZeroUid);
+}
+
+void MavlinkRxTx::BuildComponentMetadata(uint32_t now_ms) {
+  // Points QGC at the embedded general metadata file; QGC then downloads it
+  // and the parameter metadata it references over FTP, caching both by CRC.
+  // The packer copies the entire 100-byte wire field, so zero-pad the
+  // NUL-terminated generated URI to full width first.
+  char uri[MAVLINK_MSG_COMPONENT_METADATA_FIELD_URI_LEN]{};
+  static_assert(sizeof(parameters::generated::kComponentGeneralUri) <=
+                sizeof(uri));
+  std::memcpy(uri, parameters::generated::kComponentGeneralUri,
+              sizeof(parameters::generated::kComponentGeneralUri));
+  PackAndQueue(mavlink_msg_component_metadata_pack,
+               kSysId, kCompId, &tx_msg_, now_ms,
+               parameters::generated::kComponentGeneralJsonCrc32, uri);
+}
+
+// -----------------------------------------------------------------------------
+//  READ-ONLY MAVLINK FTP SERVER (Component Metadata files only)
+// -----------------------------------------------------------------------------
+bool MavlinkRxTx::TryQueueFtpPacket(const uint8_t* payload) {
+  // Admission precedes packing, mirroring TryQueueParameterValue, so a
+  // TX-full retry never consumes a MAVLink sequence number.
+  if ((active_index_ > kTxBufferSize) ||
+      (kMaxFtpFrameLength > (kTxBufferSize - active_index_))) {
+    return false;
+  }
+  return PackAndQueue(mavlink_msg_file_transfer_protocol_pack,
+                      kSysId, kCompId, &tx_msg_, 0U,
+                      ftp_peer_system_, ftp_peer_component_, payload);
+}
+
+void MavlinkRxTx::QueueFtpNak(uint16_t request_seq, uint8_t session,
+                              uint8_t request_opcode, uint8_t error) {
+  using namespace mavlink_ftp_protocol;
+  uint8_t payload[kPayloadSize]{};
+  Header reply{};
+  reply.seq_number = static_cast<uint16_t>(request_seq + 1U);
+  reply.session = session;
+  reply.opcode = Opcode::Nak;
+  reply.size = 1U;
+  reply.req_opcode = static_cast<Opcode>(request_opcode);
+  EncodeHeader(reply, payload);
+  payload[kHeaderSize] = error;
+  if (!TryQueueFtpPacket(payload)) {
+    ++ftp_tx_drop_count_;
+  }
+}
+
+#if defined(__GNUC__) && !defined(__clang__)
+__attribute__((noinline, optimize("Os")))
+#endif
+void MavlinkRxTx::HandleFtpRequest(const mavlink_message_t* msg) {
+  using namespace mavlink_ftp_protocol;
+  mavlink_file_transfer_protocol_t ftp;
+  mavlink_msg_file_transfer_protocol_decode(msg, &ftp);
+  if (!mavlink_parameter_protocol::IsTarget(
+          ftp.target_system, ftp.target_component, kSysId, kCompId)) {
+    return;
+  }
+
+  ftp_peer_system_ = msg->sysid;
+  ftp_peer_component_ = msg->compid;
+
+  const Header request = DecodeHeader(ftp.payload);
+  const uint8_t* request_data = &ftp.payload[kHeaderSize];
+  const uint8_t request_opcode = static_cast<uint8_t>(request.opcode);
+  if (request.size > kMaxDataSize) {
+    QueueFtpNak(request.seq_number, request.session, request_opcode,
+                static_cast<uint8_t>(NakError::InvalidDataSize));
+    return;
+  }
+
+  switch (request.opcode) {
+    case Opcode::OpenFileRO: {
+      const FtpFileEntry* entry = FindFtpFile(request_data, request.size);
+      if (entry == nullptr) {
+        QueueFtpNak(request.seq_number, request.session, request_opcode,
+                    static_cast<uint8_t>(NakError::FileNotFound));
+        return;
+      }
+      // Single-session server: a new open supersedes any previous session.
+      ftp_file_data_ = entry->data;
+      ftp_file_size_ = entry->size;
+      ftp_session_open_ = true;
+      ftp_burst_active_ = false;
+
+      uint8_t payload[kPayloadSize]{};
+      Header reply{};
+      reply.seq_number = static_cast<uint16_t>(request.seq_number + 1U);
+      reply.session = 0U;
+      reply.opcode = Opcode::Ack;
+      reply.size = 4U;
+      reply.req_opcode = Opcode::OpenFileRO;
+      EncodeHeader(reply, payload);
+      payload[kHeaderSize + 0U] =
+          static_cast<uint8_t>(entry->size & 0xFFU);
+      payload[kHeaderSize + 1U] =
+          static_cast<uint8_t>((entry->size >> 8U) & 0xFFU);
+      payload[kHeaderSize + 2U] =
+          static_cast<uint8_t>((entry->size >> 16U) & 0xFFU);
+      payload[kHeaderSize + 3U] =
+          static_cast<uint8_t>((entry->size >> 24U) & 0xFFU);
+      if (!TryQueueFtpPacket(payload)) {
+        ++ftp_tx_drop_count_;
+      }
+      return;
+    }
+
+    case Opcode::ReadFile: {
+      if (!ftp_session_open_ || (request.session != 0U)) {
+        QueueFtpNak(request.seq_number, request.session, request_opcode,
+                    static_cast<uint8_t>(NakError::InvalidSession));
+        return;
+      }
+      if (request.offset >= ftp_file_size_) {
+        QueueFtpNak(request.seq_number, request.session, request_opcode,
+                    static_cast<uint8_t>(NakError::Eof));
+        return;
+      }
+      const uint32_t remaining = ftp_file_size_ - request.offset;
+      uint32_t chunk = (remaining < kMaxDataSize)
+                           ? remaining
+                           : static_cast<uint32_t>(kMaxDataSize);
+      if ((request.size != 0U) && (request.size < chunk)) {
+        chunk = request.size;
+      }
+
+      uint8_t payload[kPayloadSize]{};
+      Header reply{};
+      reply.seq_number = static_cast<uint16_t>(request.seq_number + 1U);
+      reply.session = 0U;
+      reply.opcode = Opcode::Ack;
+      reply.size = static_cast<uint8_t>(chunk);
+      reply.req_opcode = Opcode::ReadFile;
+      reply.offset = request.offset;
+      EncodeHeader(reply, payload);
+      std::memcpy(&payload[kHeaderSize], &ftp_file_data_[request.offset],
+                  chunk);
+      if (!TryQueueFtpPacket(payload)) {
+        ++ftp_tx_drop_count_;
+      }
+      return;
+    }
+
+    case Opcode::BurstReadFile: {
+      if (!ftp_session_open_ || (request.session != 0U)) {
+        QueueFtpNak(request.seq_number, request.session, request_opcode,
+                    static_cast<uint8_t>(NakError::InvalidSession));
+        return;
+      }
+      if (request.offset >= ftp_file_size_) {
+        QueueFtpNak(request.seq_number, request.session, request_opcode,
+                    static_cast<uint8_t>(NakError::Eof));
+        return;
+      }
+      ftp_burst_active_ = true;
+      ftp_burst_offset_ = request.offset;
+      ftp_next_seq_ = static_cast<uint16_t>(request.seq_number + 1U);
+      ProcessFtpBurst();
+      return;
+    }
+
+    case Opcode::TerminateSession: {
+      if (!ftp_session_open_ || (request.session != 0U)) {
+        QueueFtpNak(request.seq_number, request.session, request_opcode,
+                    static_cast<uint8_t>(NakError::InvalidSession));
+        return;
+      }
+      [[fallthrough]];
+    }
+    case Opcode::ResetSessions: {
+      ftp_session_open_ = false;
+      ftp_burst_active_ = false;
+
+      uint8_t payload[kPayloadSize]{};
+      Header reply{};
+      reply.seq_number = static_cast<uint16_t>(request.seq_number + 1U);
+      reply.session = request.session;
+      reply.opcode = Opcode::Ack;
+      reply.req_opcode = static_cast<Opcode>(request_opcode);
+      EncodeHeader(reply, payload);
+      if (!TryQueueFtpPacket(payload)) {
+        ++ftp_tx_drop_count_;
+      }
+      return;
+    }
+
+    default:
+      QueueFtpNak(request.seq_number, request.session, request_opcode,
+                  static_cast<uint8_t>(NakError::UnknownCommand));
+      return;
+  }
+}
+
+#if defined(__GNUC__) && !defined(__clang__)
+__attribute__((noinline, optimize("Os")))
+#endif
+void MavlinkRxTx::ProcessFtpBurst() {
+  using namespace mavlink_ftp_protocol;
+  // Bounded by TX buffer capacity: at most a handful of frames fit before
+  // TryQueueFtpPacket reports full and the burst resumes on the next TxCplt.
+  while (ftp_burst_active_) {
+    if (!ftp_session_open_ || (ftp_burst_offset_ >= ftp_file_size_)) {
+      ftp_burst_active_ = false;
+      return;
+    }
+    const uint32_t remaining = ftp_file_size_ - ftp_burst_offset_;
+    const uint32_t chunk = (remaining < kMaxDataSize)
+                               ? remaining
+                               : static_cast<uint32_t>(kMaxDataSize);
+    const bool last = (ftp_burst_offset_ + chunk) >= ftp_file_size_;
+
+    uint8_t payload[kPayloadSize]{};
+    Header reply{};
+    reply.seq_number = ftp_next_seq_;
+    reply.session = 0U;
+    reply.opcode = Opcode::Ack;
+    reply.size = static_cast<uint8_t>(chunk);
+    reply.req_opcode = Opcode::BurstReadFile;
+    reply.burst_complete = last ? 1U : 0U;
+    reply.offset = ftp_burst_offset_;
+    EncodeHeader(reply, payload);
+    std::memcpy(&payload[kHeaderSize], &ftp_file_data_[ftp_burst_offset_],
+                chunk);
+    if (!TryQueueFtpPacket(payload)) {
+      return;  // TX full; state is retained and resumed after DMA drains.
+    }
+    ++ftp_next_seq_;
+    ftp_burst_offset_ += chunk;
+    if (last) {
+      ftp_burst_active_ = false;
+    }
+  }
 }
 
 void MavlinkRxTx::BuildGps(uint32_t now_ms)
@@ -449,6 +805,9 @@ TickType_t MavlinkRxTx::ComputeWaitTicks(
   if (tx_retry_pending_) {
     shorten_wait(static_cast<uint32_t>(next_tx_retry_due_));
   }
+  if (reboot_pending_) {
+    shorten_wait(static_cast<uint32_t>(reboot_deadline_));
+  }
   return static_cast<TickType_t>(wait_ticks);
 }
 
@@ -540,7 +899,11 @@ void MavlinkRxTx::Run() {
     // Completion ACKs, explicit reads/rejections, then the paced list cursor.
     // The response pipeline permits at most one PARAM_VALUE frame in flight.
     ProcessOneParameterResponse(now);
+    // A suspended metadata burst refills whatever TX space parameters left;
+    // it makes progress on every TxCplt wake-up until EOF.
+    ProcessFtpBurst();
     SendBufferedDataIfReady(now);
+    ServicePendingReboot(now);
 
     if(new_mavlink_data_){
     	new_mavlink_data_ = false;
@@ -589,23 +952,71 @@ void MavlinkRxTx::HandleMavlinkMessage(mavlink_message_t* msg) {
     case MAVLINK_MSG_ID_COMMAND_LONG: {
       mavlink_command_long_t cmd;
       mavlink_msg_command_long_decode(msg, &cmd);
-
-      if (cmd.command == MAV_CMD_COMPONENT_ARM_DISARM) {
-//        base_mode_ = (static_cast<int>(cmd.param1) == 1) ?
-//                         MAV_MODE_MANUAL_ARMED : MAV_MODE_MANUAL_DISARMED;
-    	  if(static_cast<int>(cmd.param1) == 1){
-    		  mavlink_data_.arm_cmd_issued = 1U;
-    	  }else{
-    		  mavlink_data_.arm_cmd_issued = 2U;
-    	  }
-
-    	  new_mavlink_data_ = true;
+      if (!mavlink_parameter_protocol::IsTarget(
+              cmd.target_system, cmd.target_component, kSysId, kCompId)) {
+        break;
       }
 
+      MAV_RESULT command_result = MAV_RESULT_UNSUPPORTED;
+      if (cmd.command == MAV_CMD_COMPONENT_ARM_DISARM) {
+    	  if(static_cast<int>(cmd.param1) == 1){
+            // Arming is the last command boundary before takeoff, and a
+            // sector erase already in progress cannot be aborted. Refusing
+            // to arm during an active commit closes the check-then-act race
+            // for command-initiated arming (PX4: "arming denied: parameter
+            // save in progress"). Retrying a moment later succeeds.
+            if (parameters::ParameterStore::Instance()
+                    .FlashCommitInProgress()) {
+              command_result = MAV_RESULT_TEMPORARILY_REJECTED;
+            } else {
+              mavlink_data_.arm_cmd_issued = 1U;
+              new_mavlink_data_ = true;
+              command_result = MAV_RESULT_ACCEPTED;
+            }
+    	  }else{
+    		  mavlink_data_.arm_cmd_issued = 2U;
+    		  new_mavlink_data_ = true;
+    		  command_result = MAV_RESULT_ACCEPTED;
+    	  }
+      } else if ((cmd.command ==
+                  MAV_CMD_REQUEST_AUTOPILOT_CAPABILITIES) &&
+                 (static_cast<int>(cmd.param1) == 1)) {
+        BuildAutopilotVersion();
+        command_result = MAV_RESULT_ACCEPTED;
+      } else if ((cmd.command == MAV_CMD_REQUEST_MESSAGE) &&
+                 (static_cast<uint32_t>(cmd.param1) ==
+                  MAVLINK_MSG_ID_AUTOPILOT_VERSION)) {
+        BuildAutopilotVersion();
+        command_result = MAV_RESULT_ACCEPTED;
+      } else if ((cmd.command == MAV_CMD_REQUEST_MESSAGE) &&
+                 (static_cast<uint32_t>(cmd.param1) ==
+                  MAVLINK_MSG_ID_COMPONENT_METADATA)) {
+        BuildComponentMetadata(
+            static_cast<uint32_t>(xTaskGetTickCount()) *
+            portTICK_PERIOD_MS);
+        command_result = MAV_RESULT_ACCEPTED;
+      } else if ((cmd.command == MAV_CMD_PREFLIGHT_REBOOT_SHUTDOWN) &&
+                 (static_cast<int>(cmd.param1) == 1)) {
+        // Reboot the autopilot (QGC: Parameters -> Tools -> Reboot Vehicle).
+        // Shutdown/bootloader requests (param1 != 1) stay unsupported. Honor
+        // the request only while the FCS state machine is INACTIVE; the copy
+        // refreshes the latest published state and the member retains the
+        // last sample when nothing new has been published.
+        static_cast<void>(fcs_debug_sub_.copy(fcs_debug_data_));
+        if (static_cast<enumStateMachine>(fcs_debug_data_.sm_mode) ==
+            enumStateMachine::INACTIVE) {
+          reboot_pending_ = true;
+          reboot_deadline_ = xTaskGetTickCount() +
+                             pdMS_TO_TICKS(kRebootDrainTimeoutMs);
+          command_result = MAV_RESULT_ACCEPTED;
+        } else {
+          command_result = MAV_RESULT_DENIED;
+        }
+      }
 
       // ACK
       PackAndQueue(mavlink_msg_command_ack_pack,
-                   kSysId, kCompId, &tx_msg_, cmd.command, MAV_RESULT_ACCEPTED,
+                   kSysId, kCompId, &tx_msg_, cmd.command, command_result,
                    0, 0, msg->sysid, msg->compid);
       break;
     }
@@ -674,14 +1085,65 @@ void MavlinkRxTx::HandleMavlinkMessage(mavlink_message_t* msg) {
         }
 
         const uint32_t token = next_parameter_update_token_++;
+        parameters::ParameterUpdateCompletion immediate_completion{};
         const parameters::ParameterSubmitResult result =
-                store.SubmitReal32Update(index, set.param_value, token);
-        if (result != parameters::ParameterSubmitResult::Queued) {
+                store.SubmitUpdate(
+                    index,
+                    mavlink_parameter_protocol::DecodeValue(set.param_value),
+                    token, &immediate_completion);
+        if (result == parameters::ParameterSubmitResult::Completed) {
+            // OnReboot changes are staged synchronously in this protocol task;
+            // ACK the configured value and record the change exactly once.
+            static_cast<void>(store.RecordChange(immediate_completion));
+            EnqueueCurrentParameterReply(index);
+        } else if (result != parameters::ParameterSubmitResult::Queued) {
             // The legacy parameter protocol acknowledges every known write,
             // including rejection, by broadcasting the current value.
             EnqueueCurrentParameterReply(index);
         }
 
+        break;
+    }
+
+    case MAVLINK_MSG_ID_FILE_TRANSFER_PROTOCOL: {
+        HandleFtpRequest(msg);
+        break;
+    }
+
+    // This vehicle carries no onboard mission/fence/rally storage. QGC's
+    // initial-connect sequence downloads all three unconditionally for any
+    // MAVLink vehicle -- with no handler at all it retries MISSION_REQUEST_LIST
+    // until it gives up ("Mission transfer failed... maximum retries exceeded").
+    // Answering immediately with a zero-item count is the same response PX4
+    // gives when no mission is stored, and completes that download instantly.
+    case MAVLINK_MSG_ID_MISSION_REQUEST_LIST: {
+        mavlink_mission_request_list_t req;
+        mavlink_msg_mission_request_list_decode(msg, &req);
+        if (!mavlink_parameter_protocol::IsTarget(
+                req.target_system, req.target_component, kSysId, kCompId)) {
+            break;
+        }
+
+        PackAndQueue(mavlink_msg_mission_count_pack,
+                     kSysId, kCompId, &tx_msg_, msg->sysid, msg->compid,
+                     0U, req.mission_type, 0U);
+        break;
+    }
+
+    // QGC's Plan view can send this independently of a fresh connect (e.g.
+    // "Sync"/clear actions). Nothing is stored, so there is nothing to clear;
+    // accept unconditionally rather than leaving QGC waiting on an ACK.
+    case MAVLINK_MSG_ID_MISSION_CLEAR_ALL: {
+        mavlink_mission_clear_all_t req;
+        mavlink_msg_mission_clear_all_decode(msg, &req);
+        if (!mavlink_parameter_protocol::IsTarget(
+                req.target_system, req.target_component, kSysId, kCompId)) {
+            break;
+        }
+
+        PackAndQueue(mavlink_msg_mission_ack_pack,
+                     kSysId, kCompId, &tx_msg_, msg->sysid, msg->compid,
+                     MAV_MISSION_ACCEPTED, req.mission_type, 0U);
         break;
     }
 

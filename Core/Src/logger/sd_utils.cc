@@ -8,28 +8,95 @@
 #include "sd_utils.h"
 
 #include "data_buffer.h"
+#include "logger_parameter_catalog.h"
+#include "parameter_catalog.h"
+#include "parameters/parameter_store.h"
 #include "usb_console/usb_console.h"
 
 SdUtils::SdUtils()
     // Lowest priority in the system: RAM buffering absorbs normal SD-card
     // latency while deadline-driven producer/logger tasks keep running.
-    : TaskBase("SdWriteTask", 1820, osPriorityBelowNormal) {
+    : TaskBase("SdWriteTask", 1820, osPriorityBelowNormal),
+      sync_every_buffers_(static_cast<uint32_t>(
+          parameters::generated::kLoggerParameterDefaults.log_sync_bufs)),
+      idle_wait_ticks_(pdMS_TO_TICKS(static_cast<uint32_t>(
+          parameters::generated::kLoggerParameterDefaults.log_idle_ms))) {
+}
+
+void SdUtils::LoadBootParameters() {
+  auto& store = parameters::ParameterStore::Instance();
+  std::int32_t configured_value = 0;
+
+  // The generated defaults initialized the members above. A failed read is
+  // therefore safe, while a successful read is already type/range validated.
+  const bool sync_read = store.ReadInt32(
+      parameters::generated::ParameterId::LogSyncBufs, &configured_value);
+  configASSERT(sync_read);
+  if (sync_read) {
+    sync_every_buffers_ = static_cast<uint32_t>(configured_value);
+  }
+
+  const bool idle_read = store.ReadInt32(
+      parameters::generated::ParameterId::LogIdleMs, &configured_value);
+  configASSERT(idle_read);
+  if (idle_read) {
+    idle_wait_ticks_ =
+        pdMS_TO_TICKS(static_cast<uint32_t>(configured_value));
+  }
 }
 
 void SdUtils::SetLoggingEnabled(bool enabled) {
   xSemaphoreTake(DataBuffer::mutex_, portMAX_DELAY);
-  DataBuffer::logging_enabled_ = enabled;
+  if (DataBuffer::logging_enabled_ != enabled) {
+    if (enabled) {
+      // Open parameter-event admission before ordinary records can enter the
+      // new file session. Logger observes this value through the subsequent
+      // release of logging_state_epoch_.
+      const uint32_t parameter_session =
+          parameters::ParameterStore::Instance().BeginChangeLogSession();
+      DataBuffer::parameter_log_session_epoch_.store(
+          parameter_session, std::memory_order_relaxed);
+      DataBuffer::parameter_log_start_sequence_.store(
+          parameters::ParameterStore::Instance()
+              .LatestAssignedChangeSequence(),
+          std::memory_order_relaxed);
+      DataBuffer::parameter_stop_cutoff_sequence_.store(
+          0U, std::memory_order_relaxed);
+      DataBuffer::parameter_stop_requested_.store(
+          0U, std::memory_order_relaxed);
+      DataBuffer::parameter_stop_acknowledged_.store(
+          0U, std::memory_order_relaxed);
+    } else {
+      // Error shutdowns cannot guarantee a log tail because the storage path
+      // itself failed. Controlled STOP uses the explicit handshake instead.
+      DataBuffer::parameter_stop_requested_.store(
+          0U, std::memory_order_relaxed);
+      DataBuffer::parameter_stop_acknowledged_.store(
+          0U, std::memory_order_relaxed);
+    }
+    DataBuffer::logging_enabled_ = enabled;
+    DataBuffer::logging_state_epoch_.fetch_add(1U,
+                                                std::memory_order_release);
+  }
   xSemaphoreGive(DataBuffer::mutex_);
 }
 
 void SdUtils::ResetBufferState() {
   xSemaphoreTake(DataBuffer::mutex_, portMAX_DELAY);
-  DataBuffer::logging_enabled_ = false;
+  if (DataBuffer::logging_enabled_) {
+    DataBuffer::logging_enabled_ = false;
+    DataBuffer::logging_state_epoch_.fetch_add(1U,
+                                                std::memory_order_release);
+  }
   DataBuffer::current_buffer_index_ = 0;
   for (size_t i = 0; i < DataBuffer::kNumBuffers; ++i) {
     DataBuffer::buffer_offsets_[i] = 0;
     DataBuffer::buffer_pending_[i] = false;
   }
+  DataBuffer::parameter_stop_requested_.store(0U,
+                                               std::memory_order_relaxed);
+  DataBuffer::parameter_stop_acknowledged_.store(
+      0U, std::memory_order_relaxed);
   xSemaphoreGive(DataBuffer::mutex_);
   next_flush_index_ = 0;
 }
@@ -217,12 +284,32 @@ bool SdUtils::CloseFile() {
   return true;
 }
 
+void SdUtils::RequestParameterLogStop() {
+  DataBuffer::parameter_stop_acknowledged_.store(
+      0U, std::memory_order_relaxed);
+  // Freeze ordinary flight-record admission first. Owner applications then
+  // acquire against the epoch exchange below: an old-epoch application is
+  // drained into this file, while a new-epoch application remains completely
+  // legal and is represented by the next session snapshot.
+  DataBuffer::parameter_stop_requested_.store(
+      1U, std::memory_order_release);
+  auto& store = parameters::ParameterStore::Instance();
+  const uint32_t closed_epoch = store.EndChangeLogSession();
+  configASSERT(
+      closed_epoch == DataBuffer::parameter_log_session_epoch_.load(
+                          std::memory_order_relaxed));
+}
+
 void SdUtils::BeginStop() {
   // Disable logging and hand the active partial buffer to the SD task while
   // holding the same mutex used for record copies. Thus STOP can never cut a
   // record in half in RAM.
   xSemaphoreTake(DataBuffer::mutex_, portMAX_DELAY);
-  DataBuffer::logging_enabled_ = false;
+  if (DataBuffer::logging_enabled_) {
+    DataBuffer::logging_enabled_ = false;
+    DataBuffer::logging_state_epoch_.fetch_add(1U,
+                                                std::memory_order_release);
+  }
   const uint8_t active = DataBuffer::current_buffer_index_;
   if (DataBuffer::buffer_offsets_[active] > 0 &&
       !DataBuffer::buffer_pending_[active]) {
@@ -259,6 +346,10 @@ bool SdUtils::SdInit() {
 void SdUtils::Run() {
   DataBuffer::sd_task_handle_ = xTaskGetCurrentTaskHandle();
 
+  // ParameterStore::Initialize() and its Flash restore complete before the
+  // scheduler starts. Reboot-only Logger settings are therefore stable here.
+  LoadBootParameters();
+
   // main() creates the coordination mutex before any task starts.
   configASSERT(DataBuffer::mutex_ != nullptr);
   ResetBufferState();
@@ -281,9 +372,10 @@ void SdUtils::Run() {
             ERROR_PRINT(
                 "Logging is in an SD error state; reboot before stopping or "
                 "restarting\r\n");
-          } else if (file_open_ && state != CardState::DRAININGSTOP) {
-            BeginStop();
-            state = CardState::DRAININGSTOP;
+          } else if (file_open_ && state != CardState::DRAININGSTOP &&
+                     state != CardState::WAITINGPARAMSTOP) {
+            RequestParameterLogStop();
+            state = CardState::WAITINGPARAMSTOP;
           }
           break;
 
@@ -398,7 +490,7 @@ void SdUtils::Run() {
         // Do not spend the available buffer headroom on f_sync while older
         // buffers are queued. Once writes catch up, a sync starts with no
         // pending buffer and the producer has maximum ring capacity available.
-        if (buffers_since_sync_ >= kSyncEveryBuffers) {
+        if (buffers_since_sync_ >= sync_every_buffers_) {
           if (!SyncFile()) {
             CloseFile();
             PrintTelemetry();
@@ -421,6 +513,52 @@ void SdUtils::Run() {
             (next_flush_index_ + 1) % DataBuffer::kNumBuffers;
         state = CardState::IDLEREADY;
         continue;
+
+      case CardState::WAITINGPARAMSTOP:
+        // Keep releasing full buffers while Logger serializes the bounded
+        // parameter tail. Logger notifies this task when it acknowledges the
+        // cutoff, so the configurable idle timeout does not delay STOP.
+        if (IsBufferPending(next_flush_index_)) {
+          if (!WritePendingBuffer(next_flush_index_)) {
+            SetLoggingEnabled(false);
+            CloseFile();
+            PrintTelemetry();
+            state = CardState::ERROR;
+            break;
+          }
+          next_flush_index_ =
+              (next_flush_index_ + 1) % DataBuffer::kNumBuffers;
+          continue;
+        }
+        if ((DataBuffer::parameter_stop_requested_.load(
+                 std::memory_order_acquire) == 1U) &&
+            (parameters::ParameterStore::Instance()
+                 .PendingChangeRecordCount(
+                     DataBuffer::parameter_log_session_epoch_.load(
+                         std::memory_order_relaxed)) == 0U)) {
+          // Every application classified into the closed epoch now has an
+          // event or an explicit failed sequence. Later unrestricted updates
+          // use the next epoch, so continuous PARAM_SET traffic cannot extend
+          // this finite cutoff.
+          const uint32_t cutoff =
+              parameters::ParameterStore::Instance()
+                  .LatestRecordedChangeSequence();
+          DataBuffer::parameter_stop_cutoff_sequence_.store(
+              cutoff, std::memory_order_relaxed);
+          DataBuffer::parameter_stop_requested_.store(
+              2U, std::memory_order_release);
+        }
+        if ((DataBuffer::parameter_stop_requested_.load(
+                 std::memory_order_acquire) == 2U) &&
+            (DataBuffer::parameter_stop_acknowledged_.load(
+                 std::memory_order_acquire) != 0U)) {
+          BeginStop();
+          DataBuffer::parameter_stop_requested_.store(
+              0U, std::memory_order_release);
+          state = CardState::DRAININGSTOP;
+          continue;
+        }
+        break;
 
       case CardState::DRAININGSTOP:
         if (IsBufferPending(next_flush_index_)) {
@@ -461,7 +599,7 @@ void SdUtils::Run() {
 
     // A full buffer wakes this task immediately; the timeout preserves USB
     // command polling while no buffer needs service.
-    ulTaskNotifyTake(pdTRUE, pdMS_TO_TICKS(INTERVAL_MS));
+    ulTaskNotifyTake(pdTRUE, idle_wait_ticks_);
   }
 }
 

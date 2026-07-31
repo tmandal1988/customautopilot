@@ -43,6 +43,11 @@ private:
     static constexpr uint16_t kHeartbeatIntervalMs = 1000U;
     static constexpr uint16_t kParameterListIntervalMs = 50U;
     static constexpr uint16_t kTransportRetryIntervalMs = 10U;
+    // Upper bound on draining pending work before resetting anyway: covers
+    // the 2 s retained-parameter persistence debounce plus the Flash commit
+    // and the ACK's TX time, with margin. A reboot with nothing pending is
+    // not delayed at all.
+    static constexpr uint16_t kRebootDrainTimeoutMs = 4500U;
     static constexpr uint8_t kSysId       = 1;
     static constexpr uint8_t kCompId      = MAV_COMP_ID_AUTOPILOT1;
 
@@ -56,10 +61,15 @@ private:
     static constexpr size_t kMaxParameterValueFrameLength =
         MAVLINK_MSG_ID_PARAM_VALUE_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES +
         MAVLINK_SIGNATURE_BLOCK_LEN;
+    static constexpr size_t kMaxFtpFrameLength =
+        MAVLINK_MSG_ID_FILE_TRANSFER_PROTOCOL_LEN +
+        MAVLINK_NUM_NON_PAYLOAD_BYTES + MAVLINK_SIGNATURE_BLOCK_LEN;
     static_assert((kMavBuffSize & (kMavBuffSize - 1U)) == 0U);
     static_assert(kRxParseBudget <= kMavBuffSize);
     static_assert(kTxBufferSize <= UINT16_MAX);
     static_assert(kMaxParameterValueFrameLength <= MAVLINK_MAX_PACKET_LEN);
+    static_assert(kMaxFtpFrameLength <= MAVLINK_MAX_PACKET_LEN);
+    static_assert(kMaxFtpFrameLength <= kTxBufferSize);
     static_assert(std::atomic<uint32_t>::is_always_lock_free);
 
     static constexpr uint32_t kRxReadyEvent = 1UL << 0U;
@@ -130,6 +140,15 @@ private:
     void BuildGlobalPosition(uint32_t now_ms);
     void BuildGps(uint32_t now_ms);
     void BuildAttitude(uint32_t now_ms);
+    void BuildAutopilotVersion();
+    void BuildComponentMetadata(uint32_t now_ms);
+
+    // Read-only MAVLink FTP server for the embedded Component Metadata files.
+    void HandleFtpRequest(const mavlink_message_t* msg);
+    void ProcessFtpBurst();
+    bool TryQueueFtpPacket(const uint8_t* payload);
+    void QueueFtpNak(uint16_t request_seq, uint8_t session,
+                     uint8_t request_opcode, uint8_t error);
 
     enum class ParameterTxResult : uint8_t {
       Queued = 0U,
@@ -138,7 +157,9 @@ private:
     };
 
     bool QueueMessage(const mavlink_message_t& msg);
-    ParameterTxResult TryQueueParameterValue(uint16_t index, float value,
+    ParameterTxResult TryQueueParameterValue(
+                                             uint16_t index,
+                                             parameters::ParameterValue value,
                                              uint16_t parameter_count);
     ParameterTxResult TryQueueCurrentParameterValue(
         uint16_t index, uint16_t parameter_count);
@@ -146,6 +167,7 @@ private:
     void RequestParameterList(TickType_t now);
     void ProcessOneParameterResponse(TickType_t now);
     void SendBufferedDataIfReady(TickType_t now);
+    void ServicePendingReboot(TickType_t now);
     TickType_t ComputeWaitTicks(TickType_t now,
                                 TickType_t next_telemetry,
                                 TickType_t next_heartbeat) const;
@@ -169,7 +191,7 @@ private:
     bool has_pending_parameter_completion_ = false;
 
     struct PendingParameterReply {
-      float value;
+      parameters::ParameterValue value;
       uint16_t index;
       uint16_t parameter_count;
     };
@@ -182,6 +204,24 @@ private:
     uint32_t pending_parameter_reply_tail_ = 0U;
     mavlink_transport::ParameterListCursor parameter_list_cursor_{};
 
+    // A QGC-accepted PREFLIGHT_REBOOT_SHUTDOWN waits for pending retained-
+    // parameter Flash commits and for the ACK to drain out of both TX buffers
+    // (bounded by kRebootDrainTimeoutMs), then resets.
+    bool reboot_pending_ = false;
+    TickType_t reboot_deadline_ = 0U;
+
+    // Single-session read-only FTP state. A burst that outruns the TX buffer
+    // suspends here and resumes as DMA completions free space; dropped
+    // request/response replies rely on the client's retry mechanism.
+    const uint8_t* ftp_file_data_ = nullptr;
+    uint32_t ftp_file_size_ = 0U;
+    bool ftp_session_open_ = false;
+    bool ftp_burst_active_ = false;
+    uint32_t ftp_burst_offset_ = 0U;
+    uint16_t ftp_next_seq_ = 0U;
+    uint8_t ftp_peer_system_ = 0U;
+    uint8_t ftp_peer_component_ = 0U;
+
     uint32_t rx_overrun_count_ = 0U;
     uint32_t rx_dropped_byte_count_ = 0U;
     uint32_t rx_error_count_ = 0U;
@@ -192,5 +232,6 @@ private:
     uint32_t pending_parameter_reply_overflow_count_ = 0U;
     uint32_t parameter_response_error_count_ = 0U;
     uint32_t parameter_list_error_count_ = 0U;
+    uint32_t ftp_tx_drop_count_ = 0U;
 
 };

@@ -30,6 +30,8 @@ inline constexpr std::uint32_t kCommitMagic = 0x54494D43UL;  // "CMIT"
 inline constexpr std::uint16_t kRecordMagic = 0xA56CU;
 inline constexpr std::uint16_t kFormatVersion = 2U;
 inline constexpr std::uint8_t kReal32Type = 0U;
+inline constexpr std::uint8_t kInt32Type = 1U;
+inline constexpr std::uint8_t kBoolType = 2U;
 inline constexpr std::uint8_t kSetOperation = 1U;
 
 struct alignas(kFlashwordSize) SectorHeader {
@@ -171,9 +173,15 @@ inline bool IsValid(const SectorCommit& commit,
           Crc32(&commit, offsetof(SectorCommit, crc32)));
 }
 
-inline ParameterRecord MakeReal32Record(const char* zero_padded_name,
-                                        std::uint32_t value_bits,
-                                        std::uint32_t sequence) noexcept {
+inline bool IsSupportedValueType(std::uint8_t value_type) noexcept {
+  return (value_type == kReal32Type) || (value_type == kInt32Type) ||
+         (value_type == kBoolType);
+}
+
+inline ParameterRecord MakeRecord(const char* zero_padded_name,
+                                  std::uint32_t value_bits,
+                                  std::uint8_t value_type,
+                                  std::uint32_t sequence) noexcept {
   ParameterRecord record{};
   if (zero_padded_name != nullptr) {
     std::memcpy(record.name, zero_padded_name, sizeof(record.name));
@@ -181,7 +189,7 @@ inline ParameterRecord MakeReal32Record(const char* zero_padded_name,
   record.value_bits = value_bits;
   record.sequence = sequence;
   record.magic = kRecordMagic;
-  record.value_type = kReal32Type;
+  record.value_type = value_type;
   record.operation = kSetOperation;
   record.crc32 = Crc32(&record, offsetof(ParameterRecord, crc32));
   return record;
@@ -189,7 +197,7 @@ inline ParameterRecord MakeReal32Record(const char* zero_padded_name,
 
 inline bool IsValid(const ParameterRecord& record) noexcept {
   return (record.magic == kRecordMagic) &&
-         (record.value_type == kReal32Type) &&
+         IsSupportedValueType(record.value_type) &&
          (record.operation == kSetOperation) &&
          (record.crc32 ==
           Crc32(&record, offsetof(ParameterRecord, crc32)));
