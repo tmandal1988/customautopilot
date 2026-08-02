@@ -130,6 +130,12 @@ bool FindParameter(const char* id, std::size_t id_length,
         return true;
       }
       break;
+    case 0x592B3EC4UL:
+      if (ParameterIdEquals(id, id_length, "GPS_HOLD_THR")) {
+        *parameter_id = ParameterId::GpsHoldThr;
+        return true;
+      }
+      break;
     case 0x59AD1CDDUL:
       if (ParameterIdEquals(id, id_length, "LOG_IDLE_MS")) {
         *parameter_id = ParameterId::LogIdleMs;
@@ -205,6 +211,12 @@ bool FindParameter(const char* id, std::size_t id_length,
     case 0xED3E116CUL:
       if (ParameterIdEquals(id, id_length, "VELZ_KFF")) {
         *parameter_id = ParameterId::VelzKff;
+        return true;
+      }
+      break;
+    case 0xF220904DUL:
+      if (ParameterIdEquals(id, id_length, "GPS_DYN_MODEL")) {
+        *parameter_id = ParameterId::GpsDynModel;
         return true;
       }
       break;

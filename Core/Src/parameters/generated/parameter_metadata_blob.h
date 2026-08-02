@@ -14,12 +14,12 @@ inline constexpr char kComponentGeneralUri[] = "mftp://component_general.json";
 inline constexpr char kComponentGeneralPath[] = "component_general.json";
 inline constexpr char kParameterMetadataPath[] = "parameter_metadata.json";
 
-inline constexpr std::size_t kComponentGeneralJsonSize = 149U;
-inline constexpr std::uint32_t kComponentGeneralJsonCrc32 = 0xAE523071UL;
+inline constexpr std::size_t kComponentGeneralJsonSize = 148U;
+inline constexpr std::uint32_t kComponentGeneralJsonCrc32 = 0x4DF9AE08UL;
 extern const std::uint8_t kComponentGeneralJson[kComponentGeneralJsonSize];
 
-inline constexpr std::size_t kParameterMetadataJsonSize = 15948U;
-inline constexpr std::uint32_t kParameterMetadataJsonCrc32 = 0x6BD6A277UL;
+inline constexpr std::size_t kParameterMetadataJsonSize = 17348U;
+inline constexpr std::uint32_t kParameterMetadataJsonCrc32 = 0x289774B4UL;
 extern const std::uint8_t kParameterMetadataJson[kParameterMetadataJsonSize];
 
 }  // namespace parameters::generated

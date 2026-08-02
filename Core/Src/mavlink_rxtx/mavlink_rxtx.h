@@ -94,6 +94,9 @@ private:
 
     Subscriber<FcsDebugData> fcs_debug_sub_ = Subscriber<FcsDebugData>(TopicID::FCSDEBUG);
     FcsDebugData fcs_debug_data_ = {0};
+    // 0xFF is not a valid enumFlightMode value, so the first heartbeat cycle
+    // always sees a "change" and announces the actual boot mode once.
+    uint8_t last_announced_flt_mode_ = 0xFFU;
 
     double last_valid_lat_deg_ =  0.0;
     double last_valid_lon_deg_ = 0.0;
@@ -137,6 +140,7 @@ private:
     void NotifyTaskFromIsr(uint32_t event);
 
     void BuildHeartbeat();
+    void AnnounceFlightModeIfChanged();
     void BuildGlobalPosition(uint32_t now_ms);
     void BuildGps(uint32_t now_ms);
     void BuildAttitude(uint32_t now_ms);

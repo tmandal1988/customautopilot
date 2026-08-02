@@ -8,7 +8,8 @@ namespace parameters {
 enum class ParameterDomain : std::uint8_t {
   FlightControls = 0U,
   Logger = 1U,
-  Count = 2U,
+  Gps = 2U,
+  Count = 3U,
 };
 
 inline constexpr std::uint8_t kParameterDomainCount =

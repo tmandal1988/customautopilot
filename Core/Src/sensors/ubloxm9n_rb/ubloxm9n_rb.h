@@ -14,7 +14,10 @@
 #include "pubsub/publisher.h"
 #include "constants.h"
 #include "debug.h"
+#include "parameters/parameter_store.h"
+#include "ubloxm9n_rb_parameter_catalog.h"
 
+#include <atomic>
 #include <cstring>  // Include this header for memcpy
 #include <inttypes.h>
 
@@ -27,10 +30,19 @@ public:
 
 	void Run() override;
 
+	// ISR context: only raises a flag. Recovery runs from Run() so it can
+	// never race the task's own DMA management (e.g. SetBaudrate() already
+	// in progress during InitGps()).
+	static void UartError(UART_HandleTypeDef* huart);
+
 	static ReadUbloxM9nRb* ubloxm9n_rb_instance_handle_;
 
 private:
 	static constexpr uint16_t READ_INTERVAL_MS = 25; // 40Hz
+	// If no valid NAV-PVT frame has been parsed for this long, the link is
+	// treated as lost (physically unplugged, or wedged past what the UART
+	// error recovery alone can fix) and a full InitGps() is retried.
+	static constexpr uint32_t GPS_STALE_TIMEOUT_MS = 3000;
 	// Tx and Rx max delay (ms) in polling mode
 	static constexpr uint32_t txrx_delay_ms_ = 50;
 
@@ -55,6 +67,7 @@ private:
 	static constexpr uint8_t ID_RST 												= 0x04;
 	static constexpr uint8_t ID_RATE 												= 0x08;
 	static constexpr uint8_t ID_CFG 												= 0x09;
+	static constexpr uint8_t ID_SBAS 												= 0x16;
 	static constexpr uint8_t ID_NAV5 												= 0x24;
 
 
@@ -189,11 +202,21 @@ private:
 		uint16_t time_ref;
 	};
 
+	struct PACKED UbloxM9nCfgSbas {
+		uint8_t mode;
+		uint8_t usage;
+		uint8_t max_sbas;
+		uint8_t scan_mode2;
+		uint32_t scan_mode1;
+	};
+
 	UART_HandleTypeDef* gps_uart_;  // UART handle to receive data from GPS
 	uint32_t current_baudrate_;
 
 	uint8_t rx_buffer_[MAX_BUFF_SIZE] = {0};
 	size_t last_read_index_ = 0;
+	std::atomic<bool> uart_error_pending_{false};
+	TickType_t last_valid_frame_tick_ = 0;
 	uint8_t nav_pvt_raw_buff_[UBX_NAV_PVT_SIZE] = {0};
 	UbloxM9nNavPvt nav_pvt_data_;
 
@@ -234,6 +257,9 @@ private:
 	void UbloxM9nUartInit(uint32_t baudrate);
 	void FlushUartDataRegister();
 	void SetBaudrate(const uint32_t baudrate);
+	// Restarts only DMA reception (no baud/UBX renegotiation) after a UART
+	// error. Runs from Run(), never from the ISR itself.
+	void RecoverUartDma();
 	void CalculateChecksum(uint8_t *buffer, uint16_t length, uint8_t *ck_a, uint8_t *ck_b);
 	bool TxUartUbxPollCmd(const UbxMessage *message, const uint16_t wait_ms);
 	bool RxUartUbxPollMsg(const uint8_t class_id, const uint8_t msg_id, const uint16_t wait_ms);
@@ -243,7 +269,11 @@ private:
 	bool ConfigGpsUart1(const uint32_t baudrate);
 	bool ConfigPrtProtocol(uint8_t port_id, uint16_t proto_mask);
 	bool ConfigAuxPrts();
-	bool ConfigNav5();
+	// dyn_model/static_hold_thresh come from the GPS_DYN_MODEL/GPS_HOLD_THR
+	// QGC parameters (OnReboot activation): read once per InitGps() call by
+	// the caller, never touched again until the next GPS module init.
+	bool ConfigNav5(uint8_t dyn_model, uint8_t static_hold_thresh);
+	bool ConfigSbas();
 	bool EnableNavPvtMsg();
 	bool DisableNavPvtMsg();
 

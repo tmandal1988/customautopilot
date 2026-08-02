@@ -10,6 +10,7 @@
 
 #include "mavlink_rxtx.h"
 
+#include <cstdio>
 #include <cstring>
 
 #include "mavlink_ftp_protocol.h"
@@ -59,6 +60,29 @@ const FtpFileEntry* FindFtpFile(const uint8_t* path,
     }
   }
   return nullptr;
+}
+
+// Deliberately NOT MAV_AUTOPILOT_PX4: that identity also switches on QGC's
+// PX4-specific Vehicle Setup pages (sensor calibration, safety/failsafe,
+// tuning), all of which assume real PX4 parameters/protocol underneath and
+// would silently hang or show misleading state on this firmware. Staying
+// MAV_AUTOPILOT_GENERIC means QGC's mode indicator only ever shows
+// "Custom:0x<n>", so custom_mode is kept equal to the plain enumFlightMode
+// value (0-3) to keep that hex readable rather than encoding it PX4-style.
+// The actual mode name is announced separately via STATUSTEXT (see
+// AnnounceFlightModeIfChanged()) so it is visible without claiming PX4.
+const char* FlightModeName(enumFlightMode mode) {
+  switch (mode) {
+    case enumFlightMode::ACRO:
+      return "ACRO";
+    case enumFlightMode::STABILIZE:
+      return "STABILIZE";
+    case enumFlightMode::ALT_CONTROL:
+      return "ALT_CONTROL";
+    case enumFlightMode::POS_CONTROL:
+      return "POS_CONTROL";
+  }
+  return "UNKNOWN";
 }
 
 }  // namespace
@@ -384,15 +408,46 @@ void MavlinkRxTx::BuildHeartbeat() {
 			break;
 	}
 
+	AnnounceFlightModeIfChanged();
+
+	// MAV_AUTOPILOT_GENERIC (not PX4/ArduPilot): this is a from-scratch
+	// autopilot, and claiming PX4 would switch on QGC's PX4-specific setup
+	// pages (calibration, safety/failsafe, tuning) that assume real PX4
+	// parameters/protocol underneath -- see AnnounceFlightModeIfChanged() for
+	// how the mode name is still surfaced without that false identity.
+	// MAV_MODE_FLAG_CUSTOM_MODE_ENABLED is still set so QGC's generic mode
+	// indicator shows "Custom:0x<n>" with the plain enumFlightMode value
+	// rather than nothing; it is OR'd in here only, so base_mode_'s
+	// armed/disarmed comparisons elsewhere in this file stay on the plain
+	// MAV_MODE_MANUAL_* values.
 	PackAndQueue(mavlink_msg_heartbeat_pack,
 			   kSysId,
 			   kCompId,
 			   &tx_msg_,
 			   MAV_TYPE_QUADROTOR,
 			   MAV_AUTOPILOT_GENERIC,
-			   base_mode_,
-			   0,
+			   static_cast<uint8_t>(base_mode_ | MAV_MODE_FLAG_CUSTOM_MODE_ENABLED),
+			   static_cast<uint32_t>(fcs_debug_data_.flt_mode),
 			   MAV_STATE_STANDBY);
+}
+
+void MavlinkRxTx::AnnounceFlightModeIfChanged() {
+	if (fcs_debug_data_.flt_mode == last_announced_flt_mode_) {
+		return;
+	}
+	last_announced_flt_mode_ = fcs_debug_data_.flt_mode;
+
+	char text[50] = {0};
+	std::snprintf(text, sizeof(text), "Mode: %s",
+			FlightModeName(static_cast<enumFlightMode>(fcs_debug_data_.flt_mode)));
+	PackAndQueue(mavlink_msg_statustext_pack,
+			   kSysId,
+			   kCompId,
+			   &tx_msg_,
+			   MAV_SEVERITY_INFO,
+			   text,
+			   0,
+			   0);
 }
 
 void MavlinkRxTx::BuildAutopilotVersion() {

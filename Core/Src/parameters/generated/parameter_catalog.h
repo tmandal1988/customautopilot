@@ -44,7 +44,9 @@ enum class ParameterId : std::uint16_t {
   VelneTiltMax = 31U,
   LogSyncBufs = 32U,
   LogIdleMs = 33U,
-  Count = 34U,
+  GpsDynModel = 34U,
+  GpsHoldThr = 35U,
+  Count = 36U,
 };
 
 inline constexpr std::uint16_t kParameterCount =
@@ -260,6 +262,18 @@ inline constexpr std::array<ParameterDescriptor, kParameterCount>
      MakeInt32Value(50).bits,
      MakeInt32Value(5000).bits, 1U,
      ParameterPersistencePolicy::RetainedOverride},
+    {"GPS_DYN_MODEL", ParameterDomain::Gps,
+     ParameterValueType::Int32,
+     ParameterActivationPolicy::OnReboot,
+     MakeInt32Value(0).bits,
+     MakeInt32Value(12).bits, 0U,
+     ParameterPersistencePolicy::RetainedOverride},
+    {"GPS_HOLD_THR", ParameterDomain::Gps,
+     ParameterValueType::Int32,
+     ParameterActivationPolicy::OnReboot,
+     MakeInt32Value(0).bits,
+     MakeInt32Value(255).bits, 1U,
+     ParameterPersistencePolicy::RetainedOverride},
 }};
 
 inline constexpr std::array<std::uint32_t, kParameterCount>
@@ -270,19 +284,19 @@ inline constexpr std::array<std::uint32_t, kParameterCount>
     MakeReal32Value(0.0F).bits,
     MakeReal32Value(0.0F).bits,
     MakeReal32Value(1.60000002F).bits,
-    MakeReal32Value(1.25F).bits,
-    MakeReal32Value(1.25F).bits,
+    MakeReal32Value(1.5F).bits,
+    MakeReal32Value(1.5F).bits,
     MakeReal32Value(0.200000003F).bits,
     MakeReal32Value(0.200000003F).bits,
     MakeReal32Value(0.0F).bits,
     MakeReal32Value(0.0F).bits,
     MakeReal32Value(0.0F).bits,
     MakeReal32Value(0.0F).bits,
-    MakeReal32Value(0.75F).bits,
-    MakeReal32Value(0.75F).bits,
     MakeReal32Value(0.5F).bits,
     MakeReal32Value(0.5F).bits,
-    MakeReal32Value(2.5F).bits,
+    MakeReal32Value(0.75F).bits,
+    MakeReal32Value(0.75F).bits,
+    MakeReal32Value(1.85000002F).bits,
     MakeReal32Value(2.4000001F).bits,
     MakeReal32Value(0.400000006F).bits,
     MakeReal32Value(2.25F).bits,
@@ -292,12 +306,14 @@ inline constexpr std::array<std::uint32_t, kParameterCount>
     MakeReal32Value(32.0F).bits,
     MakeReal32Value(0.5F).bits,
     MakeReal32Value(32.0F).bits,
-    MakeReal32Value(0.550000012F).bits,
+    MakeReal32Value(0.5F).bits,
     MakeReal32Value(30.0F).bits,
     MakeReal32Value(1.0F).bits,
     MakeReal32Value(0.69813168F).bits,
     MakeInt32Value(8).bits,
     MakeInt32Value(500).bits,
+    MakeInt32Value(7).bits,
+    MakeInt32Value(10).bits,
 }};
 
 consteval std::uint16_t CountPersistentParameters() noexcept {
@@ -327,6 +343,8 @@ constexpr bool LiveDomainSlot(ParameterDomain domain,
       return true;
     case ParameterDomain::Logger:
       break;
+    case ParameterDomain::Gps:
+      break;
     case ParameterDomain::Count:
       break;
   }
@@ -335,6 +353,7 @@ constexpr bool LiveDomainSlot(ParameterDomain domain,
 
 static_assert(static_cast<std::uint8_t>(ParameterDomain::FlightControls) == 0U);
 static_assert(static_cast<std::uint8_t>(ParameterDomain::Logger) == 1U);
+static_assert(static_cast<std::uint8_t>(ParameterDomain::Gps) == 2U);
 static_assert(IsValidParameterId("VELZ_KP"));
 static_assert(IsValidParameterId("VELZ_KI"));
 static_assert(IsValidParameterId("VELZ_KFF"));
@@ -369,6 +388,8 @@ static_assert(IsValidParameterId("RATE_YAW_KI"));
 static_assert(IsValidParameterId("VELNE_TILT_MAX"));
 static_assert(IsValidParameterId("LOG_SYNC_BUFS"));
 static_assert(IsValidParameterId("LOG_IDLE_MS"));
+static_assert(IsValidParameterId("GPS_DYN_MODEL"));
+static_assert(IsValidParameterId("GPS_HOLD_THR"));
 
 bool FindParameter(const char* id, std::size_t id_length,
                    ParameterId* parameter_id) noexcept;

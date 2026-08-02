@@ -9,6 +9,7 @@
 //#include "sensors/ubloxm9n/ubloxm9n.h"
 #include "sensors/ubloxm9n2/ubloxm9n2.h"
 //#include "sensors/ubloxm8n/ubloxm8n.h"
+#include "sensors/ubloxm9n_rb/ubloxm9n_rb.h"
 #include "mavlink_rxtx/mavlink_rxtx.h"
 
 extern "C" void HAL_UART_RxCpltCallback(UART_HandleTypeDef* huart) {
@@ -56,6 +57,8 @@ extern "C" void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef* huart,
 extern "C" void HAL_UART_ErrorCallback(UART_HandleTypeDef* huart) {
     if ((huart != nullptr) && (huart->Instance == TELEM)) {
         MavlinkRxTx::UartError(huart);
+    } else if ((huart != nullptr) && (huart->Instance == GPSUART)) {
+        ReadUbloxM9nRb::UartError(huart);
     }
 }
 

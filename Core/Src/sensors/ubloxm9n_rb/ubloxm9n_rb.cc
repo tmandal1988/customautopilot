@@ -78,7 +78,26 @@ void ReadUbloxM9nRb::SetBaudrate(const uint32_t baudrate){
 	FlushUartDataRegister();
 	osDelay(10);
 	HAL_UART_Receive_DMA(gps_uart_, rx_buffer_, MAX_BUFF_SIZE);
+	// The DMA write pointer restarts at 0 with this fresh transfer; the read
+	// cursor must restart with it. Left stale, ProcessUbloxFrame() would read
+	// the wraparound branch and misreport most of a freshly-zeroed buffer as
+	// "available", burning a pass parsing garbage before sync recovers.
+	last_read_index_ = 0;
 	osDelay(10);
+}
+
+void ReadUbloxM9nRb::RecoverUartDma(){
+	HAL_UART_DMAStop(gps_uart_);
+	FlushUartDataRegister();
+	HAL_UART_Receive_DMA(gps_uart_, rx_buffer_, MAX_BUFF_SIZE);
+	last_read_index_ = 0;
+}
+
+void ReadUbloxM9nRb::UartError(UART_HandleTypeDef* huart){
+	ReadUbloxM9nRb* instance = ubloxm9n_rb_instance_handle_;
+	if ((instance != nullptr) && (huart == instance->gps_uart_)) {
+		instance->uart_error_pending_.store(true, std::memory_order_release);
+	}
 }
 
 void ReadUbloxM9nRb::FlushUartDataRegister(){
@@ -181,7 +200,7 @@ bool ReadUbloxM9nRb::ResetGps(){
 	bool status  = TxUartUbxPollCmd(&ubx_cfg_rst, txrx_delay_ms_);
 
 	// Reset command may not send ACK, just wait
-	HAL_Delay(3000);
+	osDelay(3000);
 	return status;
 }
 
@@ -524,7 +543,7 @@ bool ReadUbloxM9nRb::ConfigAuxPrts(){
 	return status;
 }
 
-bool ReadUbloxM9nRb::ConfigNav5(){
+bool ReadUbloxM9nRb::ConfigNav5(uint8_t dyn_model, uint8_t static_hold_thresh){
 	// Poll UBX-CFG-NAV5 message
 	UbxMessage ubx_cfg_nav5;
 	UbloxM9nCfgNav5 ubx_cfg_nav5_msg {};
@@ -551,6 +570,7 @@ bool ReadUbloxM9nRb::ConfigNav5(){
 		DEBUG_PRINT("GPS Module: ***********************************************\n");
 		DEBUG_PRINT("GPS Module: Current Dynamic Model: %d\n", ubx_cfg_nav5_msg.dyn_model);
 		DEBUG_PRINT("GPS Module: Current Fix Mode: %d\n", ubx_cfg_nav5_msg.fix_mode);
+		DEBUG_PRINT("GPS Module: Current Static Hold Threshold: %d cm/s\n", ubx_cfg_nav5_msg.static_hold_thresh);
 		DEBUG_PRINT("GPS Module: ***********************************************\n");
 	}else{
 		ERROR_PRINT("GPS Module: CFG-NAV5 Poll request failed\n");
@@ -561,12 +581,19 @@ bool ReadUbloxM9nRb::ConfigNav5(){
 	//No need to check the result as we have safeguards below.
 	RxUartUbxPollMsg(CLASS_ACK, ID_ACK, txrx_delay_ms_);
 
-	if (ubx_cfg_nav5_msg.dyn_model != 8 ||
-			ubx_cfg_nav5_msg.fix_mode	!= 2){
-		// Change dynamic model to airborne < 4g and use only 3D fix
-		ubx_cfg_nav5_msg.dyn_model = 8;
+	if (ubx_cfg_nav5_msg.dyn_model != dyn_model ||
+			ubx_cfg_nav5_msg.fix_mode	!= 2 ||
+			ubx_cfg_nav5_msg.static_hold_thresh != static_hold_thresh){
+		// Apply the configured dynamic model, force 3D-only fixes, and enable
+		// static-hold jitter suppression below the configured speed threshold.
+		// staticHoldMaxDist is deliberately left as whatever the poll above
+		// read back, matching this driver's existing touch-only-what-changes
+		// pattern for every other NAV5 field.
+		ubx_cfg_nav5_msg.dyn_model = dyn_model;
 		ubx_cfg_nav5_msg.fix_mode = 2;
-		ubx_cfg_nav5_msg.mask = 0x05;
+		ubx_cfg_nav5_msg.static_hold_thresh = static_hold_thresh;
+		// mask: bit0 (dyn) | bit2 (fixMode) | bit6 (staticHoldMask).
+		ubx_cfg_nav5_msg.mask = 0x45;
 
 		// Create a CFG message to send to Ublox
 		ubx_cfg_nav5.length = sizeof(UbloxM9nCfgNav5);
@@ -604,8 +631,9 @@ bool ReadUbloxM9nRb::ConfigNav5(){
 			}
 			std::memcpy(&ubx_cfg_nav5_msg, packet_.payload, copy_len);
 			DEBUG_PRINT("GPS Module: ***********************************************\n");
-			DEBUG_PRINT("GPS Module: Current Dynamic Model: %d\n", ubx_cfg_nav5_msg.dyn_model);
-			DEBUG_PRINT("GPS Module: Current Fix Mode: %d\n", ubx_cfg_nav5_msg.fix_mode);
+			DEBUG_PRINT("GPS Module: Updated Dynamic Model: %d\n", ubx_cfg_nav5_msg.dyn_model);
+			DEBUG_PRINT("GPS Module: Updated Fix Mode: %d\n", ubx_cfg_nav5_msg.fix_mode);
+			DEBUG_PRINT("GPS Module: Updated Static Hold Threshold: %d cm/s\n", ubx_cfg_nav5_msg.static_hold_thresh);
 			DEBUG_PRINT("GPS Module: ***********************************************\n");
 		}else{
 			ERROR_PRINT("GPS Module: CFG-NAV5 Poll request failed after updating the CFG-NAV5\n");
@@ -616,6 +644,96 @@ bool ReadUbloxM9nRb::ConfigNav5(){
 		RxUartUbxPollMsg(CLASS_ACK, ID_ACK, txrx_delay_ms_);
 
 		//Save the NAV5 config
+		status = UbxSaveCfg(0x00000008);
+		return status;
+	}else{
+		return true;
+	}
+}
+
+bool ReadUbloxM9nRb::ConfigSbas(){
+	// Poll UBX-CFG-SBAS message
+	UbxMessage ubx_cfg_sbas;
+	UbloxM9nCfgSbas ubx_cfg_sbas_msg {};
+
+	ubx_cfg_sbas.class_id = CLASS_CFG;
+	ubx_cfg_sbas.msg_id = ID_SBAS;
+	ubx_cfg_sbas.length = 0;
+	ubx_cfg_sbas.payload = NULL;
+
+	// Send the UBX-CFG-SBAS request
+	bool status = TxUartUbxPollCmd(&ubx_cfg_sbas, txrx_delay_ms_);
+	if(!status){
+		DEBUG_PRINT("GPS Module: ConfigSbas - Transmit failure - 1\n");
+		return false;
+	}
+
+	// UBX-CFG-SBAS payload length = 8
+	if(RxUartUbxPollMsg(CLASS_CFG, ID_SBAS, txrx_delay_ms_)){
+		size_t copy_len = sizeof(ubx_cfg_sbas_msg);
+		if (packet_.len < copy_len) {
+			// if payload smaller than struct, copy only what's there
+			copy_len = packet_.len;
+		}
+		std::memcpy(&ubx_cfg_sbas_msg, packet_.payload, copy_len);
+		DEBUG_PRINT("GPS Module: ***********************************************\n");
+		DEBUG_PRINT("GPS Module: Current SBAS Mode: 0x%02x, Usage: 0x%02x, MaxSBAS: %d\n",
+				ubx_cfg_sbas_msg.mode, ubx_cfg_sbas_msg.usage, ubx_cfg_sbas_msg.max_sbas);
+		DEBUG_PRINT("GPS Module: ***********************************************\n");
+	}else{
+		ERROR_PRINT("GPS Module: CFG-SBAS Poll request failed\n");
+		return false;
+	}
+
+	//It also sends an ACK receive it so that cicular buffer is stepped forward
+	//No need to check the result as we have safeguards below.
+	RxUartUbxPollMsg(CLASS_ACK, ID_ACK, txrx_delay_ms_);
+
+	constexpr uint8_t kSbasEnableMode = 0x01; // enabled, not test mode
+	// range + diffCorr only. Deliberately NOT setting bit2 (integrity, 0x04):
+	// that flag restricts the nav solution to only GPS satellites for which
+	// SBAS currently has valid integrity data, which is a moving/incomplete
+	// subset in practice. On a airborne vehicle whose attitude constantly
+	// changes, the antenna's view of the one low-elevation geostationary SBAS
+	// satellite drops out far more than on a stationary/ground receiver,
+	// which starves integrity coverage and causes the receiver to shed most
+	// GPS satellites from the solution -- a documented u-blox failure mode
+	// (their own support portal has reports titled "'Apply integrity
+	// information' in UBX-CFG-SBAS causes FIX losses" and "Behavior of
+	// 'Strict SBAS Integrity Mode' when no SBAS satellites are visible").
+	// Range+diffCorr alone still gets the accuracy benefit without this risk.
+	constexpr uint8_t kSbasUsage = 0x03;
+	constexpr uint8_t kSbasMaxChannels = 3;   // track up to 3 SBAS satellites
+
+	if (ubx_cfg_sbas_msg.mode != kSbasEnableMode ||
+			ubx_cfg_sbas_msg.usage != kSbasUsage ||
+			ubx_cfg_sbas_msg.max_sbas != kSbasMaxChannels){
+		ubx_cfg_sbas_msg.mode = kSbasEnableMode;
+		ubx_cfg_sbas_msg.usage = kSbasUsage;
+		ubx_cfg_sbas_msg.max_sbas = kSbasMaxChannels;
+		// All-zero PRN mask lets the receiver auto-search every supported
+		// SBAS system (WAAS/EGNOS/MSAS/...) instead of requiring one fixed,
+		// region-specific PRN list baked into firmware.
+		ubx_cfg_sbas_msg.scan_mode2 = 0;
+		ubx_cfg_sbas_msg.scan_mode1 = 0;
+
+		ubx_cfg_sbas.length = sizeof(UbloxM9nCfgSbas);
+		ubx_cfg_sbas.payload = (uint8_t*)&ubx_cfg_sbas_msg;
+
+		status = TxUartUbxPollCmd(&ubx_cfg_sbas, txrx_delay_ms_);
+		if(!status){
+			DEBUG_PRINT("GPS Module: ConfigSbas - Transmit failure - 2\n");
+			return false;
+		}
+
+		if(RxUartUbxPollMsg(CLASS_ACK, ID_ACK, txrx_delay_ms_) &&
+					packet_.payload[0] == CLASS_CFG && packet_.payload[1] == ID_SBAS){
+			DEBUG_PRINT("GPS Module: Configuration change acknowledged for SBAS\n");
+		}else{
+			ERROR_PRINT("GPS Module: Configuration change not acknowledged for SBAS\n");
+			return false;
+		}
+
 		status = UbxSaveCfg(0x00000008);
 		return status;
 	}else{
@@ -721,7 +839,30 @@ bool ReadUbloxM9nRb::InitGps(uint32_t baudrate, uint16_t time_bw_samples_ms, uin
 		SetBaudrate(baudrate);
 		current_baudrate_ = baudrate;
 		status &= ConfigAuxPrts();
-		status &= ConfigNav5();
+
+		// GPS_DYN_MODEL/GPS_HOLD_THR are OnReboot QGC parameters: read the
+		// currently configured value exactly once, here at GPS module boot.
+		// A QGC edit stages a new configured value immediately but only
+		// takes effect the next time this function runs (next GPS boot).
+		// The generated compile-time default is the safe fallback if the
+		// store read ever fails (e.g. an unexpected type/range mismatch).
+		std::int32_t dyn_model_param =
+				parameters::generated::kGpsParameterDefaults.dyn_model;
+		std::int32_t static_hold_param = parameters::generated::
+				kGpsParameterDefaults.static_hold_thresh_cmps;
+		auto& param_store = parameters::ParameterStore::Instance();
+		if (!param_store.ReadInt32(parameters::generated::ParameterId::GpsDynModel,
+				&dyn_model_param)) {
+			DEBUG_PRINT("GPS Module: Falling back to default GPS_DYN_MODEL\n");
+		}
+		if (!param_store.ReadInt32(parameters::generated::ParameterId::GpsHoldThr,
+				&static_hold_param)) {
+			DEBUG_PRINT("GPS Module: Falling back to default GPS_HOLD_THR\n");
+		}
+
+		status &= ConfigNav5(static_cast<uint8_t>(dyn_model_param),
+				static_cast<uint8_t>(static_hold_param));
+		status &= ConfigSbas();
 		status &= ConfigGpsMeasRate(time_bw_samples_ms, nav_rate);
 		FlushUartDataRegister();
 		status &= EnableNavPvtMsg();
@@ -941,7 +1082,12 @@ bool ReadUbloxM9nRb::ParseUbx(uint8_t byte)
 void ReadUbloxM9nRb::Run() {
 	Publisher<GpsData> ubloxm9n_pub(TopicID::UBLOXM9N);
 	osDelay(100);
-	bool gps_status = InitGps(921600U, 50, 1);
+	// 40 ms measurement period (25 Hz nav solution): shortens the inter-update
+	// gap the EKF dead-reckons across between GPS corrections, versus the
+	// previous 50 ms/20 Hz. ConfigGpsMeasRate() reads back the applied rate,
+	// so an unsupported value for this module's enabled constellation set is
+	// self-diagnosing via the existing DEBUG_PRINT readback, not a hazard.
+	bool gps_status = InitGps(921600U, 40, 1);
 	(void)gps_status;
 	TickType_t xLastWakeTime;
 	const TickType_t xFrequency = pdMS_TO_TICKS(READ_INTERVAL_MS);
@@ -949,6 +1095,9 @@ void ReadUbloxM9nRb::Run() {
 	osDelay(250);
 	// Initialize the periodic schedule after the startup delay.
 	xLastWakeTime = xTaskGetTickCount();
+	// A failed/absent InitGps() above starts this at the current tick too, so
+	// the watchdog below fires on schedule instead of assuming success.
+	last_valid_frame_tick_ = xLastWakeTime;
 	UbloxM9nNavPvt nav_pvt_data_{};
 //	int blink_counter = 0;
     /* Infinite loop */
@@ -961,7 +1110,14 @@ void ReadUbloxM9nRb::Run() {
 //			used, highWaterMark * sizeof(StackType_t), 1296);
 //    	}
 
+    	// Recovery runs here, in the task's own context, never in the ISR.
+    	if (uart_error_pending_.exchange(false, std::memory_order_acq_rel)) {
+    		DEBUG_PRINT("GPS Module: UART error observed, restarting DMA reception\n");
+    		RecoverUartDma();
+    	}
+
     	if(ProcessUbloxFrame() && packet_.cls == CLASS_NAV && packet_.id == ID_PVT){
+    		last_valid_frame_tick_ = xTaskGetTickCount();
     		memcpy(&nav_pvt_data_, packet_.payload, sizeof(UbloxM9nNavPvt));
     		gps_data_.i_tow = nav_pvt_data_.i_tow;
 			gps_data_.valid = nav_pvt_data_.valid;
@@ -988,6 +1144,26 @@ void ReadUbloxM9nRb::Run() {
 //    		DEBUG_PRINT("GPS Module: iTOW: %lu, fix_type: %d, lat_rad: %g, lon_rad: %g, alt_m: %g\n",
 //    					gps_data_.i_tow, gps_data_.fix_type, gps_data_.latitude_rad, gps_data_.longitude_rad, gps_data_.altitude_m);
     		new_nav_pvt_frame_ = false;
+    	}
+
+    	// No valid NAV-PVT for GPS_STALE_TIMEOUT_MS: either the module was
+    	// never successfully initialized (InitGps()'s result at boot is
+    	// otherwise silently discarded), or it went away later (unplugged, or
+    	// wedged past what UART error recovery alone fixes -- EnableNavPvtMsg()
+    	// is never persisted to the module's NVM, so a power-cycle reliably
+    	// stops NAV-PVT output even if the link itself recovers). Re-running
+    	// the full sequence blocks only this task; nothing else depends on it
+    	// synchronously, so a multi-second retry here is real-time safe.
+    	if ((xTaskGetTickCount() - last_valid_frame_tick_) >
+    			pdMS_TO_TICKS(GPS_STALE_TIMEOUT_MS)) {
+    		DEBUG_PRINT("GPS Module: No valid NAV-PVT for %lu ms, reinitializing\n",
+    				(unsigned long)GPS_STALE_TIMEOUT_MS);
+    		const bool reinit_status = InitGps(921600U, 40, 1);
+    		(void)reinit_status;
+    		// Restart the countdown regardless of outcome: a fresh window to
+    		// see whether data resumes, rather than retrying every 25 ms tick
+    		// while the link stays down.
+    		last_valid_frame_tick_ = xTaskGetTickCount();
     	}
 
     	// Wait until the next cycle
