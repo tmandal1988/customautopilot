@@ -884,6 +884,8 @@ void MavlinkRxTx::Run() {
         now + pdMS_TO_TICKS(kTransportRetryIntervalMs);
   }
 
+  ConfigureEventMetrics();
+
   for (;;) {
     now = xTaskGetTickCount();
     uint32_t events = 0U;
@@ -891,6 +893,7 @@ void MavlinkRxTx::Run() {
     const TickType_t wait_ticks =
         ComputeWaitTicks(now, next_telemetry, next_heartbeat);
     (void)xTaskNotifyWait(0U, kAllTaskEvents, &events, wait_ticks);
+    BeginMetricsCycle();
     now = xTaskGetTickCount();
     if (replay_wait_elapsed) {
       tx_replay_wait_pending_ = false;
@@ -964,6 +967,7 @@ void MavlinkRxTx::Run() {
     	new_mavlink_data_ = false;
     	mavlink_pub_.publish(mavlink_data_);
     }
+    EndMetricsCycle();
   }
 }
 

@@ -14,11 +14,10 @@
 
 class BlinkLedTask : public TaskBase {
 public:
-    BlinkLedTask() : TaskBase("BlinkLedTask", 512, osPriorityNormal) {}
+    BlinkLedTask() : TaskBase("BlinkLedTask", 768, osPriorityNormal) {}
 
     void Run() override;
 };
 
 // Static instance for self-registration
 BlinkLedTask blink_led_task_instance_;
-

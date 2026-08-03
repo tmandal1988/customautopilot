@@ -70,8 +70,13 @@ void PwmCmds::Run() {
 	osDelay(2000);
 #ifndef MODE_TEST
 	TickType_t xLastWakeTime = xTaskGetTickCount();
+	ConfigurePeriodicMetrics(LOOP_INTERVAL_MS * 1000U,
+			LOOP_INTERVAL_MS * 1000U);
 #endif
 	while(1){
+#ifndef MODE_TEST
+		BeginMetricsCycle();
+#endif
 #ifdef MODE_TEST
 		//Sequence through each motors
 //		DEBUG_PRINT("Current Mtr Idx: %d, Current PWM Val: %d\n", current_mtr_idx, current_pwm_val);
@@ -148,6 +153,7 @@ void PwmCmds::Run() {
 		    __HAL_TIM_SET_COMPARE(pwm_timer1_, TIM_CHANNEL_4, static_cast<uint16_t>(pwm_oneshot42_cmd));
 		}
 
+		EndMetricsCycle();
 		vTaskDelayUntil(&xLastWakeTime, loop_frequency);
 
 #else
@@ -164,9 +170,8 @@ void PwmCmds::Run() {
 			pwm_oneshot42_cmd = PwmToOneShot(pwm_data_.pwm_cmds[3]);
 			__HAL_TIM_SET_COMPARE(pwm_timer1_, TIM_CHANNEL_4, pwm_oneshot42_cmd);
 		}
+		EndMetricsCycle();
 		vTaskDelayUntil(&xLastWakeTime, loop_frequency);
 #endif
 	}
 }
-
-

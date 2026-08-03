@@ -33,6 +33,8 @@
 /* USER CODE BEGIN Includes */
 #include "logger/data_buffer.h"
 #include "parameters/parameter_store.h"
+#include "rtos_metrics/rtos_metrics.h"
+#include "fault_diagnostics/fault_diagnostics.h"
 
 /* USER CODE END Includes */
 
@@ -131,7 +133,7 @@ int main(void)
   /* Enable the CPU Cache */
 
   /* Enable I-Cache---------------------------------------------------------*/
-//  SCB_EnableICache();
+  SCB_EnableICache();
 //
 //  /* Enable D-Cache---------------------------------------------------------*/
 //  SCB_EnableDCache();
@@ -149,6 +151,12 @@ int main(void)
   SystemClock_Config();
 
   /* USER CODE BEGIN SysInit */
+
+  // Free-running hardware cycle counter used by the bounded RTOS metrics
+  // probes. It is initialized before any executor can run.
+#if RTOS_METRICS_ENABLE
+  rtos_metrics::Initialize();
+#endif
 
   /* USER CODE END SysInit */
 
@@ -1124,11 +1132,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 void Error_Handler(void)
 {
   /* USER CODE BEGIN Error_Handler_Debug */
-  /* User can add his own implementation to report the HAL error return state */
-  __disable_irq();
-  while (1)
-  {
-  }
+  FaultDiagnostics_CaptureError();
   /* USER CODE END Error_Handler_Debug */
 }
 

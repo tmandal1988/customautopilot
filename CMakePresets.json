@@ -9,11 +9,32 @@
       "binaryDir": "${sourceDir}/build/gcc-13.3-debug",
       "toolchainFile": "${sourceDir}/cmake/gcc-arm-none-eabi.cmake",
       "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "Debug"
+        "CMAKE_BUILD_TYPE": "Debug",
+        "ENABLE_RTOS_METRICS": "OFF",
+        "ENABLE_RTOS_METRICS_LOGGING": "OFF",
+        "ENABLE_RTOS_CONTEXT_SWITCH_METRICS": "OFF",
+        "ENABLE_RTOS_STACK_WATERMARK_METRICS": "OFF",
+        "ENABLE_RTOS_STACK_OVERFLOW_DIAGNOSTICS": "OFF"
+      }
+    },
+    {
+      "name": "flight",
+      "displayName": "Flight (STM32 GNU 13.3.1, metrics off)",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/gcc-13.3-flight",
+      "toolchainFile": "${sourceDir}/cmake/gcc-arm-none-eabi.cmake",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "ENABLE_RTOS_METRICS": "OFF",
+        "ENABLE_RTOS_METRICS_LOGGING": "OFF",
+        "ENABLE_RTOS_CONTEXT_SWITCH_METRICS": "OFF",
+        "ENABLE_RTOS_STACK_WATERMARK_METRICS": "OFF",
+        "ENABLE_RTOS_STACK_OVERFLOW_DIAGNOSTICS": "OFF"
       }
     }
   ],
   "buildPresets": [
-    { "name": "debug", "configurePreset": "debug" }
+    { "name": "debug", "configurePreset": "debug" },
+    { "name": "flight", "configurePreset": "flight" }
   ]
 }

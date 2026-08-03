@@ -31,7 +31,6 @@ public:
 private:
     stateEstimatorAutocode stateEstimatorAutocodeObj_;
     stateEstimatorAutocode::ExtU_stateEstimatorEskfAutoco_T state_estimator_autocode_u_ = {0};
-    stateEstimatorAutocode::ExtY_stateEstimatorEskfAutoco_T state_estimator_autocode_y_ = {0};
 
 	    Subscriber<ImuData> imu_sub_ = Subscriber<ImuData>(TopicID::ICM20948);
 	    Subscriber<MagnetometerData> ist8310_mag_sub_ =

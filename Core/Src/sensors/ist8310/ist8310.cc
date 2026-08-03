@@ -580,6 +580,7 @@ void ReadIst8310::ErrorCallback(I2C_HandleTypeDef* i2c_handle) {
 
 void ReadIst8310::Run() {
     task_handle_ = xTaskGetCurrentTaskHandle();
+    ConfigureEventMetrics();
     Publisher<MagnetometerData> mag_pub(TopicID::IST8310);
 
 #if IST8310_ENABLE_DIAGNOSTICS
@@ -654,11 +655,18 @@ void ReadIst8310::Run() {
                 kMaxConsecutiveConversionTimeouts)) {
             WaitUntilMeasurementCanBeRead();
 
+            BeginMetricsCycle();
+
             RawSample sample = {};
             const SampleResult result = AcquireSample(&sample);
             const bool sample_is_valid =
                 (result == SampleResult::kValid) ||
                 (result == SampleResult::kValidNeedsRecovery);
+#if RTOS_METRICS_ENABLE
+            const bool delay_before_retry =
+                (result == SampleResult::kWaitingForReady) &&
+                !first_status_poll_pending_;
+#endif
 
             if (sample_is_valid) {
                 MagnetometerData mag_data = {};
@@ -684,9 +692,11 @@ void ReadIst8310::Run() {
             } else if (result == SampleResult::kWaitingForReady) {
                 // After the scheduled first read, poll gently until the 10 ms
                 // hard conversion deadline rather than spinning on I2C1.
+#if !RTOS_METRICS_ENABLE
                 if (!first_status_poll_pending_) {
                     vTaskDelay(pdMS_TO_TICKS(kNotReadyPollIntervalMs));
                 }
+#endif
             } else if (result == SampleResult::kConversionTimedOut) {
                 // The sensor's state is uncertain. Exit directly to full
                 // recovery; do not write another trigger into an active mode.
@@ -700,6 +710,13 @@ void ReadIst8310::Run() {
                 // for a full peripheral + bus reset.
                 ++consecutive_failures;
             }
+
+            EndMetricsCycle();
+#if RTOS_METRICS_ENABLE
+            if (delay_before_retry) {
+                vTaskDelay(pdMS_TO_TICKS(kNotReadyPollIntervalMs));
+            }
+#endif
         }
 
         // Preserve the root cause because peripheral recovery resets the HAL

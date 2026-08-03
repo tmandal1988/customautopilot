@@ -43,8 +43,11 @@ void FlightControls::Run(){
 	uint16_t heartbeat_counter = 0;
 	// Start the periodic schedule after all controller initialization is complete.
 	xLastWakeTime = xTaskGetTickCount();
+	ConfigurePeriodicMetrics(LOOP_INTERVAL_MS * 1000U,
+			LOOP_INTERVAL_MS * 1000U);
 	bool first_iteration = true;
 	for(;;){
+		BeginMetricsCycle();
 		const TickType_t actual_start_tick = xTaskGetTickCount();
 		const int32_t start_lateness_ticks =
 				static_cast<int32_t>(actual_start_tick - xLastWakeTime);
@@ -220,6 +223,7 @@ void FlightControls::Run(){
 		// queue-draining loop or parameter-bus copy is performed.
 		parameter_store.ApplyOneFcsUpdate();
 
+		EndMetricsCycle();
 		vTaskDelayUntil(&xLastWakeTime, xFrequency);
 	}
 }

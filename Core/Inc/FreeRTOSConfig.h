@@ -154,7 +154,39 @@ See http://www.FreeRTOS.org/RTOS-Cortex-M3-M4.html. */
 /* Normal assert() semantics without relying on the provision of an assert.h
 header file. */
 /* USER CODE BEGIN 1 */
-#define configASSERT( x ) if ((x) == 0) {taskDISABLE_INTERRUPTS(); for( ;; );}
+#ifdef __cplusplus
+extern "C" {
+#endif
+void FaultDiagnostics_CaptureAssert(const char *file, uint32_t line);
+#ifdef __cplusplus
+}
+#endif
+
+// Tail-branch on failure instead of issuing a C call. FreeRTOS is compiled at
+// -O0, where even a noreturn call makes otherwise-leaf kernel functions save
+// and restore LR on every successful assertion. The branch never returns, so
+// the normal path retains the same prologue/epilogue as the original halt.
+#define configASSERT(x)                                                       \
+  do {                                                                        \
+    if ((x) == 0) {                                                           \
+      __asm volatile(                                                         \
+          "mov r0, %0\n"                                                     \
+          "mov r1, %1\n"                                                     \
+          "b FaultDiagnostics_CaptureAssert\n"                               \
+          :                                                                   \
+          : "r"(__FILE__), "r"((uint32_t)__LINE__)                           \
+          : "r0", "r1", "memory");                                         \
+      __builtin_unreachable();                                                \
+    }                                                                         \
+  } while (0)
+
+#define configUSE_MALLOC_FAILED_HOOK 1
+
+#if RTOS_STACK_OVERFLOW_DIAGNOSTICS_ENABLE
+#define configCHECK_FOR_STACK_OVERFLOW 2
+#else
+#define configCHECK_FOR_STACK_OVERFLOW 1
+#endif
 /* USER CODE END 1 */
 
 /* Definitions that map the FreeRTOS port interrupt handlers to their CMSIS
@@ -168,6 +200,23 @@ standard names. */
 
 /* USER CODE BEGIN Defines */
 /* Section where parameter definitions can be added (for instance, to override default ones in FreeRTOS.h) */
+#if RTOS_METRICS_ENABLE && RTOS_CONTEXT_SWITCH_METRICS_ENABLE
+#ifdef __cplusplus
+extern "C" {
+#endif
+void RtosMetricsTraceTaskSwitchedIn(void* next_tcb);
+#ifdef __cplusplus
+}
+#endif
+
+// Count true task changes, not scheduler decisions that reselect the same TCB.
+// Keep the hook itself in the optimized C++ metrics unit: tasks.c is built
+// with -O0, so expanding the compare here would add avoidable scheduler work.
+#define traceTASK_SWITCHED_IN()                                              \
+  do {                                                                      \
+    RtosMetricsTraceTaskSwitchedIn((void*)pxCurrentTCB);                    \
+  } while (0)
+#endif
 /* USER CODE END Defines */
 
 #endif /* FREERTOS_CONFIG_H */

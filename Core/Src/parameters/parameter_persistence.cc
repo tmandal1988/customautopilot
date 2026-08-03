@@ -766,8 +766,10 @@ void ParameterPersistence::Run() {
       pdMS_TO_TICKS(kPersistenceDebounceMs);
   constexpr TickType_t kLowVoltageRecheckTicks =
       pdMS_TO_TICKS(kLowVoltageRecheckMs);
+  ConfigureEventMetrics();
 
   for (;;) {
+    BeginMetricsCycle();
     RefreshFlightState(store);
     bool has_dirty = false;
     for (const auto& word : store.dirty_mask_) {
@@ -780,21 +782,27 @@ void ParameterPersistence::Run() {
     if (!has_dirty || !available_.load(std::memory_order_acquire) ||
         !PersistenceFlightStateAllowsFlash(
             store.persistence_flight_state_.load(std::memory_order_acquire))) {
+      EndMetricsCycle();
       static_cast<void>(ulTaskNotifyTake(pdTRUE, portMAX_DELAY));
       continue;
     }
+
+    EndMetricsCycle();
 
     // Any update notification restarts the quiet period. With no dirty work
     // this task sleeps indefinitely; there is no periodic polling loop.
     if (ulTaskNotifyTake(pdTRUE, kDebounceTicks) != 0U) {
       continue;
     }
+    BeginMetricsCycle();
     RefreshFlightState(store);
     if (!PersistenceFlightStateAllowsFlash(
             store.persistence_flight_state_.load(std::memory_order_acquire))) {
+      EndMetricsCycle();
       continue;
     }
     if (!SupplyIsSafeForProgramming()) {
+      EndMetricsCycle();
       static_cast<void>(
           ulTaskNotifyTake(pdTRUE, kLowVoltageRecheckTicks));
       continue;
@@ -805,6 +813,7 @@ void ParameterPersistence::Run() {
     commit_in_progress_.store(true, std::memory_order_release);
     static_cast<void>(AppendDirty(store));
     commit_in_progress_.store(false, std::memory_order_release);
+    EndMetricsCycle();
   }
 }
 

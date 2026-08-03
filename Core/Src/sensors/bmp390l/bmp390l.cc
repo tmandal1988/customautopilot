@@ -265,8 +265,11 @@ void ReadBmp390l::Run() {
 	osDelay(100);
 	// Initialize the periodic schedule after the startup delay.
 	xLastWakeTime = xTaskGetTickCount();
+	ConfigurePeriodicMetrics(READ_INTERVAL_MS * 1000U,
+			READ_INTERVAL_MS * 1000U);
     /* Infinite loop */
     for (;;) {
+		BeginMetricsCycle();
     	if(status){
 //    		if (++blink_counter >= 20) {
 //				blink_counter = 0;
@@ -282,6 +285,7 @@ void ReadBmp390l::Run() {
 //    		DEBUG_PRINT("Press: %g, Temp: %g\n", press_, temp_);
     	}
     	// Wait until the next cycle
+		EndMetricsCycle();
 		vTaskDelayUntil(&xLastWakeTime, xFrequency);
     }
 }

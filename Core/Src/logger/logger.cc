@@ -11,6 +11,9 @@
 
 #include "parameters/parameter_store.h"
 #include "pubsub/topic.h"
+#if RTOS_STACK_WATERMARK_METRICS_ENABLE
+#include "fcsModel_types.h"
+#endif
 
 namespace {
 
@@ -75,8 +78,10 @@ void Logger::Run() {
   const TickType_t interval_ticks = pdMS_TO_TICKS(INTERVAL_MS);
   osDelay(1000);
   TickType_t last_wake_time = xTaskGetTickCount();
+  ConfigurePeriodicMetrics(INTERVAL_MS * 1000U, INTERVAL_MS * 1000U);
 
   while (true) {
+    BeginMetricsCycle();
     const uint32_t now_ticks = xTaskGetTickCount();
     // STOP freezes the ordinary-record boundary before it closes the
     // parameter application epoch. Parameter tail records may then drain
@@ -86,15 +91,90 @@ void Logger::Run() {
       for (size_t i = 0; i < log_config_count_; ++i) {
         log_configs_[i]->TryLog(now_ticks, this);
       }
+#if RTOS_METRICS_LOGGING_ENABLE
+      ServiceOneRtosMetricsRecord(now_ticks);
+#endif
     }
     // At most one exact change/gap and one paced snapshot row per cycle. This
     // is a fixed SPSC pop, never a catalog-draining burst.
     ServiceOneParameterRecord();
 
     // Wait until the next cycle.
+    EndMetricsCycle();
     vTaskDelayUntil(&last_wake_time, interval_ticks);
   }
 }
+
+#if RTOS_METRICS_LOGGING_ENABLE
+void Logger::ServiceOneRtosMetricsRecord(uint32_t now_ticks) {
+  constexpr uint32_t kReportIntervalTicks = pdMS_TO_TICKS(1000U);
+
+  if (!rtos_metrics_schedule_initialized_) {
+    rtos_metrics_schedule_initialized_ = true;
+    rtos_metrics_last_tick_ = now_ticks;
+    rtos_metrics_last_context_switch_count_ =
+        rtos_metrics::ContextSwitchCount();
+    return;
+  }
+
+  const uint32_t elapsed_ticks = now_ticks - rtos_metrics_last_tick_;
+  if (elapsed_ticks < kReportIntervalTicks) {
+    return;
+  }
+
+  // Schedule from "now" so logger stalls never cause a catch-up burst.
+  rtos_metrics_last_tick_ = now_ticks;
+  const uint32_t context_switch_count =
+      rtos_metrics::ContextSwitchCount();
+  const uint32_t context_switch_delta =
+      context_switch_count - rtos_metrics_last_context_switch_count_;
+  rtos_metrics_last_context_switch_count_ = context_switch_count;
+
+  auto& tasks = TaskBase::GetTaskList();
+  if (tasks.empty()) {
+    return;
+  }
+  if (rtos_metrics_cursor_ >= tasks.size()) {
+    rtos_metrics_cursor_ = 0U;
+  }
+
+  constexpr size_t kMaxPersistedTaskCount = UINT8_MAX;
+  const size_t bounded_task_count =
+      (tasks.size() < kMaxPersistedTaskCount)
+          ? tasks.size()
+          : kMaxPersistedTaskCount;
+  if (rtos_metrics_cursor_ >= bounded_task_count) {
+    rtos_metrics_cursor_ = 0U;
+  }
+
+  RtosMetricsData record{};
+#if RTOS_STACK_WATERMARK_METRICS_ENABLE
+  if (rtos_stack_state_subscriber_.copy(rtos_stack_state_)) {
+    rtos_stack_state_known_ = true;
+  }
+  // The FreeRTOS high-water API performs a variable-length fill-pattern scan.
+  // Its result is lifetime-minimum state, so waiting until INACTIVE retains
+  // the complete flight's peak use without doing this work during flight.
+  if (rtos_stack_state_known_ &&
+      (static_cast<enumStateMachine>(rtos_stack_state_.sm_mode) ==
+       enumStateMachine::INACTIVE)) {
+    tasks[rtos_metrics_cursor_]->RefreshStackHighWaterMark();
+  }
+#endif
+  tasks[rtos_metrics_cursor_]->CaptureMetrics(
+      static_cast<uint8_t>(rtos_metrics_cursor_),
+      static_cast<uint8_t>(bounded_task_count),
+      ++rtos_metrics_snapshot_sequence_, context_switch_count,
+      context_switch_delta, elapsed_ticks * portTICK_PERIOD_MS, &record);
+  record.timestamp_ms = getCurrentTimeMs();
+  static_assert((1U + 1U + sizeof(record) + sizeof(uint16_t)) <=
+                kScratchBufferSize);
+  static_cast<void>(WriteFramedRecord(TopicID::RTOS_METRICS, &record,
+                                      sizeof(record), false));
+
+  ++rtos_metrics_cursor_;
+}
+#endif
 
 void Logger::ServiceOneParameterRecord() {
   const uint32_t state_epoch =

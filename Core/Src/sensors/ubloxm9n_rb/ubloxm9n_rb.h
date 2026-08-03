@@ -53,6 +53,7 @@ private:
 	//Ublox M9N message definitions
 	static constexpr uint8_t ACK_NAK_PAYLOAD_LENGTH 								= 2;
 	static constexpr uint16_t MAX_BUFF_SIZE 										= 1024*4;
+	static constexpr uint16_t MAX_BYTES_PER_DISPATCH 							= 512;
 	static constexpr uint8_t UBX_SYNC_CHAR_1 										= 0xB5;
 	static constexpr uint8_t UBX_SYNC_CHAR_2 										= 0x62;
 	static constexpr uint8_t UBX_NAV_PVT_SIZE 		 								= 100;
@@ -287,4 +288,3 @@ private:
 		ck_b_ += ck_a_;
 	}
 };
-

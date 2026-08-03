@@ -20,6 +20,9 @@
 #include "messages/pwm_data.h"
 #include "messages/mtf01p_data.h"
 #include "messages/magnetometer_data.h"
+#if RTOS_METRICS_LOGGING_ENABLE
+#include "messages/rtos_metrics_data.h"
+#endif
 #include "parameters/parameter_change_event.h"
 #include "parameter_catalog.h"
 #include "debug.h"
@@ -96,6 +99,9 @@ class Logger : public TaskBase {
   bool WriteFramedRecord(TopicID topic_id, const void* payload,
                          size_t payload_size, bool count_drop = true);
   void ServiceOneParameterRecord();
+#if RTOS_METRICS_LOGGING_ENABLE
+  void ServiceOneRtosMetricsRecord(uint32_t now_ticks);
+#endif
 
   // CRC-16/CCITT-FALSE over the record header and payload.
   static uint16_t ComputeCrc16(const uint8_t* data, size_t length);
@@ -120,4 +126,19 @@ class Logger : public TaskBase {
   bool has_pending_parameter_gap_ = false;
   uint32_t trailing_gap_candidate_ = 0U;
   bool has_trailing_gap_candidate_ = false;
+
+#if RTOS_METRICS_LOGGING_ENABLE
+  size_t rtos_metrics_cursor_ = 0U;
+  uint32_t rtos_metrics_snapshot_sequence_ = 0U;
+  uint32_t rtos_metrics_last_tick_ = 0U;
+  uint32_t rtos_metrics_last_context_switch_count_ = 0U;
+  bool rtos_metrics_schedule_initialized_ = false;
+#endif
+#if RTOS_STACK_WATERMARK_METRICS_ENABLE
+  // One low-rate, nonblocking state observation prevents variable-length
+  // stack fill scans while the vehicle is armed or in flight.
+  Subscriber<FcsDebugData> rtos_stack_state_subscriber_{TopicID::FCSDEBUG};
+  FcsDebugData rtos_stack_state_{};
+  bool rtos_stack_state_known_ = false;
+#endif
 };

@@ -42,7 +42,10 @@ void RcSbus::Run(){
 	osDelay(500);
 	// Initialize the periodic schedule after the startup delay.
 	xLastWakeTime = xTaskGetTickCount();
+	ConfigurePeriodicMetrics(READ_INTERVAL_MS * 1000U,
+			READ_INTERVAL_MS * 1000U);
 	for(;;){
+		BeginMetricsCycle();
 //		if (++blink_counter >= 20) {
 //			blink_counter = 0;
 //			UBaseType_t highWaterMark = uxTaskGetStackHighWaterMark(NULL);
@@ -58,6 +61,7 @@ void RcSbus::Run(){
 //					rc_channels_.roll, rc_channels_.pitch, rc_channels_.throttle, rc_channels_.yaw, rc_channels_.sw1, rc_channels_.sw2, rc_channels_.sw3,
 //					rc_channels_.knob, rc_channels_.sw4);
 		// Wait until the next cycle
+		EndMetricsCycle();
 		vTaskDelayUntil(&xLastWakeTime, xFrequency);
 	}
 

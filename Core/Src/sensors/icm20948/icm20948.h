@@ -13,6 +13,7 @@
 #include "constants.h"
 #include "pubsub/publisher.h"
 #include "debug.h"
+#include "sensor_config.h"
 
 class ReadIcm20948 : public TaskBase {
 public:
@@ -95,6 +96,10 @@ private:
 	// Amount of time to wait for I2c Transmit or Receive
 	static constexpr uint32_t icm_i2c_wait_time_ms_ = HAL_MAX_DELAY;
 	static constexpr uint8_t who_am_i_val_ = 0xEA;
+	static constexpr uint16_t kRawReadSize =
+			(kStateEstimatorMagnetometerSource == MagnetometerSource::kIcm20948)
+					? 23U
+					: 14U;
 
 	/////////////////struct PACKED TYPEDEF//////////////////////
 	struct PACKED ICM_20948_USER_BANK_t{

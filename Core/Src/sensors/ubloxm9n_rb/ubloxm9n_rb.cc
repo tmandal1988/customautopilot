@@ -20,7 +20,7 @@ extern "C" {
 ReadUbloxM9nRb read_ubloxm9n_rb_task_instance_(&huart2);
 
 ReadUbloxM9nRb::ReadUbloxM9nRb(UART_HandleTypeDef* huart):
-TaskBase("UbloxM9nTask2", 1296, osPriorityAboveNormal),
+TaskBase("UbloxM9nTask2", 1792, osPriorityAboveNormal),
 gps_uart_(huart){
 
 ubloxm9n_rb_instance_handle_ = this;
@@ -984,6 +984,9 @@ bool ReadUbloxM9nRb::ProcessUbloxFrame(){
 	}
 
 	if(available_bytes == 0) return false;
+	if (available_bytes > MAX_BYTES_PER_DISPATCH) {
+		available_bytes = MAX_BYTES_PER_DISPATCH;
+	}
 	size_t bytes_processed = 0;
 	while (bytes_processed < available_bytes) {
 		size_t buffer_index = (last_read_index_ + bytes_processed) % MAX_BUFF_SIZE;
@@ -1098,10 +1101,23 @@ void ReadUbloxM9nRb::Run() {
 	// A failed/absent InitGps() above starts this at the current tick too, so
 	// the watchdog below fires on schedule instead of assuming success.
 	last_valid_frame_tick_ = xLastWakeTime;
+	ConfigurePeriodicMetrics(READ_INTERVAL_MS * 1000U,
+			READ_INTERVAL_MS * 1000U);
 	UbloxM9nNavPvt nav_pvt_data_{};
 //	int blink_counter = 0;
     /* Infinite loop */
     for (;;) {
+		// Recovery is a schedule discontinuity, not periodic parser WCET.
+		if (uart_error_pending_.exchange(false, std::memory_order_acq_rel)) {
+			DEBUG_PRINT("GPS Module: UART error observed, restarting DMA reception\n");
+			RecoverUartDma();
+			xLastWakeTime = xTaskGetTickCount();
+			MarkMetricsScheduleDiscontinuity();
+			vTaskDelayUntil(&xLastWakeTime, xFrequency);
+			continue;
+		}
+
+		BeginMetricsCycle();
 //    	if (++blink_counter >= 20) {
 //			blink_counter = 0;
 //			UBaseType_t highWaterMark = uxTaskGetStackHighWaterMark(NULL);
@@ -1109,12 +1125,6 @@ void ReadUbloxM9nRb::Run() {
 //			DEBUG_PRINT("GPS Module: Used: %lu bytes, Free: %lu bytes (of %d total)\n",
 //			used, highWaterMark * sizeof(StackType_t), 1296);
 //    	}
-
-    	// Recovery runs here, in the task's own context, never in the ISR.
-    	if (uart_error_pending_.exchange(false, std::memory_order_acq_rel)) {
-    		DEBUG_PRINT("GPS Module: UART error observed, restarting DMA reception\n");
-    		RecoverUartDma();
-    	}
 
     	if(ProcessUbloxFrame() && packet_.cls == CLASS_NAV && packet_.id == ID_PVT){
     		last_valid_frame_tick_ = xTaskGetTickCount();
@@ -1154,21 +1164,30 @@ void ReadUbloxM9nRb::Run() {
     	// stops NAV-PVT output even if the link itself recovers). Re-running
     	// the full sequence blocks only this task; nothing else depends on it
     	// synchronously, so a multi-second retry here is real-time safe.
-    	if ((xTaskGetTickCount() - last_valid_frame_tick_) >
-    			pdMS_TO_TICKS(GPS_STALE_TIMEOUT_MS)) {
-    		DEBUG_PRINT("GPS Module: No valid NAV-PVT for %lu ms, reinitializing\n",
-    				(unsigned long)GPS_STALE_TIMEOUT_MS);
-    		const bool reinit_status = InitGps(921600U, 40, 1);
-    		(void)reinit_status;
-    		// Restart the countdown regardless of outcome: a fresh window to
-    		// see whether data resumes, rather than retrying every 25 ms tick
-    		// while the link stays down.
-    		last_valid_frame_tick_ = xTaskGetTickCount();
-    	}
+		if ((xTaskGetTickCount() - last_valid_frame_tick_) >
+				pdMS_TO_TICKS(GPS_STALE_TIMEOUT_MS)) {
+#if RTOS_METRICS_ENABLE
+			// The multi-second recovery is intentionally outside the bounded
+			// periodic probe; CYCCNT wraps every 8.95 s at 480 MHz.
+			EndMetricsCycle();
+			MarkMetricsScheduleDiscontinuity();
+#endif
+			DEBUG_PRINT("GPS Module: No valid NAV-PVT for %lu ms, reinitializing\n",
+					(unsigned long)GPS_STALE_TIMEOUT_MS);
+			const bool reinit_status = InitGps(921600U, 40, 1);
+			(void)reinit_status;
+			// Restart the countdown regardless of outcome: a fresh window to
+			// see whether data resumes, rather than retrying every 25 ms tick
+			// while the link stays down.
+			last_valid_frame_tick_ = xTaskGetTickCount();
+			xLastWakeTime = last_valid_frame_tick_;
+#if RTOS_METRICS_ENABLE
+			continue;
+#endif
+		}
 
     	// Wait until the next cycle
+		EndMetricsCycle();
 		vTaskDelayUntil(&xLastWakeTime, xFrequency);
     }
 }
-
-

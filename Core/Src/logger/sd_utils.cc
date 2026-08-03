@@ -16,7 +16,7 @@
 SdUtils::SdUtils()
     // Lowest priority in the system: RAM buffering absorbs normal SD-card
     // latency while deadline-driven producer/logger tasks keep running.
-    : TaskBase("SdWriteTask", 1820, osPriorityBelowNormal),
+    : TaskBase("SdWriteTask", 2304, osPriorityBelowNormal),
       sync_every_buffers_(static_cast<uint32_t>(
           parameters::generated::kLoggerParameterDefaults.log_sync_bufs)),
       idle_wait_ticks_(pdMS_TO_TICKS(static_cast<uint32_t>(
@@ -345,6 +345,7 @@ bool SdUtils::SdInit() {
 
 void SdUtils::Run() {
   DataBuffer::sd_task_handle_ = xTaskGetCurrentTaskHandle();
+  ConfigureEventMetrics();
 
   // ParameterStore::Initialize() and its Flash restore complete before the
   // scheduler starts. Reboot-only Logger settings are therefore stable here.
@@ -450,6 +451,10 @@ void SdUtils::Run() {
       }
     }
 
+    // Measure one bounded SD state-machine dispatch. The USB LIST/COPY command
+    // loops above are intentionally excluded because they are interactive,
+    // post-flight operations that can exceed the 32-bit DWT wrap interval.
+    auto metrics_scope = MeasureMetricsScope();
     switch (state) {
       case CardState::IDLESTART: {
         ResetBufferState();
@@ -596,6 +601,7 @@ void SdUtils::Run() {
       case CardState::ERROR:
         break;
     }
+    metrics_scope.Complete();
 
     // A full buffer wakes this task immediately; the timeout preserves USB
     // command polling while no buffer needs service.

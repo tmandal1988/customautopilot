@@ -501,9 +501,12 @@ void ReadIcm20948::Run() {
 	osDelay(500);
 	// Initialize the periodic schedule after the startup delay.
 	xLastWakeTime = xTaskGetTickCount();
+	ConfigurePeriodicMetrics(READ_INTERVAL_MS * 1000U,
+			READ_INTERVAL_MS * 1000U);
 	bool first_iteration = true;
     /* Infinite loop */
     for (;;) {
+		BeginMetricsCycle();
 		const TickType_t actual_start_tick = xTaskGetTickCount();
 		const int32_t start_lateness_ticks =
 				static_cast<int32_t>(actual_start_tick - xLastWakeTime);
@@ -525,6 +528,7 @@ void ReadIcm20948::Run() {
 		}
 
 		if (HAL_I2C_GetState(icm20948_i2c_) != HAL_I2C_STATE_READY) {
+			EndMetricsCycle();
 			vTaskDelayUntil(&xLastWakeTime, xFrequency);
 			continue;
 		}
@@ -536,9 +540,10 @@ void ReadIcm20948::Run() {
 		transfer_result_ = TransferResult::kPending;
 		const HAL_StatusTypeDef dma_start_status = HAL_I2C_Mem_Read_DMA(
 				icm20948_i2c_, ICM20948_ADDR << 1, UB0_ACCEL_XOUT_H,
-				I2C_MEMADD_SIZE_8BIT, icm20948_raw_buf_, 23);
+				I2C_MEMADD_SIZE_8BIT, icm20948_raw_buf_, kRawReadSize);
 		if (dma_start_status != HAL_OK) {
 			transfer_result_ = TransferResult::kIdle;
+			EndMetricsCycle();
 			vTaskDelayUntil(&xLastWakeTime, xFrequency);
 			continue;
 		}
@@ -550,6 +555,7 @@ void ReadIcm20948::Run() {
 		transfer_result_ = TransferResult::kIdle;
 
 		if (transfer_result != TransferResult::kComplete) {
+			EndMetricsCycle();
 			vTaskDelayUntil(&xLastWakeTime, xFrequency);
 			continue;
 		}
@@ -565,6 +571,7 @@ void ReadIcm20948::Run() {
 //		DEBUG_PRINT("-----------------------------------------------------\n");
 
 		// Wait until the next cycle
+		EndMetricsCycle();
 		vTaskDelayUntil(&xLastWakeTime, xFrequency);
     }
 }
@@ -612,16 +619,25 @@ void ReadIcm20948::Icm20948GetData(ImuData *icm20948_data){
 
 		  icm20948_data->temp_degc = (((float)data_buf[6] - 21) / 333.87) + 21;
 
-		  data_buf[7] = ((icm20948_raw_buf_[16] << 8) | (icm20948_raw_buf_[15] & 0xFF)); //Mag data is read little endian
-		  data_buf[8] = ((icm20948_raw_buf_[18] << 8) | (icm20948_raw_buf_[17] & 0xFF));
-		  data_buf[9] = ((icm20948_raw_buf_[20] << 8) | (icm20948_raw_buf_[19] & 0xFF));
+		  if constexpr (kStateEstimatorMagnetometerSource ==
+				  MagnetometerSource::kIcm20948) {
+			  data_buf[7] = ((icm20948_raw_buf_[16] << 8) | (icm20948_raw_buf_[15] & 0xFF)); //Mag data is read little endian
+			  data_buf[8] = ((icm20948_raw_buf_[18] << 8) | (icm20948_raw_buf_[17] & 0xFF));
+			  data_buf[9] = ((icm20948_raw_buf_[20] << 8) | (icm20948_raw_buf_[19] & 0xFF));
 
-		  icm20948_data->mag_ut[0] = (((float)data_buf[7]) * 0.15);
-		  icm20948_data->mag_ut[1] = (((float)data_buf[8]) * 0.15);
-		  icm20948_data->mag_ut[2] = (((float)data_buf[9]) * 0.15);
+			  icm20948_data->mag_ut[0] = (((float)data_buf[7]) * 0.15);
+			  icm20948_data->mag_ut[1] = (((float)data_buf[8]) * 0.15);
+			  icm20948_data->mag_ut[2] = (((float)data_buf[9]) * 0.15);
 
-		  icm20948_data->mag_st1 = icm20948_raw_buf_[14] & 0x03;
-		  icm20948_data->mag_st2 = icm20948_raw_buf_[22] & 0x08;
+			  icm20948_data->mag_st1 = icm20948_raw_buf_[14] & 0x03;
+			  icm20948_data->mag_st2 = icm20948_raw_buf_[22] & 0x08;
+		  } else {
+			  icm20948_data->mag_ut[0] = 0.0F;
+			  icm20948_data->mag_ut[1] = 0.0F;
+			  icm20948_data->mag_ut[2] = 0.0F;
+			  icm20948_data->mag_st1 = 0U;
+			  icm20948_data->mag_st2 = 0U;
+		  }
 
 		  icm20948_data->accel_mps2[0] = (((float)data_buf[0]) / 2048);
 		  icm20948_data->accel_mps2[1] = -(((float)data_buf[1]) / 2048);

@@ -4,6 +4,16 @@ project(customAutopilotBoard C CXX ASM)
 
 option(IST8310_ENABLE_DIAGNOSTICS
        "Compile IST8310 USB debug/error output and its print task" OFF)
+option(ENABLE_RTOS_METRICS
+       "Enable experimental DWT executor timing" OFF)
+option(ENABLE_RTOS_METRICS_LOGGING
+       "Write paced RTOS timing rows to Topic 12 (requires ENABLE_RTOS_METRICS)" OFF)
+option(ENABLE_RTOS_CONTEXT_SWITCH_METRICS
+       "Count true FreeRTOS task switches (requires ENABLE_RTOS_METRICS)" OFF)
+option(ENABLE_RTOS_STACK_WATERMARK_METRICS
+       "Sample stack fill patterns while INACTIVE (requires metrics logging)" OFF)
+option(ENABLE_RTOS_STACK_OVERFLOW_DIAGNOSTICS
+       "Enable FreeRTOS level-2 stack-overflow checking for bench diagnosis" OFF)
 
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED ON)
@@ -50,6 +60,32 @@ set(PROJECT_DEFINES
     STM32H743xx
     USE_PWR_LDO_SUPPLY
 )
+if(ENABLE_RTOS_METRICS)
+    list(APPEND PROJECT_DEFINES RTOS_METRICS_ENABLE=1)
+else()
+    list(APPEND PROJECT_DEFINES RTOS_METRICS_ENABLE=0)
+endif()
+if(ENABLE_RTOS_METRICS AND ENABLE_RTOS_METRICS_LOGGING)
+    list(APPEND PROJECT_DEFINES RTOS_METRICS_LOGGING_ENABLE=1)
+else()
+    list(APPEND PROJECT_DEFINES RTOS_METRICS_LOGGING_ENABLE=0)
+endif()
+if(ENABLE_RTOS_METRICS AND ENABLE_RTOS_CONTEXT_SWITCH_METRICS)
+    list(APPEND PROJECT_DEFINES RTOS_CONTEXT_SWITCH_METRICS_ENABLE=1)
+else()
+    list(APPEND PROJECT_DEFINES RTOS_CONTEXT_SWITCH_METRICS_ENABLE=0)
+endif()
+if(ENABLE_RTOS_METRICS AND ENABLE_RTOS_METRICS_LOGGING AND
+   ENABLE_RTOS_STACK_WATERMARK_METRICS)
+    list(APPEND PROJECT_DEFINES RTOS_STACK_WATERMARK_METRICS_ENABLE=1)
+else()
+    list(APPEND PROJECT_DEFINES RTOS_STACK_WATERMARK_METRICS_ENABLE=0)
+endif()
+if(ENABLE_RTOS_STACK_OVERFLOW_DIAGNOSTICS)
+    list(APPEND PROJECT_DEFINES RTOS_STACK_OVERFLOW_DIAGNOSTICS_ENABLE=1)
+else()
+    list(APPEND PROJECT_DEFINES RTOS_STACK_OVERFLOW_DIAGNOSTICS_ENABLE=0)
+endif()
 
 # --- Auto-discover header directories under Core/Inc and Core/Src -----------
 file(GLOB_RECURSE ALL_HEADERS CONFIGURE_DEPENDS
@@ -160,6 +196,12 @@ set(ASM_SOURCES
     Core/Startup/startup_stm32h743zitx.s
 )
 
+# Fault capture can run after a task-stack failure. Keep the recorder compact,
+# integer-register-only, and independent of lazy FPU stacking.
+set_source_files_properties(
+    Core/Src/fault_diagnostics/fault_diagnostics.c
+    PROPERTIES COMPILE_OPTIONS "-O2;-mgeneral-regs-only")
+
 set(LINKER_SCRIPT ${CMAKE_SOURCE_DIR}/STM32H743ZITX_FLASH.ld)
 
 add_executable(${PROJECT_NAME}.elf ${APP_SOURCES} ${LIB_SOURCES} ${ASM_SOURCES})
@@ -198,7 +240,7 @@ target_compile_options(${PROJECT_NAME}.elf PRIVATE
     -fstack-usage
     -g3
     --specs=nano.specs
-    $<$<COMPILE_LANGUAGE:C>:-O0>
+    $<$<COMPILE_LANGUAGE:C>:-O2>
     $<$<COMPILE_LANGUAGE:CXX>:-Ofast>
     $<$<COMPILE_LANGUAGE:CXX>:-fno-exceptions>
     $<$<COMPILE_LANGUAGE:CXX>:-fno-rtti>

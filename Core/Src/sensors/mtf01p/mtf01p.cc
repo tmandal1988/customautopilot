@@ -45,7 +45,11 @@ void ReadMtf01p::Run() {
 	int hb_counter = 0;
 	osDelay(500);
 	TickType_t xLastWakeTime = xTaskGetTickCount();
+	ConfigurePeriodicMetrics(READ_INTERVAL_MS * 1000U,
+			READ_INTERVAL_MS * 1000U);
 	for(;;){
+		BeginMetricsCycle();
+		bool restart_after_measurement = false;
 //		HAL_UART_Receive(mtf01_uart_, rx_buffer_, 1, 10);
 //		DEBUG_PRINT("Byte Received: %02X\n", rx_buffer_[0]);
 		ProcessMicrolinkFrame();
@@ -66,15 +70,7 @@ void ReadMtf01p::Run() {
 
 		if(restart_comm_){
 			restart_comm_ = false;
-			HAL_UART_DMAStop(mtf01_uart_);
-			FlushUartDataRegister();
-			HAL_StatusTypeDef result = HAL_UART_Receive_DMA(mtf01_uart_, rx_buffer_, MAX_BUFF_SIZE);
-			if (result != HAL_OK) {
-				DEBUG_PRINT("UART DMA re-start failed with code: %d\n", result);
-			}
-			DEBUG_PRINT("Restarted MTP01 Comm\n");
-			osDelay(100);
-			xLastWakeTime = xTaskGetTickCount();
+			restart_after_measurement = true;
 		}
 
 		if (++hb_counter >= kHeartbeatIntervalCount) {
@@ -85,6 +81,22 @@ void ReadMtf01p::Run() {
 //			DEBUG_PRINT("Strength: %d, Distance Precision: %d\n", sensor_payload_.strength, sensor_payload_.precision);
 //			DEBUG_PRINT("################################################\n");
 		}
+		EndMetricsCycle();
+
+		if(restart_after_measurement){
+			HAL_UART_DMAStop(mtf01_uart_);
+			FlushUartDataRegister();
+			HAL_StatusTypeDef result = HAL_UART_Receive_DMA(mtf01_uart_, rx_buffer_, MAX_BUFF_SIZE);
+			if (result != HAL_OK) {
+				DEBUG_PRINT("UART DMA re-start failed with code: %d\n", result);
+			}
+			DEBUG_PRINT("Restarted MTP01 Comm\n");
+			osDelay(100);
+			xLastWakeTime = xTaskGetTickCount();
+			MarkMetricsScheduleDiscontinuity();
+			continue;
+		}
+
 		// Wait until the next cycle
 		vTaskDelayUntil(&xLastWakeTime, xFrequency);
 	}

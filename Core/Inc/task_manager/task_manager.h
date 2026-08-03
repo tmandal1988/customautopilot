@@ -18,13 +18,17 @@ public:
     }
 
     void StartAll() {
-        auto& tasks = TaskBase::GetTaskList();
-        if (tasks.empty()) {
+        const std::size_t task_count = TaskBase::GetTaskCount();
+        if (task_count == 0U) {
 //            printf("No tasks to start.\n");
             return;
         }
 
-        for (auto task : tasks) {
+        for (std::size_t i = 0U; i < task_count; ++i) {
+            auto* const task = TaskBase::GetTask(i);
+            if (task == nullptr) {
+                continue;
+            }
 //            printf("Starting task: %s\n", task->GetTaskName());
             task->Start();
         }

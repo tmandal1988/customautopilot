@@ -135,6 +135,38 @@ SECTIONS
     _edata = .;
   } >RAM_D1 AT > FLASH
 
+  /* Retained crash evidence. DTCM is uncached, so a debugger sees the final
+     stores even when a fault stops the core before cache maintenance. NOLOAD
+     also preserves the record across a software reset. */
+  .fault_record (NOLOAD) :
+  {
+    . = ALIGN(8);
+    KEEP(*(.fault_record))
+    . = ALIGN(8);
+  } >DTCMRAM
+
+  /* Fault handlers abandon the possibly damaged runtime stack and never
+     return. This uncached emergency stack is used only after failure. */
+  .fault_msp_stack (NOLOAD) :
+  {
+    . = ALIGN(8);
+    __fault_msp_stack_bottom__ = .;
+    . = . + 0x200;
+    . = ALIGN(8);
+    __fault_msp_stack_top__ = .;
+  } >DTCMRAM
+
+  /* A task-context assert continues to execute on PSP. Keep its emergency
+     stack separate so a nested NMI/fault can stack safely on emergency MSP. */
+  .fault_psp_stack (NOLOAD) :
+  {
+    . = ALIGN(8);
+    __fault_psp_stack_bottom__ = .;
+    . = . + 0x200;
+    . = ALIGN(8);
+    __fault_psp_stack_top__ = .;
+  } >DTCMRAM
+
   /* ======= SIMULINK-DIRECTED SECTION (NEW) ======= */
   /*.RAM_D2_SIMULINK (NOLOAD) :
   {

@@ -7,8 +7,10 @@
 
 #include "state_estimator.h"
 
+#include <cstring>
+
 StateEstimator::StateEstimator():
-TaskBase("StateEstimatorTask", 10000, osPriorityAboveNormal){
+TaskBase("StateEstimatorTask", 11000, osPriorityAboveNormal){
 //
 }
 
@@ -37,10 +39,13 @@ void StateEstimator::Run(){
 	osDelay(500);
 	// Initialize the periodic schedule after the startup delay.
 	xLastWakeTime = xTaskGetTickCount();
+	ConfigurePeriodicMetrics(READ_INTERVAL_MS * 1000U,
+			READ_INTERVAL_MS * 1000U);
 	bool imu_updated = false;
 	bool first_iteration = true;
 //	uint32_t elapsedTicks = 0;
 	for(;;){
+		BeginMetricsCycle();
 		const TickType_t actual_start_tick = xTaskGetTickCount();
 		const int32_t start_lateness_ticks =
 				static_cast<int32_t>(actual_start_tick - xLastWakeTime);
@@ -178,35 +183,39 @@ void StateEstimator::Run(){
 			stateEstimatorAutocodeObj_.step();
 			++ekf_data.ekf_step_seq;
 		}
-		state_estimator_autocode_y_ = stateEstimatorAutocodeObj_.getExternalOutputs();
+		const auto& state_estimator_autocode_y =
+				stateEstimatorAutocodeObj_.getExternalOutputs();
 		for(size_t idx = 0; idx < 3; idx++){
-			ekf_data.euler_rad[idx] = state_estimator_autocode_y_.eulAng_rad[idx];
+			ekf_data.euler_rad[idx] = state_estimator_autocode_y.eulAng_rad[idx];
 
 			ekf_data.bias_corr_body_rates_radps[idx] = state_estimator_autocode_u_.imuData.bodyRates_radps[idx] -
-					state_estimator_autocode_y_.states[idx + 10];
+					state_estimator_autocode_y.states[idx + 10];
 
-			ekf_data.bias_corr_body_accels_mps2[idx] = state_estimator_autocode_y_.bodyAccels_mps2[idx];
+			ekf_data.bias_corr_body_accels_mps2[idx] = state_estimator_autocode_y.bodyAccels_mps2[idx];
 
-			ekf_data.dcm_ned_to_body[idx] = state_estimator_autocode_y_.dcmNedToBody[idx];
-			ekf_data.dcm_ned_to_body[idx + 3] = state_estimator_autocode_y_.dcmNedToBody[idx + 3];
-			ekf_data.dcm_ned_to_body[idx + 6] = state_estimator_autocode_y_.dcmNedToBody[idx + 6];
+			ekf_data.dcm_ned_to_body[idx] = state_estimator_autocode_y.dcmNedToBody[idx];
+			ekf_data.dcm_ned_to_body[idx + 3] = state_estimator_autocode_y.dcmNedToBody[idx + 3];
+			ekf_data.dcm_ned_to_body[idx + 6] = state_estimator_autocode_y.dcmNedToBody[idx + 6];
 
-			ekf_data.dcm_ned_to_fep[idx] = state_estimator_autocode_y_.dcmNedToFep[idx];
-			ekf_data.dcm_ned_to_fep[idx + 3] = state_estimator_autocode_y_.dcmNedToFep[idx + 3];
-			ekf_data.dcm_ned_to_fep[idx + 6] = state_estimator_autocode_y_.dcmNedToFep[idx + 6];
+			ekf_data.dcm_ned_to_fep[idx] = state_estimator_autocode_y.dcmNedToFep[idx];
+			ekf_data.dcm_ned_to_fep[idx + 3] = state_estimator_autocode_y.dcmNedToFep[idx + 3];
+			ekf_data.dcm_ned_to_fep[idx + 6] = state_estimator_autocode_y.dcmNedToFep[idx + 6];
 
-			ekf_data.nedpos_m[idx] = state_estimator_autocode_y_.states[idx + 4];
-			ekf_data.nedvel_mps[idx] = state_estimator_autocode_y_.states[idx + 7];
+			ekf_data.nedpos_m[idx] = state_estimator_autocode_y.states[idx + 4];
+			ekf_data.nedvel_mps[idx] = state_estimator_autocode_y.states[idx + 7];
 		}
 		ekf_data.is_mag_valid = state_estimator_autocode_u_.magData.isMagDataValid;
 		ekf_data.is_baro_valid = state_estimator_autocode_u_.baroData.isBaroDataValid;
 
-		memcpy(ekf_data.states, state_estimator_autocode_y_.states, sizeof(float) * 23);
+		std::memset(ekf_data.states, 0, sizeof(ekf_data.states));
+		std::memcpy(ekf_data.states, state_estimator_autocode_y.states,
+				sizeof(state_estimator_autocode_y.states));
 
-		ekf_data.state_init_pct = state_estimator_autocode_y_.stateEstimatorDebug.stateEstInitPct;
-		ekf_data.sm_mode = static_cast<uint8_t>(state_estimator_autocode_y_.stateEstimatorDebug.smMode);
+		ekf_data.state_init_pct = state_estimator_autocode_y.stateEstimatorDebug.stateEstInitPct;
+		ekf_data.sm_mode = static_cast<uint8_t>(state_estimator_autocode_y.stateEstimatorDebug.smMode);
 		ekf_pub_.publish(ekf_data);
 		// Wait until the next cycle
+		EndMetricsCycle();
 		vTaskDelayUntil(&xLastWakeTime, xFrequency);
 	}
 
