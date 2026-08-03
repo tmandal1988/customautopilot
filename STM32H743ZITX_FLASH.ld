@@ -17,7 +17,12 @@ ENTRY(Reset_Handler)
 _estack = ORIGIN(RAM_D1) + LENGTH(RAM_D1);    /* end of RAM */
 
 /* Define heap and stack size */
-_Min_Heap_Size = 0x10000;  /* Increase if needed */
+/* Link-time reservation for the newlib heap only. _sbrk() caps the heap at
+   (_estack - _Min_Stack_Size) at runtime, so this value bounds what the
+   linker guarantees, not what malloc may grow into. The C++ heap holds the
+   ~12 pubsub Topic<T> objects (968 bytes total) plus newlib's stdio buffer,
+   so 8 KB is roughly a 4x margin. */
+_Min_Heap_Size = 0x2000;
 _Min_Stack_Size = 0x400;
 
 /* Specify the memory areas */

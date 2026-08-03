@@ -14,10 +14,13 @@ extern TIM_HandleTypeDef htim1;
 extern TIM_HandleTypeDef htim2;
 extern TIM_HandleTypeDef htim3;
 
+#if !CONTROL_PIPELINE_ENABLE
 PwmCmds pwm_cmds_task_instance_(&htim1, &htim2, &htim3);
+#endif
 
-PwmCmds::PwmCmds(TIM_HandleTypeDef* htim1, TIM_HandleTypeDef* htim2, TIM_HandleTypeDef* htim3):
-TaskBase("PwmCmdsTask", 1024, osPriorityHigh),
+PwmCmds::PwmCmds(TIM_HandleTypeDef* htim1, TIM_HandleTypeDef* htim2, TIM_HandleTypeDef* htim3,
+                 bool register_task):
+TaskBase("PwmCmdsTask", 1024, osPriorityHigh, register_task),
 pwm_timer1_(htim1),
 pwm_timer2_(htim2),
 pwm_timer3_(htim3){
@@ -46,17 +49,34 @@ inline uint16_t PwmCmds::PwmToOneShot(uint16_t throttle) const {
     return static_cast<uint16_t>(pwm);
 }
 
+void PwmCmds::InitializeOutputs() {
+#ifndef MODE_PASSTHROUGH
+	 __HAL_TIM_SET_COMPARE(pwm_timer1_, TIM_CHANNEL_1, kMinPwmVal);
+	 __HAL_TIM_SET_COMPARE(pwm_timer1_, TIM_CHANNEL_2, kMinPwmVal);
+	 __HAL_TIM_SET_COMPARE(pwm_timer1_, TIM_CHANNEL_3, kMinPwmVal);
+	 __HAL_TIM_SET_COMPARE(pwm_timer1_, TIM_CHANNEL_4, kMinPwmVal);
+#endif
+}
+
+void PwmCmds::ApplyPwmData(const PwmData& pwm_data) {
+	uint16_t pwm_oneshot42_cmd = PwmToOneShot(pwm_data.pwm_cmds[0]);
+	__HAL_TIM_SET_COMPARE(pwm_timer1_, TIM_CHANNEL_1, pwm_oneshot42_cmd);
+
+	pwm_oneshot42_cmd = PwmToOneShot(pwm_data.pwm_cmds[1]);
+	__HAL_TIM_SET_COMPARE(pwm_timer1_, TIM_CHANNEL_2, pwm_oneshot42_cmd);
+
+	pwm_oneshot42_cmd = PwmToOneShot(pwm_data.pwm_cmds[2]);
+	__HAL_TIM_SET_COMPARE(pwm_timer1_, TIM_CHANNEL_3, pwm_oneshot42_cmd);
+
+	pwm_oneshot42_cmd = PwmToOneShot(pwm_data.pwm_cmds[3]);
+	__HAL_TIM_SET_COMPARE(pwm_timer1_, TIM_CHANNEL_4, pwm_oneshot42_cmd);
+}
+
 void PwmCmds::Run() {
 	DEBUG_PRINT("Starting PWM CMDS Module\n");
 
-#ifndef MODE_PASSTHROUGH
-	 __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_1, kMinPwmVal);
-	 __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_2, kMinPwmVal);
-	 __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_3, kMinPwmVal);
-	 __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_4, kMinPwmVal);
-
-	 osDelay(2);
-#endif
+	InitializeOutputs();
+	osDelay(2);
 
 #ifndef MODE_TEST
 	const TickType_t loop_frequency = pdMS_TO_TICKS(LOOP_INTERVAL_MS);  // 1000Hz
@@ -158,17 +178,7 @@ void PwmCmds::Run() {
 
 #else
 		if(pwm_sub_.copy(pwm_data_)){
-			uint16_t pwm_oneshot42_cmd = PwmToOneShot(pwm_data_.pwm_cmds[0]);
-			__HAL_TIM_SET_COMPARE(pwm_timer1_, TIM_CHANNEL_1, pwm_oneshot42_cmd);
-
-			pwm_oneshot42_cmd = PwmToOneShot(pwm_data_.pwm_cmds[1]);
-			__HAL_TIM_SET_COMPARE(pwm_timer1_, TIM_CHANNEL_2, pwm_oneshot42_cmd);
-
-			pwm_oneshot42_cmd = PwmToOneShot(pwm_data_.pwm_cmds[2]);
-			__HAL_TIM_SET_COMPARE(pwm_timer1_, TIM_CHANNEL_3, pwm_oneshot42_cmd);
-
-			pwm_oneshot42_cmd = PwmToOneShot(pwm_data_.pwm_cmds[3]);
-			__HAL_TIM_SET_COMPARE(pwm_timer1_, TIM_CHANNEL_4, pwm_oneshot42_cmd);
+			ApplyPwmData(pwm_data_);
 		}
 		EndMetricsCycle();
 		vTaskDelayUntil(&xLastWakeTime, loop_frequency);

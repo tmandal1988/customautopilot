@@ -17,6 +17,10 @@ public:
     BlinkLedTask() : TaskBase("BlinkLedTask", 768, osPriorityNormal) {}
 
     void Run() override;
+
+private:
+    // The loop below ticks once per second.
+    static constexpr uint32_t kHeapReportDelaySeconds = 5;
 };
 
 // Static instance for self-registration

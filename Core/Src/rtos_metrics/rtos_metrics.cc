@@ -254,6 +254,30 @@ void TaskMetrics::RefreshStackHighWaterMark(
 #endif
 }
 
+void TaskMetrics::SetAuxMetric(std::uint8_t index,
+                               std::uint32_t value) noexcept {
+#if RTOS_METRICS_ENABLE
+  if (index < 5U) {
+    aux_metrics_[index].store(value, std::memory_order_relaxed);
+  }
+#else
+  static_cast<void>(index);
+  static_cast<void>(value);
+#endif
+}
+
+void TaskMetrics::UpdateAuxMetricMaximum(
+    std::uint8_t index, std::uint32_t candidate) noexcept {
+#if RTOS_METRICS_ENABLE
+  if (index < 5U) {
+    UpdateMaximum(aux_metrics_[index], candidate);
+  }
+#else
+  static_cast<void>(index);
+  static_cast<void>(candidate);
+#endif
+}
+
 void TaskMetrics::Capture(
     std::uint8_t task_index, std::uint8_t task_count,
     std::uint32_t snapshot_sequence, std::uint32_t context_switch_count,
@@ -287,6 +311,19 @@ void TaskMetrics::Capture(
   }
   if (release_count_.load(std::memory_order_relaxed) != 0U) {
     output->flags |= kHasExecutionSample;
+  }
+  const std::uint32_t aux0 = aux_metrics_[0].load(std::memory_order_relaxed);
+  const std::uint32_t aux1 = aux_metrics_[1].load(std::memory_order_relaxed);
+  const std::uint32_t aux2 = aux_metrics_[2].load(std::memory_order_relaxed);
+  const std::uint32_t aux3 = aux_metrics_[3].load(std::memory_order_relaxed);
+  const std::uint32_t aux4 = aux_metrics_[4].load(std::memory_order_relaxed);
+  if ((aux0 | aux1 | aux2 | aux3 | aux4) != 0U) {
+    output->flags |= kHasAuxMetrics;
+    output->reserved[0] = aux0;
+    output->reserved[1] = aux1;
+    output->reserved[2] = aux2;
+    output->reserved[3] = aux3;
+    output->reserved[4] = aux4;
   }
   const std::uint32_t stack_free =
       stack_min_free_bytes_.load(std::memory_order_relaxed);

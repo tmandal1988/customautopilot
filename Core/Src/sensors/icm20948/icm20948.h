@@ -94,7 +94,10 @@ private:
 	/////////////////ALL THE IMPORTANT REGISTERS//////////////////////
 
 	// Amount of time to wait for I2c Transmit or Receive
-	static constexpr uint32_t icm_i2c_wait_time_ms_ = HAL_MAX_DELAY;
+	static constexpr uint32_t icm_i2c_wait_time_ms_ = 10U;
+	static constexpr uint32_t kInitRetryDelayMs = 500U;
+	static constexpr uint32_t kDmaCompletionTimeoutMs = 2U;
+	static constexpr uint8_t kRuntimeFailureLogThreshold = 5U;
 	static constexpr uint8_t who_am_i_val_ = 0xEA;
 	static constexpr uint16_t kRawReadSize =
 			(kStateEstimatorMagnetometerSource == MagnetometerSource::kIcm20948)
@@ -185,6 +188,11 @@ private:
 	uint8_t icm20948_raw_buf_[23]={0};
 	I2C_HandleTypeDef* icm20948_i2c_; // This I2C is used to communicate with ICM20948
 	volatile TransferResult transfer_result_ = TransferResult::kIdle;
+	uint8_t consecutive_runtime_failures_ = 0U;
+#if RTOS_METRICS_ENABLE
+	uint32_t metrics_i2c_busy_skips_ = 0U;
+	uint32_t metrics_dma_start_failures_ = 0U;
+#endif
 
 	// Active user bank
 	uint8_t active_usr_bank_ = 37;
@@ -220,4 +228,13 @@ private:
 	bool Icm20948SetSampleMode();
 
 	void Icm20948GetData(ImuData *icm20948_data);
+	bool StartInertialRead();
+	bool CompleteInertialRead(ImuData* icm20948_data);
+	void AbortRuntimeTransfer();
+	static bool TickReached(TickType_t now, TickType_t deadline);
+	static TickType_t AdvanceRelease(TickType_t previous_release,
+			TickType_t now, TickType_t period);
+	bool RecoverI2cPeripheral();
+	void RecordRuntimeTransferFailure(const char* reason);
+	void ClearRuntimeTransferFailures();
 };

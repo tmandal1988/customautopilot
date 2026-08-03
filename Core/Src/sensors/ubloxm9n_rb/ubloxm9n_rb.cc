@@ -20,7 +20,7 @@ extern "C" {
 ReadUbloxM9nRb read_ubloxm9n_rb_task_instance_(&huart2);
 
 ReadUbloxM9nRb::ReadUbloxM9nRb(UART_HandleTypeDef* huart):
-TaskBase("UbloxM9nTask2", 1792, osPriorityAboveNormal),
+TaskBase("UbloxM9nTask2", 1792, osPriorityNormal),
 gps_uart_(huart){
 
 ubloxm9n_rb_instance_handle_ = this;
@@ -77,27 +77,117 @@ void ReadUbloxM9nRb::SetBaudrate(const uint32_t baudrate){
 	osDelay(10);
 	FlushUartDataRegister();
 	osDelay(10);
-	HAL_UART_Receive_DMA(gps_uart_, rx_buffer_, MAX_BUFF_SIZE);
-	// The DMA write pointer restarts at 0 with this fresh transfer; the read
-	// cursor must restart with it. Left stale, ProcessUbloxFrame() would read
-	// the wraparound branch and misreport most of a freshly-zeroed buffer as
-	// "available", burning a pass parsing garbage before sync recovers.
-	last_read_index_ = 0;
+	(void)StartRxDma();
 	osDelay(10);
-}
-
-void ReadUbloxM9nRb::RecoverUartDma(){
-	HAL_UART_DMAStop(gps_uart_);
-	FlushUartDataRegister();
-	HAL_UART_Receive_DMA(gps_uart_, rx_buffer_, MAX_BUFF_SIZE);
-	last_read_index_ = 0;
 }
 
 void ReadUbloxM9nRb::UartError(UART_HandleTypeDef* huart){
 	ReadUbloxM9nRb* instance = ubloxm9n_rb_instance_handle_;
 	if ((instance != nullptr) && (huart == instance->gps_uart_)) {
-		instance->uart_error_pending_.store(true, std::memory_order_release);
+		instance->NotifyTaskFromIsr(kRxErrorEvent);
 	}
+}
+
+void ReadUbloxM9nRb::RxEvent(UART_HandleTypeDef* huart, uint16_t size){
+	ReadUbloxM9nRb* instance = ubloxm9n_rb_instance_handle_;
+	if ((instance == nullptr) || (huart != instance->gps_uart_)) {
+		return;
+	}
+
+	if ((size == 0U) || (size > MAX_BUFF_SIZE)) {
+		instance->NotifyTaskFromIsr(kRxErrorEvent);
+		return;
+	}
+
+	instance->NotifyTaskFromIsr(kRxReadyEvent);
+}
+
+void ReadUbloxM9nRb::NotifyTaskFromIsr(uint32_t event) {
+	if (task_handle_ == nullptr) {
+		return;
+	}
+
+	BaseType_t higher_priority_task_woken = pdFALSE;
+	(void)xTaskNotifyFromISR(task_handle_, event, eSetBits,
+			&higher_priority_task_woken);
+	portYIELD_FROM_ISR(higher_priority_task_woken);
+}
+
+bool ReadUbloxM9nRb::StartRxDma(){
+	uint32_t discarded_events = 0U;
+	if (task_handle_ != nullptr) {
+		(void)xTaskNotifyWait(0U, kAllTaskEvents, &discarded_events, 0U);
+	}
+
+	last_read_index_ = 0;
+	rx_backlog_pending_ = false;
+	rx_restart_pending_ = false;
+	parser_state_ = ParserState::WAIT_SYNC1;
+	payload_idx_ = 0;
+	ck_a_ = 0;
+	ck_b_ = 0;
+
+	const HAL_StatusTypeDef result = HAL_UARTEx_ReceiveToIdle_DMA(
+			gps_uart_, rx_buffer_, MAX_BUFF_SIZE);
+	if ((result == HAL_OK) && (gps_uart_->hdmarx != nullptr)) {
+		__HAL_DMA_DISABLE_IT(gps_uart_->hdmarx, DMA_IT_HT);
+	}
+	return result == HAL_OK;
+}
+
+void ReadUbloxM9nRb::ScheduleRxRestart(TickType_t now) {
+	rx_restart_pending_ = true;
+	next_rx_restart_due_ = now;
+}
+
+void ReadUbloxM9nRb::RecoverRxDma(TickType_t now) {
+	if (!rx_restart_pending_ || !DeadlineReached(now, next_rx_restart_due_)) {
+		return;
+	}
+
+	(void)HAL_UART_AbortReceive(gps_uart_);
+	FlushUartDataRegister();
+	if (StartRxDma()) {
+		next_health_due_ = now + pdMS_TO_TICKS(GPS_STALE_TIMEOUT_MS);
+		return;
+	}
+
+	next_rx_restart_due_ = now + pdMS_TO_TICKS(kTransportRetryIntervalMs);
+}
+
+bool ReadUbloxM9nRb::DeadlineReached(TickType_t now, TickType_t deadline) {
+	return static_cast<int32_t>(now - deadline) >= 0;
+}
+
+TickType_t ReadUbloxM9nRb::TicksUntil(TickType_t now, TickType_t deadline) {
+	return DeadlineReached(now, deadline) ? 0U : (deadline - now);
+}
+
+TickType_t ReadUbloxM9nRb::ComputeWaitTicks(TickType_t now) const {
+	if (rx_backlog_pending_) {
+		return 0U;
+	}
+
+	TickType_t wait_ticks = TicksUntil(now, next_health_due_);
+	if (rx_restart_pending_) {
+		const TickType_t restart_wait = TicksUntil(now, next_rx_restart_due_);
+		if (restart_wait < wait_ticks) {
+			wait_ticks = restart_wait;
+		}
+	}
+
+	return wait_ticks;
+}
+
+bool ReadUbloxM9nRb::HasPendingRxBytes() const {
+	if ((gps_uart_ == nullptr) || (gps_uart_->hdmarx == nullptr)) {
+		return false;
+	}
+
+	const size_t current_write_index =
+			(MAX_BUFF_SIZE - __HAL_DMA_GET_COUNTER(gps_uart_->hdmarx)) %
+			MAX_BUFF_SIZE;
+	return current_write_index != last_read_index_;
 }
 
 void ReadUbloxM9nRb::FlushUartDataRegister(){
@@ -703,14 +793,19 @@ bool ReadUbloxM9nRb::ConfigSbas(){
 	// 'Strict SBAS Integrity Mode' when no SBAS satellites are visible").
 	// Range+diffCorr alone still gets the accuracy benefit without this risk.
 	constexpr uint8_t kSbasUsage = 0x03;
-	constexpr uint8_t kSbasMaxChannels = 3;   // track up to 3 SBAS satellites
+	const auto sbas_config_active = [](const UbloxM9nCfgSbas& sbas_msg) {
+		return ((sbas_msg.mode & kSbasEnableMode) != 0U) &&
+				((sbas_msg.mode & 0x02U) == 0U) &&
+				((sbas_msg.usage & kSbasUsage) == kSbasUsage);
+	};
 
-	if (ubx_cfg_sbas_msg.mode != kSbasEnableMode ||
-			ubx_cfg_sbas_msg.usage != kSbasUsage ||
-			ubx_cfg_sbas_msg.max_sbas != kSbasMaxChannels){
+	if (!sbas_config_active(ubx_cfg_sbas_msg)){
 		ubx_cfg_sbas_msg.mode = kSbasEnableMode;
 		ubx_cfg_sbas_msg.usage = kSbasUsage;
-		ubx_cfg_sbas_msg.max_sbas = kSbasMaxChannels;
+		// NEO-M9N reports PROTVER=32.01. On this generation, the legacy
+		// UBX-CFG-SBAS maxSBAS field is receiver-controlled/obsolete and can
+		// read back as 0 even when SBAS is enabled. Do not force or validate it
+		// here; SBAS activation is verified through mode + usage readback.
 		// All-zero PRN mask lets the receiver auto-search every supported
 		// SBAS system (WAAS/EGNOS/MSAS/...) instead of requiring one fixed,
 		// region-specific PRN list baked into firmware.
@@ -726,17 +821,49 @@ bool ReadUbloxM9nRb::ConfigSbas(){
 			return false;
 		}
 
-		if(RxUartUbxPollMsg(CLASS_ACK, ID_ACK, txrx_delay_ms_) &&
+		const bool ack_seen = RxUartUbxPollMsg(CLASS_ACK, ID_ACK, txrx_delay_ms_);
+		if(ack_seen && packet_.len >= ACK_NAK_PAYLOAD_LENGTH &&
 					packet_.payload[0] == CLASS_CFG && packet_.payload[1] == ID_SBAS){
 			DEBUG_PRINT("GPS Module: Configuration change acknowledged for SBAS\n");
 		}else{
-			ERROR_PRINT("GPS Module: Configuration change not acknowledged for SBAS\n");
+			DEBUG_PRINT("GPS Module: SBAS ACK not observed; verifying by readback\n");
+		}
+
+		ubx_cfg_sbas.length = 0;
+		ubx_cfg_sbas.payload = NULL;
+		status = TxUartUbxPollCmd(&ubx_cfg_sbas, txrx_delay_ms_);
+		if(!status){
+			DEBUG_PRINT("GPS Module: ConfigSbas - Transmit failure - 3\n");
+			return false;
+		}
+
+		UbloxM9nCfgSbas verify_sbas_msg {};
+		if(RxUartUbxPollMsg(CLASS_CFG, ID_SBAS, txrx_delay_ms_)){
+			size_t copy_len = sizeof(verify_sbas_msg);
+			if (packet_.len < copy_len) {
+				copy_len = packet_.len;
+			}
+			std::memcpy(&verify_sbas_msg, packet_.payload, copy_len);
+			DEBUG_PRINT("GPS Module: ***********************************************\n");
+			DEBUG_PRINT("GPS Module: Verified SBAS Mode: 0x%02x, Usage: 0x%02x, MaxSBAS: %d\n",
+					verify_sbas_msg.mode, verify_sbas_msg.usage,
+					verify_sbas_msg.max_sbas);
+			DEBUG_PRINT("GPS Module: ***********************************************\n");
+		}else{
+			ERROR_PRINT("GPS Module: CFG-SBAS readback failed after update\n");
+			return false;
+		}
+
+		if (!sbas_config_active(verify_sbas_msg)){
+			ERROR_PRINT("GPS Module: SBAS readback mismatch after update\n");
 			return false;
 		}
 
 		status = UbxSaveCfg(0x00000008);
 		return status;
 	}else{
+		DEBUG_PRINT("GPS Module: SBAS active; legacy MaxSBAS field is %d\n",
+				ubx_cfg_sbas_msg.max_sbas);
 		return true;
 	}
 }
@@ -765,15 +892,28 @@ bool ReadUbloxM9nRb::EnableNavPvtMsg(){
 		DEBUG_PRINT("GPS Module: EnableNavPvtMsg - Transmit failure\n");
 	}
 
-	if(RxUartUbxPollMsg(CLASS_ACK, ID_ACK, txrx_delay_ms_) &&
+	const bool ack_seen = RxUartUbxPollMsg(CLASS_ACK, ID_ACK, txrx_delay_ms_);
+	if(ack_seen && packet_.len >= ACK_NAK_PAYLOAD_LENGTH &&
 			packet_.payload[0] == CLASS_CFG && packet_.payload[1] == ID_MSG){
 		DEBUG_PRINT("GPS Module: Successfully started NAV-PVT message for UART1\n");
 		return true;
-	}else{
-		DEBUG_PRINT("GPS Module: Failed to start NAV-PVT message for UART1: [Class]: %02x, [Id]%02x, [Pld0]%02x, [Pld1]%02x\n",
-				packet_.cls, packet_.id, packet_.payload[0], packet_.payload[1]);
 	}
 
+	if(packet_.cls == CLASS_ACK && packet_.id == ID_NAK &&
+			packet_.len >= ACK_NAK_PAYLOAD_LENGTH &&
+			packet_.payload[0] == CLASS_CFG && packet_.payload[1] == ID_MSG){
+		DEBUG_PRINT("GPS Module: NAV-PVT start was NAKed by receiver\n");
+		return false;
+	}
+
+	if(packet_.cls == CLASS_NAV && packet_.id == ID_PVT &&
+			packet_.len >= sizeof(UbloxM9nNavPvt)){
+		DEBUG_PRINT("GPS Module: NAV-PVT stream observed before ACK; treating stream as enabled\n");
+		return true;
+	}
+
+	DEBUG_PRINT("GPS Module: Failed to start NAV-PVT message for UART1: [Class]: %02x, [Id]%02x, [Pld0]%02x, [Pld1]%02x\n",
+			packet_.cls, packet_.id, packet_.payload[0], packet_.payload[1]);
 	return false;
 }
 
@@ -806,7 +946,7 @@ bool ReadUbloxM9nRb::DisableNavPvtMsg(){
 		DEBUG_PRINT("GPS Module: Successfully stopped NAV-PVT message for UART1\n");
 		return true;
 	}else{
-		DEBUG_PRINT("GPS Module: Failed to stop NAV-PVT message for UART1: %02x, %02x\n", packet_.cls, packet_.id);
+		DEBUG_PRINT("GPS Module: NAV-PVT stop ACK not observed: last packet %02x, %02x\n", packet_.cls, packet_.id);
 	}
 
 	return false;
@@ -829,46 +969,58 @@ void ReadUbloxM9nRb::GetCurrentBaudrate(){
 }
 
 bool ReadUbloxM9nRb::InitGps(uint32_t baudrate, uint16_t time_bw_samples_ms, uint8_t nav_rate){
-	bool status;
 	GetCurrentBaudrate();
-	status = DisableNavPvtMsg();
-	if(status){
-		//Config the desired baudrate on GPS module
-		status &= ConfigGpsUart1(baudrate);
-		//Set gps_uart_ baudrate
-		SetBaudrate(baudrate);
-		current_baudrate_ = baudrate;
-		status &= ConfigAuxPrts();
-
-		// GPS_DYN_MODEL/GPS_HOLD_THR are OnReboot QGC parameters: read the
-		// currently configured value exactly once, here at GPS module boot.
-		// A QGC edit stages a new configured value immediately but only
-		// takes effect the next time this function runs (next GPS boot).
-		// The generated compile-time default is the safe fallback if the
-		// store read ever fails (e.g. an unexpected type/range mismatch).
-		std::int32_t dyn_model_param =
-				parameters::generated::kGpsParameterDefaults.dyn_model;
-		std::int32_t static_hold_param = parameters::generated::
-				kGpsParameterDefaults.static_hold_thresh_cmps;
-		auto& param_store = parameters::ParameterStore::Instance();
-		if (!param_store.ReadInt32(parameters::generated::ParameterId::GpsDynModel,
-				&dyn_model_param)) {
-			DEBUG_PRINT("GPS Module: Falling back to default GPS_DYN_MODEL\n");
-		}
-		if (!param_store.ReadInt32(parameters::generated::ParameterId::GpsHoldThr,
-				&static_hold_param)) {
-			DEBUG_PRINT("GPS Module: Falling back to default GPS_HOLD_THR\n");
-		}
-
-		status &= ConfigNav5(static_cast<uint8_t>(dyn_model_param),
-				static_cast<uint8_t>(static_hold_param));
-		status &= ConfigSbas();
-		status &= ConfigGpsMeasRate(time_bw_samples_ms, nav_rate);
-		FlushUartDataRegister();
-		status &= EnableNavPvtMsg();
+	if (!DisableNavPvtMsg()) {
+		// A missed CFG-MSG ACK here is not enough reason to abort GPS bring-up:
+		// if NAV-PVT was already streaming, the polling parser can easily see
+		// NAV-PVT traffic instead of the ACK. Continue configuration and make
+		// EnableNavPvtMsg() prove the final runtime state.
+		DEBUG_PRINT("GPS Module: Continuing init after best-effort NAV-PVT stop\n");
 	}
 
-	return status;
+	//Config the desired baudrate on GPS module
+	if (!ConfigGpsUart1(baudrate)) {
+		return false;
+	}
+	//Set gps_uart_ baudrate
+	SetBaudrate(baudrate);
+	current_baudrate_ = baudrate;
+	if (!ConfigAuxPrts()) {
+		return false;
+	}
+
+	// GPS_DYN_MODEL/GPS_HOLD_THR are OnReboot QGC parameters: read the
+	// currently configured value exactly once, here at GPS module boot.
+	// A QGC edit stages a new configured value immediately but only
+	// takes effect the next time this function runs (next GPS boot).
+	// The generated compile-time default is the safe fallback if the
+	// store read ever fails (e.g. an unexpected type/range mismatch).
+	std::int32_t dyn_model_param =
+			parameters::generated::kGpsParameterDefaults.dyn_model;
+	std::int32_t static_hold_param = parameters::generated::
+			kGpsParameterDefaults.static_hold_thresh_cmps;
+	auto& param_store = parameters::ParameterStore::Instance();
+	if (!param_store.ReadInt32(parameters::generated::ParameterId::GpsDynModel,
+			&dyn_model_param)) {
+		DEBUG_PRINT("GPS Module: Falling back to default GPS_DYN_MODEL\n");
+	}
+	if (!param_store.ReadInt32(parameters::generated::ParameterId::GpsHoldThr,
+			&static_hold_param)) {
+		DEBUG_PRINT("GPS Module: Falling back to default GPS_HOLD_THR\n");
+	}
+
+	if (!ConfigNav5(static_cast<uint8_t>(dyn_model_param),
+			static_cast<uint8_t>(static_hold_param))) {
+		return false;
+	}
+	if (!ConfigSbas()) {
+		return false;
+	}
+	if (!ConfigGpsMeasRate(time_bw_samples_ms, nav_rate)) {
+		return false;
+	}
+	FlushUartDataRegister();
+	return EnableNavPvtMsg();
 }
 
 bool ReadUbloxM9nRb::ConfigGpsMeasRate(uint16_t time_bw_samples_ms, uint8_t nav_rate){
@@ -975,7 +1127,9 @@ bool ReadUbloxM9nRb::ConfigGpsMeasRate(uint16_t time_bw_samples_ms, uint8_t nav_
 }
 
 bool ReadUbloxM9nRb::ProcessUbloxFrame(){
-	size_t current_write_index = MAX_BUFF_SIZE - __HAL_DMA_GET_COUNTER(gps_uart_->hdmarx);
+	size_t current_write_index =
+			(MAX_BUFF_SIZE - __HAL_DMA_GET_COUNTER(gps_uart_->hdmarx)) %
+			MAX_BUFF_SIZE;
 	size_t available_bytes = 0;
 	if (current_write_index >= last_read_index_) {
 		available_bytes = current_write_index - last_read_index_;
@@ -984,9 +1138,15 @@ bool ReadUbloxM9nRb::ProcessUbloxFrame(){
 	}
 
 	if(available_bytes == 0) return false;
+#if RTOS_METRICS_ENABLE
+	UpdateAuxMetricMaximum(1U, static_cast<uint32_t>(available_bytes));
+#endif
 	if (available_bytes > MAX_BYTES_PER_DISPATCH) {
 		available_bytes = MAX_BYTES_PER_DISPATCH;
 	}
+#if RTOS_METRICS_ENABLE
+	UpdateAuxMetricMaximum(2U, static_cast<uint32_t>(available_bytes));
+#endif
 	size_t bytes_processed = 0;
 	while (bytes_processed < available_bytes) {
 		size_t buffer_index = (last_read_index_ + bytes_processed) % MAX_BUFF_SIZE;
@@ -1085,6 +1245,7 @@ bool ReadUbloxM9nRb::ParseUbx(uint8_t byte)
 void ReadUbloxM9nRb::Run() {
 	Publisher<GpsData> ubloxm9n_pub(TopicID::UBLOXM9N);
 	osDelay(100);
+	task_handle_ = xTaskGetCurrentTaskHandle();
 	// 40 ms measurement period (25 Hz nav solution): shortens the inter-update
 	// gap the EKF dead-reckons across between GPS corrections, versus the
 	// previous 50 ms/20 Hz. ConfigGpsMeasRate() reads back the applied rate,
@@ -1092,68 +1253,88 @@ void ReadUbloxM9nRb::Run() {
 	// self-diagnosing via the existing DEBUG_PRINT readback, not a hazard.
 	bool gps_status = InitGps(921600U, 40, 1);
 	(void)gps_status;
-	TickType_t xLastWakeTime;
-	const TickType_t xFrequency = pdMS_TO_TICKS(READ_INTERVAL_MS);
 
-	osDelay(250);
-	// Initialize the periodic schedule after the startup delay.
-	xLastWakeTime = xTaskGetTickCount();
+	// InitGps() uses the same DMA ring to poll CFG/ACK replies while it brings
+	// the receiver up. Start the steady-state event loop from a clean runtime
+	// RX ring so one old startup burst cannot create a multi-dispatch backlog.
+	(void)HAL_UART_AbortReceive(gps_uart_);
+	FlushUartDataRegister();
+	if (!StartRxDma()) {
+		ScheduleRxRestart(xTaskGetTickCount());
+	}
+#if RTOS_METRICS_ENABLE
+	SetAuxMetric(0U, 0U);
+	SetAuxMetric(1U, 0U);
+	SetAuxMetric(2U, 0U);
+#endif
 	// A failed/absent InitGps() above starts this at the current tick too, so
 	// the watchdog below fires on schedule instead of assuming success.
-	last_valid_frame_tick_ = xLastWakeTime;
-	ConfigurePeriodicMetrics(READ_INTERVAL_MS * 1000U,
-			READ_INTERVAL_MS * 1000U);
-	UbloxM9nNavPvt nav_pvt_data_{};
-//	int blink_counter = 0;
+	TickType_t now = xTaskGetTickCount();
+	last_valid_frame_tick_ = now;
+	next_health_due_ = now + pdMS_TO_TICKS(GPS_STALE_TIMEOUT_MS);
+	ConfigureEventMetrics();
     /* Infinite loop */
     for (;;) {
-		// Recovery is a schedule discontinuity, not periodic parser WCET.
-		if (uart_error_pending_.exchange(false, std::memory_order_acq_rel)) {
+		now = xTaskGetTickCount();
+		uint32_t events = 0U;
+		(void)xTaskNotifyWait(0U, kAllTaskEvents, &events,
+				ComputeWaitTicks(now));
+		now = xTaskGetTickCount();
+
+		if ((events & kRxErrorEvent) != 0U) {
 			DEBUG_PRINT("GPS Module: UART error observed, restarting DMA reception\n");
-			RecoverUartDma();
-			xLastWakeTime = xTaskGetTickCount();
 			MarkMetricsScheduleDiscontinuity();
-			vTaskDelayUntil(&xLastWakeTime, xFrequency);
+			ScheduleRxRestart(now);
+		}
+		if (rx_restart_pending_) {
+			RecoverRxDma(now);
 			continue;
 		}
 
-		BeginMetricsCycle();
-//    	if (++blink_counter >= 20) {
-//			blink_counter = 0;
-//			UBaseType_t highWaterMark = uxTaskGetStackHighWaterMark(NULL);
-//			uint32_t used = 1296 - highWaterMark * sizeof(StackType_t);
-//			DEBUG_PRINT("GPS Module: Used: %lu bytes, Free: %lu bytes (of %d total)\n",
-//			used, highWaterMark * sizeof(StackType_t), 1296);
-//    	}
+		if (((events & kRxReadyEvent) != 0U) || rx_backlog_pending_) {
+#if RTOS_METRICS_ENABLE && RTOS_CONTEXT_SWITCH_METRICS_ENABLE
+			const uint32_t dispatch_context_switch_start =
+					rtos_metrics::ContextSwitchCount();
+#endif
+			BeginMetricsCycle();
+			const bool packet_complete = ProcessUbloxFrame();
+			rx_backlog_pending_ = HasPendingRxBytes();
+			if (packet_complete && packet_.cls == CLASS_NAV &&
+					packet_.id == ID_PVT && packet_.len >= sizeof(UbloxM9nNavPvt)){
+				last_valid_frame_tick_ = xTaskGetTickCount();
+				next_health_due_ = last_valid_frame_tick_ +
+						pdMS_TO_TICKS(GPS_STALE_TIMEOUT_MS);
+				memcpy(&nav_pvt_data_, packet_.payload, sizeof(UbloxM9nNavPvt));
+				gps_data_.i_tow = nav_pvt_data_.i_tow;
+				gps_data_.valid = nav_pvt_data_.valid;
+				gps_data_.fix_type = nav_pvt_data_.fix_type;
+				gps_data_.flags = nav_pvt_data_.flags;
+				gps_data_.latitude_rad = nav_pvt_data_.lat * 1e-7 * DEG2RAD;
+				gps_data_.longitude_rad = nav_pvt_data_.lon * 1e-7 * DEG2RAD;
+				gps_data_.altitude_m = nav_pvt_data_.height * 1e-3;
+				gps_data_.vn_mps = nav_pvt_data_.vel_n * 1e-3;
+				gps_data_.ve_mps = nav_pvt_data_.vel_e * 1e-3;
+				gps_data_.vd_mps = nav_pvt_data_.vel_d * 1e-3;
+				gps_data_.num_sv = nav_pvt_data_.num_sv;
+				gps_data_.g_speed_mps = nav_pvt_data_.g_speed * 1e-3f;
+				gps_data_.cog_deg = nav_pvt_data_.heading * 1e-5f;
+				gps_data_.hacc_m = nav_pvt_data_.h_acc * 1e-3f;
+				gps_data_.vacc_m = nav_pvt_data_.v_acc * 1e-3f;
+				gps_data_.s_acc_mps = nav_pvt_data_.s_acc * 1e-3f;
+				gps_data_.heading_acc_deg = nav_pvt_data_.heading_acc * 1e-5f;
+				gps_data_.p_dop = nav_pvt_data_.p_dop;
+				gps_data_.head_veh_deg = nav_pvt_data_.head_veh * 1e-5;
+				gps_data_.checksum_valid = true;
 
-    	if(ProcessUbloxFrame() && packet_.cls == CLASS_NAV && packet_.id == ID_PVT){
-    		last_valid_frame_tick_ = xTaskGetTickCount();
-    		memcpy(&nav_pvt_data_, packet_.payload, sizeof(UbloxM9nNavPvt));
-    		gps_data_.i_tow = nav_pvt_data_.i_tow;
-			gps_data_.valid = nav_pvt_data_.valid;
-			gps_data_.fix_type = nav_pvt_data_.fix_type;
-			gps_data_.flags = nav_pvt_data_.flags;
-			gps_data_.latitude_rad = nav_pvt_data_.lat * 1e-7 * DEG2RAD;
-			gps_data_.longitude_rad = nav_pvt_data_.lon * 1e-7 * DEG2RAD;
-			gps_data_.altitude_m = nav_pvt_data_.height * 1e-3;
-			gps_data_.vn_mps = nav_pvt_data_.vel_n * 1e-3;
-			gps_data_.ve_mps = nav_pvt_data_.vel_e * 1e-3;
-			gps_data_.vd_mps = nav_pvt_data_.vel_d * 1e-3;
-			gps_data_.num_sv = nav_pvt_data_.num_sv;
-			gps_data_.g_speed_mps = nav_pvt_data_.g_speed * 1e-3f;
-			gps_data_.cog_deg = nav_pvt_data_.heading * 1e-5f;
-			gps_data_.hacc_m = nav_pvt_data_.h_acc * 1e-3f;
-			gps_data_.vacc_m = nav_pvt_data_.v_acc * 1e-3f;
-			gps_data_.s_acc_mps = nav_pvt_data_.s_acc * 1e-3f;
-			gps_data_.heading_acc_deg = nav_pvt_data_.heading_acc * 1e-5f;
-			gps_data_.p_dop = nav_pvt_data_.p_dop;
-			gps_data_.head_veh_deg = nav_pvt_data_.head_veh * 1e-5;
-			gps_data_.checksum_valid = true;
-
-    		ubloxm9n_pub.publish(gps_data_);
-//    		DEBUG_PRINT("GPS Module: iTOW: %lu, fix_type: %d, lat_rad: %g, lon_rad: %g, alt_m: %g\n",
-//    					gps_data_.i_tow, gps_data_.fix_type, gps_data_.latitude_rad, gps_data_.longitude_rad, gps_data_.altitude_m);
-    		new_nav_pvt_frame_ = false;
+				ubloxm9n_pub.publish(gps_data_);
+				new_nav_pvt_frame_ = false;
+			}
+			EndMetricsCycle();
+#if RTOS_METRICS_ENABLE && RTOS_CONTEXT_SWITCH_METRICS_ENABLE
+			UpdateAuxMetricMaximum(0U,
+					rtos_metrics::ContextSwitchCount() -
+					dispatch_context_switch_start);
+#endif
     	}
 
     	// No valid NAV-PVT for GPS_STALE_TIMEOUT_MS: either the module was
@@ -1164,14 +1345,11 @@ void ReadUbloxM9nRb::Run() {
     	// stops NAV-PVT output even if the link itself recovers). Re-running
     	// the full sequence blocks only this task; nothing else depends on it
     	// synchronously, so a multi-second retry here is real-time safe.
-		if ((xTaskGetTickCount() - last_valid_frame_tick_) >
-				pdMS_TO_TICKS(GPS_STALE_TIMEOUT_MS)) {
-#if RTOS_METRICS_ENABLE
+		now = xTaskGetTickCount();
+		if (DeadlineReached(now, next_health_due_)) {
 			// The multi-second recovery is intentionally outside the bounded
 			// periodic probe; CYCCNT wraps every 8.95 s at 480 MHz.
-			EndMetricsCycle();
 			MarkMetricsScheduleDiscontinuity();
-#endif
 			DEBUG_PRINT("GPS Module: No valid NAV-PVT for %lu ms, reinitializing\n",
 					(unsigned long)GPS_STALE_TIMEOUT_MS);
 			const bool reinit_status = InitGps(921600U, 40, 1);
@@ -1180,14 +1358,9 @@ void ReadUbloxM9nRb::Run() {
 			// see whether data resumes, rather than retrying every 25 ms tick
 			// while the link stays down.
 			last_valid_frame_tick_ = xTaskGetTickCount();
-			xLastWakeTime = last_valid_frame_tick_;
-#if RTOS_METRICS_ENABLE
+			next_health_due_ = last_valid_frame_tick_ +
+					pdMS_TO_TICKS(GPS_STALE_TIMEOUT_MS);
 			continue;
-#endif
 		}
-
-    	// Wait until the next cycle
-		EndMetricsCycle();
-		vTaskDelayUntil(&xLastWakeTime, xFrequency);
     }
 }

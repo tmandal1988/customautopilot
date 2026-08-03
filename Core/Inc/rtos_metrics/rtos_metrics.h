@@ -16,6 +16,9 @@
 #ifndef RTOS_METRICS_LOGGING_ENABLE
 #define RTOS_METRICS_LOGGING_ENABLE 0
 #endif
+#ifndef RTOS_METRICS_DEBUG_PRINT_ENABLE
+#define RTOS_METRICS_DEBUG_PRINT_ENABLE 0
+#endif
 #ifndef RTOS_STACK_WATERMARK_METRICS_ENABLE
 #define RTOS_STACK_WATERMARK_METRICS_ENABLE 0
 #endif
@@ -35,6 +38,7 @@ enum MetricFlags : std::uint32_t {
   kPeriodicTimingUnsupported = 1U << 4,
   kContextSwitchCounterEnabled = 1U << 5,
   kStackWatermarkEnabled = 1U << 6,
+  kHasAuxMetrics = 1U << 7,
 };
 
 // Called once after SystemClock_Config() and before any task can run.
@@ -73,6 +77,9 @@ class TaskMetrics {
   [[gnu::noinline]] void CompleteCycle() noexcept;
 
   void RefreshStackHighWaterMark(osThreadId_t task_handle) noexcept;
+  void SetAuxMetric(std::uint8_t index, std::uint32_t value) noexcept;
+  void UpdateAuxMetricMaximum(std::uint8_t index,
+                              std::uint32_t candidate) noexcept;
   void Capture(std::uint8_t task_index, std::uint8_t task_count,
                std::uint32_t snapshot_sequence,
                std::uint32_t context_switch_count,
@@ -125,6 +132,7 @@ class TaskMetrics {
   std::atomic<std::uint32_t> deadline_miss_count_{0U};
   std::atomic<std::uint32_t> schedule_discontinuity_count_{0U};
   std::atomic<std::uint32_t> stack_min_free_bytes_{UINT32_MAX};
+  std::atomic<std::uint32_t> aux_metrics_[5] = {};
 #endif
 };
 

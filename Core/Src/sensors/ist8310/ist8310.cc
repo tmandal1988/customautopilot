@@ -21,7 +21,7 @@ extern I2C_HandleTypeDef hi2c1;
 ReadIst8310 read_ist8310_task_instance_(&hi2c1);
 
 ReadIst8310::ReadIst8310(I2C_HandleTypeDef* i2c_handle)
-    : TaskBase("Ist8310Task", 1536, osPriorityAboveNormal),
+    : TaskBase("Ist8310Task", 1536, osPriorityNormal),
       i2c_(i2c_handle) {
     instance_ = this;
 }
@@ -167,6 +167,7 @@ bool ReadIst8310::ReinitializeI2cPeripheral() {
     }
 
     transfer_result_ = TransferResult::kIdle;
+    transfer_phase_ = TransferPhase::kIdle;
     measurement_state_ = MeasurementState::kNeedsTrigger;
     first_status_poll_pending_ = false;
     if (task_handle_ != nullptr) {
@@ -288,157 +289,158 @@ bool ReadIst8310::ArmMeasurement(uint8_t max_attempts) {
     return false;
 }
 
-void ReadIst8310::WaitUntilMeasurementCanBeRead() {
-    if ((measurement_state_ != MeasurementState::kWaitingForReady) ||
-        !first_status_poll_pending_) {
+bool ReadIst8310::TickReached(TickType_t now, TickType_t deadline) {
+    return static_cast<int32_t>(now - deadline) >= 0;
+}
+
+void ReadIst8310::NoteFirstPollLateness(TickType_t now) {
+    if (!first_status_poll_pending_) {
         return;
     }
 
-    const TickType_t minimum_delay =
-        pdMS_TO_TICKS(kMeasurementReadDelayMs);
-    TickType_t elapsed = xTaskGetTickCount() - measurement_started_tick_;
-    if (elapsed < minimum_delay) {
-        vTaskDelay(minimum_delay - elapsed);
-    }
-
-    // Apply the guard once per trigger. Any later DRDY polls are already
-    // outside the protected conversion window.
-    elapsed = xTaskGetTickCount() - measurement_started_tick_;
+    // Only the first poll after a trigger sits inside the protected conversion
+    // window; later DRDY polls are already outside it.
     first_status_poll_pending_ = false;
 
-    const TickType_t allowed_lateness =
-        pdMS_TO_TICKS(kAllowedReadLatenessMs);
-    if (elapsed > (minimum_delay + allowed_lateness)) {
 #if IST8310_ENABLE_DIAGNOSTICS
+    const TickType_t allowed = pdMS_TO_TICKS(kMeasurementReadDelayMs) +
+                               pdMS_TO_TICKS(kAllowedReadLatenessMs);
+    if ((now - measurement_started_tick_) > allowed) {
         ++first_read_late_count_;
-#endif
     }
+#else
+    static_cast<void>(now);
+#endif
 }
 
-ReadIst8310::SampleResult ReadIst8310::ReadAxesDma(RawSample* sample) {
-    if ((sample == nullptr) || (task_handle_ == nullptr) || (i2c_ == nullptr) ||
+bool ReadIst8310::PrepareTransfer() {
+    if ((task_handle_ == nullptr) || (i2c_ == nullptr) ||
         (HAL_I2C_GetState(i2c_) != HAL_I2C_STATE_READY)) {
-        last_failure_stage_ = FailureStage::kAxesDmaStart;
-        last_hal_error_ = (i2c_ != nullptr) ? HAL_I2C_GetError(i2c_)
-                                            : HAL_I2C_ERROR_NONE;
-        return SampleResult::kBusError;
+        return false;
     }
 
-    // Remove a late notification from an already-aborted transaction.
+    // A notification always belongs to the transfer started next. Dropping a
+    // stale one prevents a late callback from retiring the new transaction.
     (void)ulTaskNotifyTake(pdTRUE, 0);
     transfer_result_ = TransferResult::kPending;
-
-    const HAL_StatusTypeDef start_status = HAL_I2C_Mem_Read_DMA(
-        i2c_,
-        static_cast<uint16_t>(device_address_) << 1,
-        kRegDataXLow,
-        I2C_MEMADD_SIZE_8BIT,
-        dma_buffer_,
-        kAxisDataLength);
-
-    if (start_status != HAL_OK) {
-        last_hal_error_ = HAL_I2C_GetError(i2c_);
-        last_failure_stage_ = FailureStage::kAxesDmaStart;
-        transfer_result_ = TransferResult::kIdle;
-        return SampleResult::kBusError;
-    }
-
-    (void)ulTaskNotifyTake(pdTRUE, pdMS_TO_TICKS(kDmaTimeoutMs));
-
-    // Atomically retire this DMA ownership. At the timeout boundary an I2C
-    // error ISR may have completed just after ulTaskNotifyTake() returned zero;
-    // its result must win over a synthetic timeout classification.
-    taskENTER_CRITICAL();
-    const TransferResult result = transfer_result_;
-    transfer_result_ = TransferResult::kIdle;
-    taskEXIT_CRITICAL();
-
-    if (result == TransferResult::kError) {
-        return SampleResult::kBusError;
-    }
-    if (result != TransferResult::kComplete) {
-        last_hal_error_ = HAL_I2C_ERROR_TIMEOUT;
-        last_failure_stage_ = FailureStage::kAxesDmaTimeout;
-        return SampleResult::kDmaTimeout;
-    }
-
-    sample->x = DecodeLittleEndian(&dma_buffer_[0]);
-    sample->y = DecodeLittleEndian(&dma_buffer_[2]);
-    sample->z = DecodeLittleEndian(&dma_buffer_[4]);
-    return SampleResult::kValid;
+    return true;
 }
 
-ReadIst8310::SampleResult ReadIst8310::AcquireSample(RawSample* sample) {
-    if (sample == nullptr) {
-        last_hal_error_ = HAL_I2C_ERROR_NONE;
-        last_failure_stage_ = FailureStage::kInvalidState;
-        return SampleResult::kBusError;
-    }
-
-    if (measurement_state_ != MeasurementState::kWaitingForReady) {
-        if (ArmMeasurement(1)) {
-            return SampleResult::kWaitingForReady;
-        }
-        last_hal_error_ = HAL_I2C_GetError(i2c_);
-        last_failure_stage_ = FailureStage::kAcquisitionTrigger;
-        return SampleResult::kBusError;
-    }
-
-    uint8_t status = 0;
-    if (ReadRegister(kRegStatus1, &status, 1) != HAL_OK) {
-        last_hal_error_ = HAL_I2C_GetError(i2c_);
-        last_failure_stage_ = FailureStage::kStatusRead;
-        measurement_state_ = MeasurementState::kNeedsTrigger;
-        return SampleResult::kBusError;
-    }
-
-    if ((status & kStatusDataReady) == 0U) {
-#if IST8310_ENABLE_DIAGNOSTICS
-        ++not_ready_count_;
+void ReadIst8310::RecordStartFailure(FailureStage stage) {
+    last_hal_error_ =
+        (i2c_ != nullptr) ? HAL_I2C_GetError(i2c_) : HAL_I2C_ERROR_NONE;
+    last_failure_stage_ = stage;
+    transfer_result_ = TransferResult::kIdle;
+    transfer_phase_ = TransferPhase::kIdle;
+#if RTOS_METRICS_ENABLE
+    ++metrics_transfer_start_failures_;
+    SetAuxMetric(0U, metrics_transfer_start_failures_);
 #endif
-        const TickType_t conversion_timeout =
-            pdMS_TO_TICKS(kConversionReadyTimeoutMs);
-        if ((xTaskGetTickCount() - measurement_started_tick_) <
-            conversion_timeout) {
-            return SampleResult::kWaitingForReady;
-        }
+}
 
-        // The previous trigger was lost or the conversion stalled. Mark it
-        // abandoned. Run() performs a full reset instead of writing CNTL1 while
-        // the sensor may still be in an uncertain conversion state.
-#if IST8310_ENABLE_DIAGNOSTICS
-        ++conversion_timeout_count_;
-#endif
-        last_hal_error_ = HAL_I2C_ERROR_NONE;
-        last_failure_stage_ = FailureStage::kConversionTimeout;
-        measurement_state_ = MeasurementState::kNeedsTrigger;
-        return SampleResult::kConversionTimedOut;
+bool ReadIst8310::StartTriggerWrite() {
+    if (!PrepareTransfer()) {
+        RecordStartFailure(FailureStage::kAcquisitionTrigger);
+        return false;
     }
 
-    if ((status & kStatusDataOverrun) != 0U) {
-#if IST8310_ENABLE_DIAGNOSTICS
-        ++data_overrun_count_;
-#endif
+    trigger_command_ = kControl1SingleMeasurement;
+    transfer_phase_ = TransferPhase::kTriggerWrite;
+    if (HAL_I2C_Mem_Write_IT(i2c_,
+                             static_cast<uint16_t>(device_address_) << 1,
+                             kRegControl1,
+                             I2C_MEMADD_SIZE_8BIT,
+                             &trigger_command_,
+                             1) != HAL_OK) {
+        RecordStartFailure(FailureStage::kAcquisitionTrigger);
+        return false;
     }
 
-    // Follow the documented sequence: collect the completed measurement while
-    // the device is in standby, then trigger exactly one new conversion.
-    const SampleResult read_result = ReadAxesDma(sample);
-    if (read_result != SampleResult::kValid) {
-        measurement_state_ = MeasurementState::kNeedsTrigger;
-        return read_result;
+    return true;
+}
+
+bool ReadIst8310::StartStatusRead() {
+    if (!PrepareTransfer()) {
+        RecordStartFailure(FailureStage::kStatusReadStart);
+        return false;
     }
 
-    // Reading a data register clears DRDY, so the completed conversion is now
-    // consumed even if re-arming fails. Preserve this valid sample exactly once.
-    measurement_state_ = MeasurementState::kNeedsTrigger;
-    if (!ArmMeasurement(1)) {
-        last_hal_error_ = HAL_I2C_GetError(i2c_);
-        last_failure_stage_ = FailureStage::kPostSampleTrigger;
-        return SampleResult::kValidNeedsRecovery;
+    transfer_phase_ = TransferPhase::kStatusRead;
+    if (HAL_I2C_Mem_Read_IT(i2c_,
+                            static_cast<uint16_t>(device_address_) << 1,
+                            kRegStatus1,
+                            I2C_MEMADD_SIZE_8BIT,
+                            status_buffer_,
+                            1) != HAL_OK) {
+        RecordStartFailure(FailureStage::kStatusReadStart);
+        return false;
     }
 
-    return SampleResult::kValid;
+    return true;
+}
+
+bool ReadIst8310::StartAxisRead() {
+    if (!PrepareTransfer()) {
+        RecordStartFailure(FailureStage::kAxesDmaStart);
+        return false;
+    }
+
+    transfer_phase_ = TransferPhase::kAxisRead;
+    if (HAL_I2C_Mem_Read_DMA(i2c_,
+                             static_cast<uint16_t>(device_address_) << 1,
+                             kRegDataXLow,
+                             I2C_MEMADD_SIZE_8BIT,
+                             dma_buffer_,
+                             kAxisDataLength) != HAL_OK) {
+        RecordStartFailure(FailureStage::kAxesDmaStart);
+        return false;
+    }
+
+    return true;
+}
+
+void ReadIst8310::AbortTransfer() {
+    // Clearing ownership first stops a callback that lands during the abort
+    // from posting a notification for a transaction the task has given up on.
+    taskENTER_CRITICAL();
+    transfer_result_ = TransferResult::kIdle;
+    taskEXIT_CRITICAL();
+    transfer_phase_ = TransferPhase::kIdle;
+
+    if (i2c_ != nullptr) {
+        (void)HAL_I2C_Master_Abort_IT(
+            i2c_, static_cast<uint16_t>(device_address_) << 1);
+    }
+    (void)ulTaskNotifyTake(pdTRUE, 0);
+}
+
+ReadIst8310::FailureStage ReadIst8310::TransferErrorStage(TransferPhase phase) {
+    switch (phase) {
+        case TransferPhase::kTriggerWrite:
+            return FailureStage::kTriggerWriteTransfer;
+        case TransferPhase::kStatusRead:
+            return FailureStage::kStatusReadTransfer;
+        case TransferPhase::kAxisRead:
+            return FailureStage::kAxesDmaTransfer;
+        case TransferPhase::kIdle:
+        default:
+            return FailureStage::kInvalidState;
+    }
+}
+
+ReadIst8310::FailureStage ReadIst8310::TransferTimeoutStage(
+    TransferPhase phase) {
+    switch (phase) {
+        case TransferPhase::kTriggerWrite:
+            return FailureStage::kTriggerWriteTimeout;
+        case TransferPhase::kStatusRead:
+            return FailureStage::kStatusReadTimeout;
+        case TransferPhase::kAxisRead:
+            return FailureStage::kAxesDmaTimeout;
+        case TransferPhase::kIdle:
+        default:
+            return FailureStage::kInvalidState;
+    }
 }
 
 int16_t ReadIst8310::DecodeLittleEndian(const uint8_t* bytes) {
@@ -460,8 +462,12 @@ const char* ReadIst8310::FailureStageName(FailureStage stage) {
             return "initialization";
         case FailureStage::kInitialTrigger:
             return "initial-trigger";
-        case FailureStage::kStatusRead:
-            return "status-read";
+        case FailureStage::kStatusReadStart:
+            return "status-read-start";
+        case FailureStage::kStatusReadTransfer:
+            return "status-read-transfer";
+        case FailureStage::kStatusReadTimeout:
+            return "status-read-timeout";
         case FailureStage::kAxesDmaStart:
             return "axes-dma-start";
         case FailureStage::kAxesDmaTransfer:
@@ -470,6 +476,10 @@ const char* ReadIst8310::FailureStageName(FailureStage stage) {
             return "axes-dma-timeout";
         case FailureStage::kAcquisitionTrigger:
             return "acquisition-trigger";
+        case FailureStage::kTriggerWriteTransfer:
+            return "trigger-write-transfer";
+        case FailureStage::kTriggerWriteTimeout:
+            return "trigger-write-timeout";
         case FailureStage::kPostSampleTrigger:
             return "post-sample-trigger";
         case FailureStage::kConversionTimeout:
@@ -553,9 +563,10 @@ void ReadIst8310::NotifyFromIsr(TransferResult result, uint32_t hal_error) {
         return;
     }
 
+    // The task owns transfer_phase_ and classifies the failing stage itself,
+    // so the ISR only records the transport error.
     if (result == TransferResult::kError) {
         last_hal_error_ = hal_error;
-        last_failure_stage_ = FailureStage::kAxesDmaTransfer;
     }
     transfer_result_ = result;
 
@@ -565,6 +576,13 @@ void ReadIst8310::NotifyFromIsr(TransferResult result, uint32_t hal_error) {
 }
 
 void ReadIst8310::DmaCompleteCallback(I2C_HandleTypeDef* i2c_handle) {
+    if ((instance_ != nullptr) && (i2c_handle == instance_->i2c_)) {
+        instance_->NotifyFromIsr(TransferResult::kComplete,
+                                 HAL_I2C_ERROR_NONE);
+    }
+}
+
+void ReadIst8310::MemTxCompleteCallback(I2C_HandleTypeDef* i2c_handle) {
     if ((instance_ != nullptr) && (i2c_handle == instance_->i2c_)) {
         instance_->NotifyFromIsr(TransferResult::kComplete,
                                  HAL_I2C_ERROR_NONE);
@@ -650,72 +668,238 @@ void ReadIst8310::Run() {
         uint32_t consecutive_failures = 0;
         uint32_t consecutive_conversion_timeouts = 0;
 
+        transfer_result_ = TransferResult::kIdle;
+        transfer_phase_ = TransferPhase::kIdle;
+        next_action_tick_ =
+            measurement_started_tick_ + pdMS_TO_TICKS(kMeasurementReadDelayMs);
+
         while ((consecutive_failures < kMaxConsecutiveFailures) &&
                (consecutive_conversion_timeouts <
                 kMaxConsecutiveConversionTimeouts)) {
-            WaitUntilMeasurementCanBeRead();
-
-            BeginMetricsCycle();
-
-            RawSample sample = {};
-            const SampleResult result = AcquireSample(&sample);
-            const bool sample_is_valid =
-                (result == SampleResult::kValid) ||
-                (result == SampleResult::kValidNeedsRecovery);
-#if RTOS_METRICS_ENABLE
-            const bool delay_before_retry =
-                (result == SampleResult::kWaitingForReady) &&
-                !first_status_poll_pending_;
-#endif
-
-            if (sample_is_valid) {
-                MagnetometerData mag_data = {};
-                mag_data.mag_ut[0] =
-                    static_cast<float>(sample.y) * kMicroteslaPerLsb;
-                mag_data.mag_ut[1] =
-                    static_cast<float>(sample.x) * kMicroteslaPerLsb;
-                mag_data.mag_ut[2] =
-                    static_cast<float>(sample.z) * kMicroteslaPerLsb;
-                mag_pub.publish(mag_data);
-
-#if IST8310_ENABLE_DIAGNOSTICS
-                ++valid_sample_count_;
-                if ((valid_sample_count_ % kPrintEveryNSamples) == 0U) {
-                    QueueSampleForPrint(sample);
+            if (transfer_phase_ == TransferPhase::kIdle) {
+                const TickType_t now = xTaskGetTickCount();
+                if (!TickReached(now, next_action_tick_)) {
+                    // Conversion latency and the DRDY back-off are sensor time,
+                    // not task work. Block for them outside a metrics cycle.
+                    vTaskDelay(next_action_tick_ - now);
+                    continue;
                 }
+
+#if RTOS_METRICS_ENABLE && RTOS_CONTEXT_SWITCH_METRICS_ENABLE
+                const uint32_t idle_context_switch_start =
+                    rtos_metrics::ContextSwitchCount();
 #endif
+                BeginMetricsCycle();
+                if (measurement_state_ == MeasurementState::kNeedsTrigger) {
+                    if (!StartTriggerWrite()) {
+                        ++consecutive_failures;
+                        next_action_tick_ =
+                            now + pdMS_TO_TICKS(kTriggerRetryDelayMs);
+                    }
+                } else {
+                    NoteFirstPollLateness(now);
+                    if (!StartStatusRead()) {
+                        measurement_state_ = MeasurementState::kNeedsTrigger;
+                        ++consecutive_failures;
+                        next_action_tick_ =
+                            now + pdMS_TO_TICKS(kTriggerRetryDelayMs);
+                    }
+                }
+                EndMetricsCycle();
+#if RTOS_METRICS_ENABLE && RTOS_CONTEXT_SWITCH_METRICS_ENABLE
+                UpdateAuxMetricMaximum(4U,
+                                       rtos_metrics::ContextSwitchCount() -
+                                           idle_context_switch_start);
+#endif
+                continue;
             }
 
-            if (result == SampleResult::kValid) {
-                consecutive_failures = 0;
-                consecutive_conversion_timeouts = 0;
-            } else if (result == SampleResult::kWaitingForReady) {
-                // After the scheduled first read, poll gently until the 10 ms
-                // hard conversion deadline rather than spinning on I2C1.
-#if !RTOS_METRICS_ENABLE
-                if (!first_status_poll_pending_) {
-                    vTaskDelay(pdMS_TO_TICKS(kNotReadyPollIntervalMs));
-                }
+            // A transaction owns the bus. Everything up to its completion
+            // notification is I2C wire time during which this task is blocked;
+            // keeping it outside the cycle is what makes the reported execution
+            // time the work this task actually performs.
+#if RTOS_METRICS_ENABLE
+            const uint32_t wait_start_cycles = rtos_metrics::CyclesNow();
 #endif
-            } else if (result == SampleResult::kConversionTimedOut) {
-                // The sensor's state is uncertain. Exit directly to full
-                // recovery; do not write another trigger into an active mode.
-                consecutive_conversion_timeouts =
-                    kMaxConsecutiveConversionTimeouts;
-            } else {
+            const uint32_t notified =
+                ulTaskNotifyTake(pdTRUE, pdMS_TO_TICKS(kTransferTimeoutMs));
+#if RTOS_METRICS_ENABLE && RTOS_CONTEXT_SWITCH_METRICS_ENABLE
+            const uint32_t cycle_context_switch_start =
+                rtos_metrics::ContextSwitchCount();
+#endif
+            BeginMetricsCycle();
+#if RTOS_METRICS_ENABLE
+            UpdateAuxMetricMaximum(
+                2U, rtos_metrics::CyclesNow() - wait_start_cycles);
+#endif
+
+            // Retire ownership atomically. At the timeout boundary an I2C error
+            // ISR may have completed just after ulTaskNotifyTake() returned
+            // zero; its result must win over a synthetic timeout.
+            taskENTER_CRITICAL();
+            const TransferResult result = transfer_result_;
+            if (result != TransferResult::kPending) {
+                transfer_result_ = TransferResult::kIdle;
+            }
+            taskEXIT_CRITICAL();
+
+            const TransferPhase phase = transfer_phase_;
+
+            if (result != TransferResult::kComplete) {
+                if ((notified == 0U) && (result == TransferResult::kPending)) {
+                    last_hal_error_ = HAL_I2C_ERROR_TIMEOUT;
+                    last_failure_stage_ = TransferTimeoutStage(phase);
+#if RTOS_METRICS_ENABLE
+                    ++metrics_transfer_timeouts_;
+                    SetAuxMetric(1U, metrics_transfer_timeouts_);
+#endif
+                } else {
+                    last_failure_stage_ = TransferErrorStage(phase);
+                }
+
                 // A transport error leaves the state of DRDY/data consumption
                 // ambiguous, but a single glitched byte on a long, unshielded
                 // I2C1 cable does not by itself mean the link is broken.
-                // Tolerate a short run of consecutive errors before paying
-                // for a full peripheral + bus reset.
+                // Tolerate a short run of consecutive errors before paying for
+                // a full peripheral + bus reset.
+                AbortTransfer();
+                measurement_state_ = MeasurementState::kNeedsTrigger;
                 ++consecutive_failures;
+                // HAL_I2C_Master_Abort_IT() finishes asynchronously; retrying in
+                // this same tick would only fail the peripheral-ready check.
+                next_action_tick_ =
+                    xTaskGetTickCount() + pdMS_TO_TICKS(kTriggerRetryDelayMs);
+            } else {
+                transfer_phase_ = TransferPhase::kIdle;
+
+                switch (phase) {
+                    case TransferPhase::kTriggerWrite:
+                        // The conversion starts when CNTL1 lands, so time the
+                        // DRDY poll from the completion of this write.
+                        measurement_started_tick_ = xTaskGetTickCount();
+                        measurement_state_ =
+                            MeasurementState::kWaitingForReady;
+                        first_status_poll_pending_ = true;
+                        next_action_tick_ =
+                            measurement_started_tick_ +
+                            pdMS_TO_TICKS(kMeasurementReadDelayMs);
+                        break;
+
+                    case TransferPhase::kStatusRead: {
+                        const uint8_t status = status_buffer_[0];
+                        if ((status & kStatusDataReady) == 0U) {
+#if IST8310_ENABLE_DIAGNOSTICS
+                            ++not_ready_count_;
+#endif
+                            const TickType_t conversion_deadline =
+                                measurement_started_tick_ +
+                                pdMS_TO_TICKS(kConversionReadyTimeoutMs);
+                            if (TickReached(xTaskGetTickCount(),
+                                            conversion_deadline)) {
+                                // The trigger was lost or the conversion
+                                // stalled. Leave for a full reset instead of
+                                // writing CNTL1 while the sensor may still be
+                                // in an uncertain conversion state.
+#if IST8310_ENABLE_DIAGNOSTICS
+                                ++conversion_timeout_count_;
+#endif
+                                last_hal_error_ = HAL_I2C_ERROR_NONE;
+                                last_failure_stage_ =
+                                    FailureStage::kConversionTimeout;
+                                measurement_state_ =
+                                    MeasurementState::kNeedsTrigger;
+                                consecutive_conversion_timeouts =
+                                    kMaxConsecutiveConversionTimeouts;
+                            } else {
+                                next_action_tick_ =
+                                    xTaskGetTickCount() +
+                                    pdMS_TO_TICKS(kNotReadyPollIntervalMs);
+                            }
+                            break;
+                        }
+
+                        if ((status & kStatusDataOverrun) != 0U) {
+#if IST8310_ENABLE_DIAGNOSTICS
+                            ++data_overrun_count_;
+#endif
+                        }
+
+                        // Follow the documented sequence: collect the completed
+                        // measurement while the device is in standby.
+                        if (!StartAxisRead()) {
+                            measurement_state_ =
+                                MeasurementState::kNeedsTrigger;
+                            ++consecutive_failures;
+                            next_action_tick_ = xTaskGetTickCount() +
+                                pdMS_TO_TICKS(kTriggerRetryDelayMs);
+                        }
+                        break;
+                    }
+
+                    case TransferPhase::kAxisRead: {
+                        // Reading the data registers already cleared DRDY, so
+                        // this conversion is consumed either way. Re-arm first
+                        // so the CNTL1 write overlaps the decode and publish
+                        // below instead of following them.
+                        measurement_state_ = MeasurementState::kNeedsTrigger;
+                        const bool retriggered = StartTriggerWrite();
+
+#if RTOS_METRICS_ENABLE
+                        const uint32_t publish_start_cycles =
+                            rtos_metrics::CyclesNow();
+#endif
+                        RawSample sample = {};
+                        sample.x = DecodeLittleEndian(&dma_buffer_[0]);
+                        sample.y = DecodeLittleEndian(&dma_buffer_[2]);
+                        sample.z = DecodeLittleEndian(&dma_buffer_[4]);
+
+                        MagnetometerData mag_data = {};
+                        mag_data.mag_ut[0] =
+                            static_cast<float>(sample.y) * kMicroteslaPerLsb;
+                        mag_data.mag_ut[1] =
+                            static_cast<float>(sample.x) * kMicroteslaPerLsb;
+                        mag_data.mag_ut[2] =
+                            static_cast<float>(sample.z) * kMicroteslaPerLsb;
+                        mag_pub.publish(mag_data);
+#if RTOS_METRICS_ENABLE
+                        UpdateAuxMetricMaximum(
+                            3U, rtos_metrics::CyclesNow() -
+                                    publish_start_cycles);
+#endif
+
+#if IST8310_ENABLE_DIAGNOSTICS
+                        ++valid_sample_count_;
+                        if ((valid_sample_count_ % kPrintEveryNSamples) == 0U) {
+                            QueueSampleForPrint(sample);
+                        }
+#endif
+
+                        consecutive_failures = 0;
+                        consecutive_conversion_timeouts = 0;
+                        if (!retriggered) {
+                            last_failure_stage_ =
+                                FailureStage::kPostSampleTrigger;
+                            ++consecutive_failures;
+                            next_action_tick_ = xTaskGetTickCount() +
+                                pdMS_TO_TICKS(kTriggerRetryDelayMs);
+                        }
+                        break;
+                    }
+
+                    case TransferPhase::kIdle:
+                    default:
+                        last_failure_stage_ = FailureStage::kInvalidState;
+                        ++consecutive_failures;
+                        next_action_tick_ = xTaskGetTickCount() +
+                            pdMS_TO_TICKS(kTriggerRetryDelayMs);
+                        break;
+                }
             }
 
             EndMetricsCycle();
-#if RTOS_METRICS_ENABLE
-            if (delay_before_retry) {
-                vTaskDelay(pdMS_TO_TICKS(kNotReadyPollIntervalMs));
-            }
+#if RTOS_METRICS_ENABLE && RTOS_CONTEXT_SWITCH_METRICS_ENABLE
+            UpdateAuxMetricMaximum(4U, rtos_metrics::ContextSwitchCount() -
+                                           cycle_context_switch_start);
 #endif
         }
 

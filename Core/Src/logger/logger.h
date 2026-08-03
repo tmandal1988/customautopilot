@@ -20,7 +20,8 @@
 #include "messages/pwm_data.h"
 #include "messages/mtf01p_data.h"
 #include "messages/magnetometer_data.h"
-#if RTOS_METRICS_LOGGING_ENABLE
+#if RTOS_METRICS_LOGGING_ENABLE || \
+    (RTOS_METRICS_ENABLE && RTOS_METRICS_DEBUG_PRINT_ENABLE)
 #include "messages/rtos_metrics_data.h"
 #endif
 #include "parameters/parameter_change_event.h"
@@ -102,6 +103,17 @@ class Logger : public TaskBase {
 #if RTOS_METRICS_LOGGING_ENABLE
   void ServiceOneRtosMetricsRecord(uint32_t now_ticks);
 #endif
+#if RTOS_METRICS_ENABLE && RTOS_METRICS_DEBUG_PRINT_ENABLE
+  void ServiceRtosMetricsDebugPrint(uint32_t now_ticks);
+  bool CaptureRtosMetricsByName(const char* task_name,
+                                uint32_t context_switch_count,
+                                uint32_t context_switch_delta,
+                                uint32_t context_interval_ms,
+                                RtosMetricsData* output) const;
+  static uint32_t CyclesToMicroseconds(uint32_t cycles,
+                                       uint32_t core_clock_hz);
+  static uint32_t AbsI32(int32_t value);
+#endif
 
   // CRC-16/CCITT-FALSE over the record header and payload.
   static uint16_t ComputeCrc16(const uint8_t* data, size_t length);
@@ -140,5 +152,10 @@ class Logger : public TaskBase {
   Subscriber<FcsDebugData> rtos_stack_state_subscriber_{TopicID::FCSDEBUG};
   FcsDebugData rtos_stack_state_{};
   bool rtos_stack_state_known_ = false;
+#endif
+#if RTOS_METRICS_ENABLE && RTOS_METRICS_DEBUG_PRINT_ENABLE
+  uint32_t rtos_metrics_debug_last_tick_ = 0U;
+  uint32_t rtos_metrics_debug_last_context_switch_count_ = 0U;
+  bool rtos_metrics_debug_initialized_ = false;
 #endif
 };

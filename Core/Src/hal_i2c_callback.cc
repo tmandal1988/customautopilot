@@ -19,6 +19,18 @@ extern "C" void HAL_I2C_MemRxCpltCallback(I2C_HandleTypeDef* i2c_handle) {
     }
 }
 
+// Only the IST8310 retrigger uses a non-blocking memory write; the ICM20948
+// path is read-only.
+extern "C" void HAL_I2C_MemTxCpltCallback(I2C_HandleTypeDef* i2c_handle) {
+    if (i2c_handle == nullptr) {
+        return;
+    }
+
+    if (i2c_handle->Instance == I2C1) {
+        ReadIst8310::MemTxCompleteCallback(i2c_handle);
+    }
+}
+
 extern "C" void HAL_I2C_ErrorCallback(I2C_HandleTypeDef* i2c_handle) {
     if (i2c_handle == nullptr) {
         return;

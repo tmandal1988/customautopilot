@@ -17,7 +17,6 @@
 #include "parameters/parameter_store.h"
 #include "ubloxm9n_rb_parameter_catalog.h"
 
-#include <atomic>
 #include <cstring>  // Include this header for memcpy
 #include <inttypes.h>
 
@@ -33,12 +32,12 @@ public:
 	// ISR context: only raises a flag. Recovery runs from Run() so it can
 	// never race the task's own DMA management (e.g. SetBaudrate() already
 	// in progress during InitGps()).
+	static void RxEvent(UART_HandleTypeDef* huart, uint16_t size);
 	static void UartError(UART_HandleTypeDef* huart);
 
 	static ReadUbloxM9nRb* ubloxm9n_rb_instance_handle_;
 
 private:
-	static constexpr uint16_t READ_INTERVAL_MS = 25; // 40Hz
 	// If no valid NAV-PVT frame has been parsed for this long, the link is
 	// treated as lost (physically unplugged, or wedged past what the UART
 	// error recovery alone can fix) and a full InitGps() is retried.
@@ -53,7 +52,7 @@ private:
 	//Ublox M9N message definitions
 	static constexpr uint8_t ACK_NAK_PAYLOAD_LENGTH 								= 2;
 	static constexpr uint16_t MAX_BUFF_SIZE 										= 1024*4;
-	static constexpr uint16_t MAX_BYTES_PER_DISPATCH 							= 512;
+	static constexpr uint16_t MAX_BYTES_PER_DISPATCH 							= 192;
 	static constexpr uint8_t UBX_SYNC_CHAR_1 										= 0xB5;
 	static constexpr uint8_t UBX_SYNC_CHAR_2 										= 0x62;
 	static constexpr uint8_t UBX_NAV_PVT_SIZE 		 								= 100;
@@ -216,7 +215,11 @@ private:
 
 	uint8_t rx_buffer_[MAX_BUFF_SIZE] = {0};
 	size_t last_read_index_ = 0;
-	std::atomic<bool> uart_error_pending_{false};
+	TaskHandle_t task_handle_ = nullptr;
+	bool rx_backlog_pending_ = false;
+	bool rx_restart_pending_ = false;
+	TickType_t next_rx_restart_due_ = 0;
+	TickType_t next_health_due_ = 0;
 	TickType_t last_valid_frame_tick_ = 0;
 	uint8_t nav_pvt_raw_buff_[UBX_NAV_PVT_SIZE] = {0};
 	UbloxM9nNavPvt nav_pvt_data_;
@@ -258,9 +261,14 @@ private:
 	void UbloxM9nUartInit(uint32_t baudrate);
 	void FlushUartDataRegister();
 	void SetBaudrate(const uint32_t baudrate);
-	// Restarts only DMA reception (no baud/UBX renegotiation) after a UART
-	// error. Runs from Run(), never from the ISR itself.
-	void RecoverUartDma();
+	bool StartRxDma();
+	void ScheduleRxRestart(TickType_t now);
+	void RecoverRxDma(TickType_t now);
+	TickType_t ComputeWaitTicks(TickType_t now) const;
+	bool HasPendingRxBytes() const;
+	void NotifyTaskFromIsr(uint32_t event);
+	static bool DeadlineReached(TickType_t now, TickType_t deadline);
+	static TickType_t TicksUntil(TickType_t now, TickType_t deadline);
 	void CalculateChecksum(uint8_t *buffer, uint16_t length, uint8_t *ck_a, uint8_t *ck_b);
 	bool TxUartUbxPollCmd(const UbxMessage *message, const uint16_t wait_ms);
 	bool RxUartUbxPollMsg(const uint8_t class_id, const uint8_t msg_id, const uint16_t wait_ms);
@@ -287,4 +295,10 @@ private:
 		ck_a_ += byte;
 		ck_b_ += ck_a_;
 	}
+
+	static constexpr uint32_t kRxReadyEvent = 1U << 0;
+	static constexpr uint32_t kRxErrorEvent = 1U << 1;
+	static constexpr uint32_t kAllTaskEvents =
+			kRxReadyEvent | kRxErrorEvent;
+	static constexpr uint32_t kTransportRetryIntervalMs = 1000;
 };

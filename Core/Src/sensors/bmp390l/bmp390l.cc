@@ -8,11 +8,13 @@
 
 extern SPI_HandleTypeDef hspi5;
 ReadBmp390l read_bmp390l_task_instance_(&hspi5);
+ReadBmp390l* ReadBmp390l::instance_ = nullptr;
 
 
 ReadBmp390l::ReadBmp390l(SPI_HandleTypeDef* hspi):
 TaskBase("Bmp390lTask", 1062, osPriorityAboveNormal),
 bmp390l_spi_(hspi){
+	instance_ = this;
 }
 
 bool ReadBmp390l::WriteSingleRegister(uint8_t reg_addr, uint8_t value){
@@ -208,16 +210,57 @@ bool ReadBmp390l::Bmp390lInit(){
 
 void ReadBmp390l::Bmp390lGetPressAndTemp(){
 	ReadMultipleRegisters(REG_ADDR_DATA, 6);
+	CompensatePressureAndTemperature();
+}
 
+bool ReadBmp390l::StartPressureTemperatureRead(){
+	if ((task_handle_ == nullptr) ||
+	    (transfer_result_ != TransferResult::kIdle) ||
+	    (HAL_SPI_GetState(bmp390l_spi_) != HAL_SPI_STATE_READY)) {
+		return false;
+	}
+
+	// Clear any stale completion notification before arming a new transfer.
+	(void)ulTaskNotifyTake(pdTRUE, 0U);
+
+	tx_buf_[0] = static_cast<uint8_t>(REG_ADDR_DATA | 0x80);
+	transfer_result_ = TransferResult::kPending;
+	transfer_phase_ = TransferPhase::kAddress;
+	HAL_GPIO_WritePin(BARO_CS_GPIO_Port, BARO_CS_Pin, GPIO_PIN_RESET);
+	HAL_StatusTypeDef status =
+			HAL_SPI_Transmit_IT(bmp390l_spi_, tx_buf_, 1U);
+	if (status != HAL_OK) {
+		HAL_GPIO_WritePin(BARO_CS_GPIO_Port, BARO_CS_Pin, GPIO_PIN_SET);
+		transfer_phase_ = TransferPhase::kIdle;
+		transfer_result_ = TransferResult::kIdle;
+		return false;
+	}
+
+	return true;
+}
+
+bool ReadBmp390l::CompletePressureTemperatureRead(BaroData* baro_data){
+	if ((baro_data == nullptr) ||
+	    (transfer_result_ != TransferResult::kComplete)) {
+		return false;
+	}
+
+	CompensatePressureAndTemperature();
+	baro_data->press_pa = press_;
+	baro_data->temp_degc = temp_;
+	return true;
+}
+
+void ReadBmp390l::CompensatePressureAndTemperature(){
 	// Reconstruct raw pressure from 3 bytes (big-endian)
-	uint32_t raw_press_ = (static_cast<uint32_t>(rx_buf_[3]) << 16) |
-	                      (static_cast<uint32_t>(rx_buf_[2]) << 8)  |
-	                      static_cast<uint32_t>(rx_buf_[1]);
+	raw_press_ = (static_cast<uint32_t>(rx_buf_[3]) << 16) |
+	             (static_cast<uint32_t>(rx_buf_[2]) << 8)  |
+	             static_cast<uint32_t>(rx_buf_[1]);
 
 	// Reconstruct raw temperature from 3 bytes (big-endian)
-	uint32_t raw_temp_ = (static_cast<uint32_t>(rx_buf_[6]) << 16) |
-	                     (static_cast<uint32_t>(rx_buf_[5]) << 8)  |
-	                     static_cast<uint32_t>(rx_buf_[4]);
+	raw_temp_ = (static_cast<uint32_t>(rx_buf_[6]) << 16) |
+	            (static_cast<uint32_t>(rx_buf_[5]) << 8)  |
+	            static_cast<uint32_t>(rx_buf_[4]);
 
 	// --- Temperature Compensation (double precision) ---
 	const double diff = static_cast<double>(raw_temp_) - par_t1_;
@@ -255,20 +298,109 @@ void ReadBmp390l::Bmp390lGetPressAndTemp(){
 	press_ = out1 + out2 + nonlinear_term;
 }
 
+void ReadBmp390l::NotifyFromIsr(TransferResult result) {
+	if ((task_handle_ == nullptr) ||
+	    (transfer_result_ != TransferResult::kPending)) {
+		return;
+	}
+
+	transfer_result_ = result;
+	transfer_phase_ = TransferPhase::kIdle;
+
+	BaseType_t higher_priority_task_woken = pdFALSE;
+	vTaskNotifyGiveFromISR(task_handle_, &higher_priority_task_woken);
+	portYIELD_FROM_ISR(higher_priority_task_woken);
+}
+
+void ReadBmp390l::StartDataReceiveFromIsr() {
+	transfer_phase_ = TransferPhase::kData;
+	HAL_StatusTypeDef status = HAL_SPI_Receive_IT(
+			bmp390l_spi_, rx_buf_, kRuntimeReceiveLength);
+	if (status != HAL_OK) {
+		HAL_GPIO_WritePin(BARO_CS_GPIO_Port, BARO_CS_Pin, GPIO_PIN_SET);
+		NotifyFromIsr(TransferResult::kError);
+	}
+}
+
+void ReadBmp390l::SpiTransmitCompleteCallback(SPI_HandleTypeDef* spi_handle) {
+	if ((instance_ != nullptr) && (spi_handle == instance_->bmp390l_spi_)) {
+		if ((instance_->transfer_result_ == TransferResult::kPending) &&
+		    (instance_->transfer_phase_ == TransferPhase::kAddress)) {
+			instance_->StartDataReceiveFromIsr();
+		}
+	}
+}
+
+void ReadBmp390l::SpiReceiveCompleteCallback(SPI_HandleTypeDef* spi_handle) {
+	if ((instance_ != nullptr) && (spi_handle == instance_->bmp390l_spi_)) {
+		if ((instance_->transfer_result_ == TransferResult::kPending) &&
+		    (instance_->transfer_phase_ == TransferPhase::kData)) {
+			HAL_GPIO_WritePin(BARO_CS_GPIO_Port, BARO_CS_Pin, GPIO_PIN_SET);
+			instance_->NotifyFromIsr(TransferResult::kComplete);
+		}
+	}
+}
+
+void ReadBmp390l::SpiTransferCompleteCallback(SPI_HandleTypeDef* spi_handle) {
+	if ((instance_ != nullptr) && (spi_handle == instance_->bmp390l_spi_)) {
+		if (instance_->transfer_result_ == TransferResult::kPending) {
+			HAL_GPIO_WritePin(BARO_CS_GPIO_Port, BARO_CS_Pin, GPIO_PIN_SET);
+			instance_->NotifyFromIsr(TransferResult::kComplete);
+		}
+	}
+}
+
+void ReadBmp390l::SpiErrorCallback(SPI_HandleTypeDef* spi_handle) {
+	if ((instance_ != nullptr) && (spi_handle == instance_->bmp390l_spi_)) {
+		HAL_GPIO_WritePin(BARO_CS_GPIO_Port, BARO_CS_Pin, GPIO_PIN_SET);
+		instance_->NotifyFromIsr(TransferResult::kError);
+	}
+}
+
+bool ReadBmp390l::TickReached(TickType_t now, TickType_t deadline) {
+	return static_cast<int32_t>(now - deadline) >= 0;
+}
+
 void ReadBmp390l::Run() {
-	BaroData baro_data;
+	BaroData baro_data = {};
 	bool status = Bmp390lInit();
 	Publisher<BaroData> bmp390l_pub(TopicID::BMP390L);
 //	int blink_counter = 0;
-	TickType_t xLastWakeTime;
 	const TickType_t xFrequency = pdMS_TO_TICKS(READ_INTERVAL_MS);
+	const TickType_t runtime_transfer_timeout =
+			pdMS_TO_TICKS(kRuntimeTransferTimeoutMs);
 	osDelay(100);
-	// Initialize the periodic schedule after the startup delay.
-	xLastWakeTime = xTaskGetTickCount();
-	ConfigurePeriodicMetrics(READ_INTERVAL_MS * 1000U,
-			READ_INTERVAL_MS * 1000U);
+	task_handle_ = xTaskGetCurrentTaskHandle();
+	TickType_t next_release = xTaskGetTickCount();
+	ConfigureEventMetrics();
     /* Infinite loop */
     for (;;) {
+		if (transfer_result_ == TransferResult::kPending) {
+			const BaseType_t notified =
+					ulTaskNotifyTake(pdTRUE, runtime_transfer_timeout);
+			BeginMetricsCycle();
+			if (notified != 0U) {
+				if (CompletePressureTemperatureRead(&baro_data)) {
+					bmp390l_pub.publish(baro_data);
+				}
+				transfer_result_ = TransferResult::kIdle;
+			} else if (transfer_result_ == TransferResult::kPending) {
+				HAL_GPIO_WritePin(BARO_CS_GPIO_Port, BARO_CS_Pin,
+						GPIO_PIN_SET);
+				(void)HAL_SPI_Abort(bmp390l_spi_);
+				transfer_phase_ = TransferPhase::kIdle;
+				transfer_result_ = TransferResult::kIdle;
+			}
+			EndMetricsCycle();
+			continue;
+		}
+
+		const TickType_t now = xTaskGetTickCount();
+		if (!TickReached(now, next_release)) {
+			vTaskDelay(next_release - now);
+			continue;
+		}
+
 		BeginMetricsCycle();
     	if(status){
 //    		if (++blink_counter >= 20) {
@@ -278,14 +410,26 @@ void ReadBmp390l::Run() {
 //				DEBUG_PRINT("Used: %lu bytes, Free: %lu bytes (of %d total)\n",
 //				used, highWaterMark * sizeof(StackType_t), 1062);
 //    		}
-    		Bmp390lGetPressAndTemp();
-    		baro_data.press_pa = press_;
-    		baro_data.temp_degc = temp_;
-    		bmp390l_pub.publish(baro_data);
+    		(void)StartPressureTemperatureRead();
 //    		DEBUG_PRINT("Press: %g, Temp: %g\n", press_, temp_);
     	}
-    	// Wait until the next cycle
+		next_release = xTaskGetTickCount() + xFrequency;
 		EndMetricsCycle();
-		vTaskDelayUntil(&xLastWakeTime, xFrequency);
     }
+}
+
+extern "C" void HAL_SPI_TxRxCpltCallback(SPI_HandleTypeDef* hspi) {
+	ReadBmp390l::SpiTransferCompleteCallback(hspi);
+}
+
+extern "C" void HAL_SPI_TxCpltCallback(SPI_HandleTypeDef* hspi) {
+	ReadBmp390l::SpiTransmitCompleteCallback(hspi);
+}
+
+extern "C" void HAL_SPI_RxCpltCallback(SPI_HandleTypeDef* hspi) {
+	ReadBmp390l::SpiReceiveCompleteCallback(hspi);
+}
+
+extern "C" void HAL_SPI_ErrorCallback(SPI_HandleTypeDef* hspi) {
+	ReadBmp390l::SpiErrorCallback(hspi);
 }

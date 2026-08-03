@@ -16,13 +16,16 @@
 class TaskBase {
 public:
     TaskBase(const char* name, uint16_t requestedStackSize,
-             osPriority_t priority)
+             osPriority_t priority, bool register_task = true)
         : taskName(name),
           stackSize(RoundUpStackSize(EffectiveStackSize(requestedStackSize))),
           priority(priority),
           taskHandle(nullptr),
-          stackMemory(AllocateStack(stackSize)),
-          stackDepthWords(static_cast<uint16_t>(stackSize / sizeof(StackType_t))),
+          stackMemory(register_task ? AllocateStack(stackSize) : nullptr),
+          stackDepthWords(register_task
+                              ? static_cast<uint16_t>(stackSize /
+                                                      sizeof(StackType_t))
+                              : 0U),
           taskControlBlock{}
 #if RTOS_METRICS_ENABLE
           ,
@@ -32,7 +35,9 @@ public:
                    priority)
 #endif
     {
-        RegisterTask(this);
+        if (register_task) {
+            RegisterTask(this);
+        }
     }
 
     virtual ~TaskBase() {}
@@ -219,6 +224,25 @@ protected:
     void EndMetricsCycle() noexcept {
 #if RTOS_METRICS_ENABLE
         metrics_.CompleteCycle();
+#endif
+    }
+
+    void SetAuxMetric(std::uint8_t index, std::uint32_t value) noexcept {
+#if RTOS_METRICS_ENABLE
+        metrics_.SetAuxMetric(index, value);
+#else
+        static_cast<void>(index);
+        static_cast<void>(value);
+#endif
+    }
+
+    void UpdateAuxMetricMaximum(std::uint8_t index,
+                                std::uint32_t candidate) noexcept {
+#if RTOS_METRICS_ENABLE
+        metrics_.UpdateAuxMetricMaximum(index, candidate);
+#else
+        static_cast<void>(index);
+        static_cast<void>(candidate);
 #endif
     }
 

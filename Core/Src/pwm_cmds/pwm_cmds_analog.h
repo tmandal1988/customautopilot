@@ -34,8 +34,11 @@
 
 class PwmCmds : public TaskBase {
 public:
-	PwmCmds(TIM_HandleTypeDef* htim1, TIM_HandleTypeDef* htim2, TIM_HandleTypeDef* htim3);
+	PwmCmds(TIM_HandleTypeDef* htim1, TIM_HandleTypeDef* htim2, TIM_HandleTypeDef* htim3,
+	        bool register_task = true);
     void Run() override;
+    void InitializeOutputs();
+    void ApplyPwmData(const PwmData& pwm_data);
 
 	static PwmCmds* pwm_cmds_instance_handle_;
 private:

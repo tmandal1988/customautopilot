@@ -18,15 +18,18 @@
 #include "messages/fcs_debug_data.h"
 #include "messages/mavlink_data.h"
 #include "pubsub/subscriber.h"
-#include "pubsub/publisher.h"
 #include "debug.h"
 
 #include "fcsModelAutocode/fcsModel.h"
 
 class FlightControls : public TaskBase {
 public:
-	FlightControls();
+	explicit FlightControls(bool register_task = true);
     void Run() override;
+    bool InitializeController();
+    bool StepOnce(const EkfData* direct_ekf = nullptr,
+                  PwmData* direct_pwm_output = nullptr,
+                  TickType_t scheduled_start_tick = 0);
 
 private:
     static const uint16_t kMinPwmThreshold = 982; //Lowest pwm command
@@ -53,6 +56,9 @@ private:
 
     PwmData pwm_data_ = {0};
     FcsDebugData fcs_debug_data_ = {0};
+    uint16_t heartbeat_counter_ = 0;
+    bool first_iteration_ = true;
+    TickType_t scheduled_start_tick_ = 0;
 
     Subscriber<MavlinkData> mavlink_sub_ = Subscriber<MavlinkData>(TopicID::MAVLINK);
     MavlinkData mavlink_data_ = {0};

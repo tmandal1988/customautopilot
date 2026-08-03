@@ -68,7 +68,15 @@
 #define configTICK_RATE_HZ                       ((TickType_t)1000)
 #define configMAX_PRIORITIES                     ( 56 )
 #define configMINIMAL_STACK_SIZE                 ((uint16_t)128)
-#define configTOTAL_HEAP_SIZE                    ((size_t)(128 * 1024))
+/* Tasks, their stacks and the idle/timer tasks are all statically allocated
+   (TaskBase supplies cb_mem and stack_mem from its own pool; cmsis_os2.c
+   supplies the idle/timer buffers). This heap therefore only holds the ~12
+   pubsub topic mutexes, the DataBuffer mutex, the USB mutex and the SD
+   message queue - about 1.5 KB. FatFs allocates nothing because _USE_LFN is
+   2 (working buffer on the stack). 16 KB leaves roughly a 10x margin; a
+   miss is caught loudly by vApplicationMallocFailedHook. Check the headroom
+   with the boot-time report in BlinkLedTask::Run(). */
+#define configTOTAL_HEAP_SIZE                    ((size_t)(16 * 1024))
 #define configMAX_TASK_NAME_LEN                  ( 16 )
 #define configUSE_TRACE_FACILITY                 1
 #define configUSE_16_BIT_TICKS                   0

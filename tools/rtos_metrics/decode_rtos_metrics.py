@@ -26,6 +26,7 @@ FLAG_STACK_SAMPLED = 1 << 3
 FLAG_PERIODIC_TIMING_UNSUPPORTED = 1 << 4
 FLAG_CONTEXT_SWITCH_COUNTER_ENABLED = 1 << 5
 FLAG_STACK_WATERMARK_ENABLED = 1 << 6
+FLAG_HAS_AUX_METRICS = 1 << 7
 
 
 @dataclass(frozen=True)
@@ -56,6 +57,11 @@ class MetricsRecord:
     stack_size_bytes: int
     stack_min_free_bytes: int
     dwt_read_overhead_cycles: int
+    aux0: int
+    aux1: int
+    aux2: int
+    aux3: int
+    aux4: int
     timestamp_ms: int
 
 
@@ -101,6 +107,11 @@ def decode_payload(payload: bytes, file_offset: int = 0) -> MetricsRecord:
         stack_size_bytes=_u32(payload, 88),
         stack_min_free_bytes=_u32(payload, 92),
         dwt_read_overhead_cycles=_u32(payload, 96),
+        aux0=_u32(payload, 100),
+        aux1=_u32(payload, 104),
+        aux2=_u32(payload, 108),
+        aux3=_u32(payload, 112),
+        aux4=_u32(payload, 116),
         timestamp_ms=struct.unpack_from("<Q", payload, 120)[0],
     )
 
@@ -206,6 +217,33 @@ def print_summary(records: list[MetricsRecord]) -> None:
             f"mean {sum(switch_rates) / len(switch_rates):.1f}/s, "
             f"max {max(switch_rates):.1f}/s, "
             f"latest total {records[-1].context_switch_count}"
+        )
+
+    control_pipeline = next(
+        (
+            row
+            for row in latest.values()
+            if row.task_name == "ControlPipeline"
+            and row.flags & FLAG_HAS_AUX_METRICS
+        ),
+        None,
+    )
+    if control_pipeline is not None:
+        print()
+        print("ControlPipeline/estimator stage maxima:")
+        print(
+            "  estimator total "
+            f"{_cycles_to_us(control_pipeline.aux0, control_pipeline.core_clock_hz):.2f} us, "
+            "input/prep "
+            f"{_cycles_to_us(control_pipeline.aux1, control_pipeline.core_clock_hz):.2f} us, "
+            "autocode "
+            f"{_cycles_to_us(control_pipeline.aux2, control_pipeline.core_clock_hz):.2f} us"
+        )
+        print(
+            "  output/publish "
+            f"{_cycles_to_us(control_pipeline.aux3, control_pipeline.core_clock_hz):.2f} us, "
+            "FCS "
+            f"{_cycles_to_us(control_pipeline.aux4, control_pipeline.core_clock_hz):.2f} us"
         )
 
     clocks = {row.core_clock_hz for row in records if row.core_clock_hz}

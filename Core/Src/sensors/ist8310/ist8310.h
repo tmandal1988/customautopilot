@@ -22,6 +22,7 @@ public:
 
     // Called only by the central HAL I2C callback dispatcher.
     static void DmaCompleteCallback(I2C_HandleTypeDef* i2c_handle);
+    static void MemTxCompleteCallback(I2C_HandleTypeDef* i2c_handle);
     static void ErrorCallback(I2C_HandleTypeDef* i2c_handle);
 
 private:
@@ -38,13 +39,13 @@ private:
         kError,
     };
 
-    enum class SampleResult : uint8_t {
-        kValid,
-        kValidNeedsRecovery,
-        kWaitingForReady,
-        kConversionTimedOut,
-        kBusError,
-        kDmaTimeout,
+    // Which non-blocking I2C transaction, if any, currently owns the bus. Only
+    // the task writes this; the ISR path keys off transfer_result_ alone.
+    enum class TransferPhase : uint8_t {
+        kIdle,
+        kTriggerWrite,
+        kStatusRead,
+        kAxisRead,
     };
 
     enum class MeasurementState : uint8_t {
@@ -57,11 +58,15 @@ private:
         kInvalidState,
         kInitialization,
         kInitialTrigger,
-        kStatusRead,
+        kStatusReadStart,
+        kStatusReadTransfer,
+        kStatusReadTimeout,
         kAxesDmaStart,
         kAxesDmaTransfer,
         kAxesDmaTimeout,
         kAcquisitionTrigger,
+        kTriggerWriteTransfer,
+        kTriggerWriteTimeout,
         kPostSampleTrigger,
         kConversionTimeout,
     };
@@ -71,7 +76,9 @@ private:
     static constexpr uint32_t kMeasurementReadDelayMs = 5;
     static constexpr uint32_t kNotReadyPollIntervalMs = 1;
     static constexpr uint32_t kAllowedReadLatenessMs = 1;
-    static constexpr uint32_t kDmaTimeoutMs = 5;
+    // Covers the longest runtime transaction (a 6-byte register read is under
+    // 300 us on this 400 kHz bus) with room for preemption.
+    static constexpr uint32_t kTransferTimeoutMs = 5;
     static constexpr uint32_t kRegisterTimeoutMs = 10;
     static constexpr uint32_t kConversionReadyTimeoutMs = 10;
     static constexpr uint32_t kResetTimeoutMs = 50;
@@ -126,10 +133,20 @@ private:
     bool ClearI2cBus();
     bool StartMeasurement();
     bool ArmMeasurement(uint8_t max_attempts);
-    void WaitUntilMeasurementCanBeRead();
 
-    SampleResult AcquireSample(RawSample* sample);
-    SampleResult ReadAxesDma(RawSample* sample);
+    // Runtime acquisition uses interrupt/DMA transfers exclusively, so the task
+    // is blocked - not spinning inside the HAL - for every byte on the wire.
+    bool PrepareTransfer();
+    void RecordStartFailure(FailureStage stage);
+    bool StartTriggerWrite();
+    bool StartStatusRead();
+    bool StartAxisRead();
+    void AbortTransfer();
+    void NoteFirstPollLateness(TickType_t now);
+
+    static FailureStage TransferErrorStage(TransferPhase phase);
+    static FailureStage TransferTimeoutStage(TransferPhase phase);
+    static bool TickReached(TickType_t now, TickType_t deadline);
 
     HAL_StatusTypeDef ReadRegister(uint8_t reg, uint8_t* data,
                                    uint16_t size);
@@ -163,12 +180,27 @@ private:
 
     // I2C1 DMA is in normal mode. D-cache is currently disabled in this project.
     alignas(4) uint8_t dma_buffer_[kAxisDataLength] = {};
+    // Separate from dma_buffer_ so a retrigger can be launched before the axis
+    // bytes are decoded.
+    alignas(4) uint8_t status_buffer_[1] = {};
+    uint8_t trigger_command_ = kControl1SingleMeasurement;
     volatile TransferResult transfer_result_ = TransferResult::kIdle;
+    TransferPhase transfer_phase_ = TransferPhase::kIdle;
     volatile uint32_t last_hal_error_ = HAL_I2C_ERROR_NONE;
     volatile FailureStage last_failure_stage_ = FailureStage::kNone;
     MeasurementState measurement_state_ = MeasurementState::kNeedsTrigger;
     TickType_t measurement_started_tick_ = 0;
+    TickType_t next_action_tick_ = 0;
     bool first_status_poll_pending_ = false;
+
+#if RTOS_METRICS_ENABLE
+    // Aux metric slots reported through Topic 12:
+    //   0 = transfer start failures, 1 = transfer timeouts,
+    //   2 = max I2C wait (cycles), 3 = max decode+publish (cycles),
+    //   4 = max context switches per cycle.
+    uint32_t metrics_transfer_start_failures_ = 0;
+    uint32_t metrics_transfer_timeouts_ = 0;
+#endif
 
 #if IST8310_ENABLE_DIAGNOSTICS
     // The optional low-priority printer consumes only the latest decimated

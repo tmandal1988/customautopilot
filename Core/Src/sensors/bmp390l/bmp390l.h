@@ -7,11 +7,15 @@
 
 #pragma once
 
+#include <cstdint>
+
+#include "FreeRTOS.h"
 #include "task_manager/task_base.h"
 #include "pin_defines.h"
 #include "messages/baro_data.h"
 #include "pubsub/publisher.h"
 #include "debug.h"
+#include "task.h"
 
 class ReadBmp390l : public TaskBase {
 public:
@@ -20,13 +24,32 @@ public:
 
 	void Run() override;
 
+	// Called only by the central HAL SPI callback dispatcher.
+	static void SpiTransmitCompleteCallback(SPI_HandleTypeDef* spi_handle);
+	static void SpiReceiveCompleteCallback(SPI_HandleTypeDef* spi_handle);
+	static void SpiTransferCompleteCallback(SPI_HandleTypeDef* spi_handle);
+	static void SpiErrorCallback(SPI_HandleTypeDef* spi_handle);
+
 private:
-	//	TaskHandle_t read_bmp390l_task_handle_;
+	enum class TransferResult : uint8_t {
+		kIdle,
+		kPending,
+		kComplete,
+		kError,
+	};
+
+	enum class TransferPhase : uint8_t {
+		kIdle,
+		kAddress,
+		kData,
+	};
 
 	static constexpr uint16_t READ_INTERVAL_MS = 16; // Go slightly faster than 50Hz
 	// Tx and Rx max delay (ms) in polling mode
 	static constexpr uint8_t baro_spi_tx_delay_ms_ = 1;
 	static constexpr uint8_t baro_spi_rx_delay_ms_ = 1;
+	static constexpr uint8_t kRuntimeReceiveLength = 7;
+	static constexpr uint32_t kRuntimeTransferTimeoutMs = 2;
 	static constexpr uint8_t spi_retry_ = 5;
 	// Valid CHIP ID
 	static constexpr uint8_t CHIP_ID = 0x60;
@@ -39,6 +62,12 @@ private:
 	bool ReadSingleRegister(uint8_t reg_addr);
 	bool ReadMultipleRegisters(uint8_t reg_addr, uint8_t num_bytes);
 	void Bmp390lGetPressAndTemp();
+	bool StartPressureTemperatureRead();
+	bool CompletePressureTemperatureRead(BaroData* baro_data);
+	void CompensatePressureAndTemperature();
+	void StartDataReceiveFromIsr();
+	void NotifyFromIsr(TransferResult result);
+	static bool TickReached(TickType_t now, TickType_t deadline);
 
 	// Tx and Rx Buffer for Single read/write
 	uint8_t tx_buf_[30];
@@ -95,4 +124,10 @@ private:
 
 	double press_;
 	double temp_;
+
+	static ReadBmp390l* instance_;
+
+	TaskHandle_t task_handle_ = nullptr;
+	volatile TransferResult transfer_result_ = TransferResult::kIdle;
+	volatile TransferPhase transfer_phase_ = TransferPhase::kIdle;
 };

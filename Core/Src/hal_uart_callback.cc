@@ -10,13 +10,12 @@
 #include "sensors/ubloxm9n2/ubloxm9n2.h"
 //#include "sensors/ubloxm8n/ubloxm8n.h"
 #include "sensors/ubloxm9n_rb/ubloxm9n_rb.h"
+#include "sensors/mtf01p/mtf01p.h"
 #include "mavlink_rxtx/mavlink_rxtx.h"
 
 extern "C" void HAL_UART_RxCpltCallback(UART_HandleTypeDef* huart) {
-    if (huart->Instance == SBUSRX) {
-        if (RcSbus::rc_sbus_instance_handle_ != nullptr) {
-            RcSbus::ReceivedNewSbusFrame(0);
-        }
+    if ((huart != nullptr) && (huart->Instance == SBUSRX)) {
+        return;
     }
 //    else if (huart->Instance == GPSUART) {
 //        if (ReadUbloxM9n::ubloxm9n_instance_handle_ != nullptr) {
@@ -51,14 +50,24 @@ extern "C" void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef* huart,
                                              uint16_t size) {
     if ((huart != nullptr) && (huart->Instance == TELEM)) {
         MavlinkRxTx::RxEvent(huart, size);
+    } else if ((huart != nullptr) && (huart->Instance == SBUSRX)) {
+        RcSbus::RxEvent(huart, size);
+    } else if ((huart != nullptr) && (huart->Instance == GPSUART)) {
+        ReadUbloxM9nRb::RxEvent(huart, size);
+    } else if ((huart != nullptr) && (huart->Instance == MTF01PUART)) {
+        ReadMtf01p::RxEvent(huart, size);
     }
 }
 
 extern "C" void HAL_UART_ErrorCallback(UART_HandleTypeDef* huart) {
     if ((huart != nullptr) && (huart->Instance == TELEM)) {
         MavlinkRxTx::UartError(huart);
+    } else if ((huart != nullptr) && (huart->Instance == SBUSRX)) {
+        RcSbus::UartError(huart);
     } else if ((huart != nullptr) && (huart->Instance == GPSUART)) {
         ReadUbloxM9nRb::UartError(huart);
+    } else if ((huart != nullptr) && (huart->Instance == MTF01PUART)) {
+        ReadMtf01p::UartError(huart);
     }
 }
 

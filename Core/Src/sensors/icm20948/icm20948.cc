@@ -27,7 +27,7 @@ icm20948_i2c_(hi2c){
 HAL_StatusTypeDef ReadIcm20948::Icm20948Write(uint8_t MemAddress,
 								uint8_t *pData, uint16_t Size, uint32_t Timeout){
 	uint8_t rx_count = 0;                 // Initialize retry counter to 0
-	HAL_StatusTypeDef ret_;               // Variable to store the return status of HAL function
+	HAL_StatusTypeDef ret_ = HAL_ERROR;   // Variable to store the return status of HAL function
 	while(rx_count < 5){                  // Retry loop, allowing up to 5 attempts
 		ret_ = HAL_I2C_Mem_Write(icm20948_i2c_,
 				ICM20948_ADDR << 1,      // Shift the 7-bit address left by 1 to create 8-bit address
@@ -43,7 +43,10 @@ HAL_StatusTypeDef ReadIcm20948::Icm20948Write(uint8_t MemAddress,
 		rx_count++;                       // Increment retry counter
 	}
 
-	DEBUG_PRINT("Transmit Failed\n");        // Print error message if all retries fail
+	DEBUG_PRINT("ICM20948 write failed: reg=0x%02x status=%d error=0x%08lx state=%lu\n",
+			MemAddress, ret_,
+			static_cast<unsigned long>(HAL_I2C_GetError(icm20948_i2c_)),
+			static_cast<unsigned long>(HAL_I2C_GetState(icm20948_i2c_)));
 
 	return ret_;                          // Return the last status from HAL function
 }
@@ -54,7 +57,7 @@ HAL_StatusTypeDef ReadIcm20948::Icm20948Write(uint8_t MemAddress,
 HAL_StatusTypeDef ReadIcm20948::Icm20948Read(uint8_t MemAddress,
 							   uint8_t *pData, uint16_t Size, uint32_t Timeout){
 	uint8_t rx_count = 0;                 // Initialize retry counter to 0
-	HAL_StatusTypeDef ret_;               // Variable to store the return status of HAL function
+	HAL_StatusTypeDef ret_ = HAL_ERROR;   // Variable to store the return status of HAL function
 
 	while(rx_count < 5){                  // Retry loop, allowing up to 5 attempts
 		ret_ = HAL_I2C_Mem_Read(icm20948_i2c_,
@@ -70,7 +73,10 @@ HAL_StatusTypeDef ReadIcm20948::Icm20948Read(uint8_t MemAddress,
 		HAL_Delay(100);                   // Delay 100ms before retrying
 		rx_count++;                       // Increment retry counter
 	}
-	DEBUG_PRINT("Receive Failed\n");     // Print error message if all retries fail
+	DEBUG_PRINT("ICM20948 read failed: reg=0x%02x status=%d error=0x%08lx state=%lu\n",
+			MemAddress, ret_,
+			static_cast<unsigned long>(HAL_I2C_GetError(icm20948_i2c_)),
+			static_cast<unsigned long>(HAL_I2C_GetState(icm20948_i2c_)));
 
 	return ret_;                          // Return the last status from HAL function
 }
@@ -81,16 +87,21 @@ bool ReadIcm20948::Icm20948ChangeRegBank(uint8_t usr_bank){
 	HAL_StatusTypeDef ret_;
 	// If the usr_bank is already current don't do anything
 	if(active_usr_bank_ != usr_bank){
-		ICM_20948_USER_BANK_t user_bank_reg;
+		ICM_20948_USER_BANK_t user_bank_reg{};
 		ret_ = Icm20948Read(USRBANK_SEL_REG, (uint8_t *)&user_bank_reg, 1, icm_i2c_wait_time_ms_);
+		if(ret_ != HAL_OK){
+			active_usr_bank_ = 37U;
+			return false;
+		}
 
 		user_bank_reg.USER_BANK = usr_bank;
 		ret_ = Icm20948Write(USRBANK_SEL_REG, (uint8_t *)&user_bank_reg, 1, icm_i2c_wait_time_ms_);
 
-		active_usr_bank_ = usr_bank;
 		if(ret_ == HAL_OK){
+			active_usr_bank_ = usr_bank;
 			return true;
 		}
+		active_usr_bank_ = 37U;
 	}else{
 		return true;
 	}
@@ -459,57 +470,271 @@ pin 1
 /* Initialize all the sensors
  *
  */
-bool ReadIcm20948::Icm20948Init(){
-	osDelay(200);
-	bool success = true;
-	if(Icm20948TestConnection()){
-		success = success & Icm20948SwReset();
-		DEBUG_PRINT("IcmSwReset: %d\n", success);
-		success = success & Icm20948ConfigAccels();
-		DEBUG_PRINT("IcmConfigAccels: %d\n", success);
-		success = success & Icm20948ConfigGyros();
-		DEBUG_PRINT("IcmConfigGyros: %d\n", success);
-		success = success & Icm20948ConfigMag();
-		DEBUG_PRINT("IcmConfigMag: %d\n", success);
-		success = success & Icm20948StartSlv0MagRead();
-		DEBUG_PRINT("IcmStartSlv0MagRead: %d\n", success);
-		success = success & Icm20948SetSampleMode();
-		DEBUG_PRINT("IcmSetSampleMode: %d\n", success);
-
-		if(success){
-			return true;
-		}else{
-			return false;
-		}
+bool ReadIcm20948::RecoverI2cPeripheral() {
+	transfer_result_ = TransferResult::kIdle;
+	(void)HAL_I2C_Master_Abort_IT(icm20948_i2c_, ICM20948_ADDR << 1);
+	if (read_icm20948_task_handle_ != nullptr) {
+		(void)ulTaskNotifyTake(pdTRUE, 0);
 	}
 
+	(void)HAL_I2C_DeInit(icm20948_i2c_);
+	osDelay(2);
+	active_usr_bank_ = 37U;
+
+	if (HAL_I2C_Init(icm20948_i2c_) != HAL_OK) {
+		DEBUG_PRINT("ICM20948 I2C recovery: HAL_I2C_Init failed\n");
+		return false;
+	}
+	if (HAL_I2CEx_ConfigAnalogFilter(icm20948_i2c_,
+			I2C_ANALOGFILTER_ENABLE) != HAL_OK) {
+		DEBUG_PRINT("ICM20948 I2C recovery: analog filter config failed\n");
+		return false;
+	}
+	if (HAL_I2CEx_ConfigDigitalFilter(icm20948_i2c_, 0) != HAL_OK) {
+		DEBUG_PRINT("ICM20948 I2C recovery: digital filter config failed\n");
+		return false;
+	}
+
+	return true;
+}
+
+void ReadIcm20948::RecordRuntimeTransferFailure(const char* reason) {
+	if (consecutive_runtime_failures_ < UINT8_MAX) {
+		++consecutive_runtime_failures_;
+	}
+
+	if (consecutive_runtime_failures_ >= kRuntimeFailureLogThreshold) {
+		DEBUG_PRINT("ICM20948 runtime transfer failures: %s, count=%u; no runtime reinit\n",
+				(reason != nullptr) ? reason : "unknown",
+				static_cast<unsigned int>(consecutive_runtime_failures_));
+		consecutive_runtime_failures_ = 0U;
+	}
+}
+
+void ReadIcm20948::ClearRuntimeTransferFailures() {
+	consecutive_runtime_failures_ = 0U;
+}
+
+bool ReadIcm20948::StartInertialRead() {
+	if ((read_icm20948_task_handle_ == nullptr) ||
+			(transfer_result_ != TransferResult::kIdle)) {
+		return false;
+	}
+
+	if (HAL_I2C_GetState(icm20948_i2c_) != HAL_I2C_STATE_READY) {
+#if RTOS_METRICS_ENABLE
+		++metrics_i2c_busy_skips_;
+		SetAuxMetric(0U, metrics_i2c_busy_skips_);
+#endif
+		RecordRuntimeTransferFailure("I2C not ready");
+		return false;
+	}
+
+	// A notification always belongs to the DMA transaction started below.
+	// Discarding a stale notification prevents a late callback from making a
+	// new sample appear complete immediately.
+	(void)ulTaskNotifyTake(pdTRUE, 0);
+	transfer_result_ = TransferResult::kPending;
+	const HAL_StatusTypeDef dma_start_status = HAL_I2C_Mem_Read_DMA(
+			icm20948_i2c_, ICM20948_ADDR << 1, UB0_ACCEL_XOUT_H,
+			I2C_MEMADD_SIZE_8BIT, icm20948_raw_buf_, kRawReadSize);
+	if (dma_start_status == HAL_OK) {
+		return true;
+	}
+
+	transfer_result_ = TransferResult::kIdle;
+#if RTOS_METRICS_ENABLE
+	++metrics_dma_start_failures_;
+	SetAuxMetric(1U, metrics_dma_start_failures_);
+#endif
+	RecordRuntimeTransferFailure("DMA start failed");
 	return false;
+}
+
+bool ReadIcm20948::CompleteInertialRead(ImuData* icm20948_data) {
+	if (icm20948_data == nullptr) {
+		return false;
+	}
+
+	ClearRuntimeTransferFailures();
+	Icm20948GetData(icm20948_data);
+	return true;
+}
+
+void ReadIcm20948::AbortRuntimeTransfer() {
+	(void)HAL_I2C_Master_Abort_IT(icm20948_i2c_, ICM20948_ADDR << 1);
+	transfer_result_ = TransferResult::kIdle;
+}
+
+bool ReadIcm20948::TickReached(TickType_t now, TickType_t deadline) {
+	return static_cast<int32_t>(now - deadline) >= 0;
+}
+
+TickType_t ReadIcm20948::AdvanceRelease(TickType_t previous_release,
+		TickType_t now, TickType_t period) {
+	const TickType_t next_release = previous_release + period;
+	if (TickReached(now, next_release)) {
+		return now + period;
+	}
+	return next_release;
+}
+
+bool ReadIcm20948::Icm20948Init(){
+	osDelay(200);
+	active_usr_bank_ = 37U;
+	if(!Icm20948TestConnection()){
+		DEBUG_PRINT("IcmTestConnection: 0\n");
+		return false;
+	}
+	DEBUG_PRINT("IcmTestConnection: 1\n");
+
+	if(!Icm20948SwReset()){
+		DEBUG_PRINT("IcmSwReset: 0\n");
+		return false;
+	}
+	DEBUG_PRINT("IcmSwReset: 1\n");
+
+	if(!Icm20948ConfigAccels()){
+		DEBUG_PRINT("IcmConfigAccels: 0\n");
+		return false;
+	}
+	DEBUG_PRINT("IcmConfigAccels: 1\n");
+
+	if(!Icm20948ConfigGyros()){
+		DEBUG_PRINT("IcmConfigGyros: 0\n");
+		return false;
+	}
+	DEBUG_PRINT("IcmConfigGyros: 1\n");
+
+	if(!Icm20948ConfigMag()){
+		DEBUG_PRINT("IcmConfigMag: 0\n");
+		return false;
+	}
+	DEBUG_PRINT("IcmConfigMag: 1\n");
+
+	if(!Icm20948StartSlv0MagRead()){
+		DEBUG_PRINT("IcmStartSlv0MagRead: 0\n");
+		return false;
+	}
+	DEBUG_PRINT("IcmStartSlv0MagRead: 1\n");
+
+	if(!Icm20948SetSampleMode()){
+		DEBUG_PRINT("IcmSetSampleMode: 0\n");
+		return false;
+	}
+	DEBUG_PRINT("IcmSetSampleMode: 1\n");
+
+	return true;
 }
 
 
 void ReadIcm20948::Run() {
-	Icm20948Init();
 	ImuData imu_data = {};
 	Publisher<ImuData> icm20948_pub(TopicID::ICM20948);
 
 	read_icm20948_task_handle_ = xTaskGetCurrentTaskHandle();
 	int blink_counter = 0;
 
-	TickType_t xLastWakeTime;
 	const TickType_t xFrequency = pdMS_TO_TICKS(READ_INTERVAL_MS);
-
-	osDelay(500);
-	// Initialize the periodic schedule after the startup delay.
-	xLastWakeTime = xTaskGetTickCount();
-	ConfigurePeriodicMetrics(READ_INTERVAL_MS * 1000U,
-			READ_INTERVAL_MS * 1000U);
+	const TickType_t runtime_transfer_timeout =
+			pdMS_TO_TICKS(kDmaCompletionTimeoutMs);
+	TickType_t next_release = xTaskGetTickCount();
 	bool first_iteration = true;
+	bool sensor_initialized = false;
     /* Infinite loop */
     for (;;) {
+		if (!sensor_initialized) {
+			if (!Icm20948Init()) {
+				DEBUG_PRINT("ICM20948 init failed, recovering I2C and retrying\n");
+				(void)RecoverI2cPeripheral();
+				osDelay(kInitRetryDelayMs);
+				next_release = xTaskGetTickCount();
+				continue;
+			}
+
+			ClearRuntimeTransferFailures();
+			transfer_result_ = TransferResult::kIdle;
+			(void)ulTaskNotifyTake(pdTRUE, 0);
+			osDelay(500);
+			next_release = xTaskGetTickCount();
+			ConfigureEventMetrics();
+			first_iteration = true;
+			sensor_initialized = true;
+			continue;
+		}
+
+		if (transfer_result_ != TransferResult::kIdle) {
+#if RTOS_METRICS_ENABLE && RTOS_CONTEXT_SWITCH_METRICS_ENABLE
+			const uint32_t cycle_context_switch_start =
+					rtos_metrics::ContextSwitchCount();
+#endif
+#if RTOS_METRICS_ENABLE
+			const uint32_t dma_wait_start_cycles = rtos_metrics::CyclesNow();
+#endif
+			uint32_t notify_count = 0U;
+			if (transfer_result_ == TransferResult::kPending) {
+				notify_count = ulTaskNotifyTake(pdTRUE,
+						runtime_transfer_timeout);
+			} else {
+				notify_count = ulTaskNotifyTake(pdTRUE, 0U);
+			}
+			BeginMetricsCycle();
+#if RTOS_METRICS_ENABLE
+			UpdateAuxMetricMaximum(2U,
+					rtos_metrics::CyclesNow() - dma_wait_start_cycles);
+#endif
+			const TransferResult transfer_result = transfer_result_;
+			if ((notify_count == 0U) &&
+					(transfer_result == TransferResult::kPending)) {
+				AbortRuntimeTransfer();
+				RecordRuntimeTransferFailure("DMA completion timeout");
+			} else {
+				transfer_result_ = TransferResult::kIdle;
+				if (transfer_result == TransferResult::kComplete) {
+#if RTOS_METRICS_ENABLE
+					const uint32_t parse_publish_start_cycles =
+							rtos_metrics::CyclesNow();
+#endif
+					if (CompleteInertialRead(&imu_data)) {
+						++imu_data.publish_seq;
+						icm20948_pub.publish(imu_data);
+					}
+#if RTOS_METRICS_ENABLE
+					UpdateAuxMetricMaximum(3U,
+							rtos_metrics::CyclesNow() -
+							parse_publish_start_cycles);
+#endif
+				} else if (transfer_result == TransferResult::kError) {
+					AbortRuntimeTransfer();
+					RecordRuntimeTransferFailure("DMA transfer error");
+				} else {
+					RecordRuntimeTransferFailure("DMA notification mismatch");
+				}
+			}
+
+			EndMetricsCycle();
+#if RTOS_METRICS_ENABLE && RTOS_CONTEXT_SWITCH_METRICS_ENABLE
+			UpdateAuxMetricMaximum(4U,
+					rtos_metrics::ContextSwitchCount() -
+					cycle_context_switch_start);
+#endif
+			continue;
+		}
+
+		TickType_t now = xTaskGetTickCount();
+		if (!TickReached(now, next_release)) {
+			vTaskDelay(next_release - now);
+			continue;
+		}
+
+#if RTOS_METRICS_ENABLE && RTOS_CONTEXT_SWITCH_METRICS_ENABLE
+		const uint32_t cycle_context_switch_start =
+				rtos_metrics::ContextSwitchCount();
+#endif
 		BeginMetricsCycle();
-		const TickType_t actual_start_tick = xTaskGetTickCount();
+		now = xTaskGetTickCount();
 		const int32_t start_lateness_ticks =
-				static_cast<int32_t>(actual_start_tick - xLastWakeTime);
+				static_cast<int32_t>(now - next_release);
 
 		++imu_data.task_run_seq;
 		if (!first_iteration && start_lateness_ticks > 0) {
@@ -527,52 +752,19 @@ void ReadIcm20948::Run() {
 //				   used, highWaterMark * sizeof(StackType_t), 1068);
 		}
 
-		if (HAL_I2C_GetState(icm20948_i2c_) != HAL_I2C_STATE_READY) {
-			EndMetricsCycle();
-			vTaskDelayUntil(&xLastWakeTime, xFrequency);
-			continue;
-		}
-
-		// A notification always belongs to the DMA transaction started below.
-		// Discarding a stale notification prevents a late callback from making a
-		// new sample appear complete immediately.
-		(void)ulTaskNotifyTake(pdTRUE, 0);
-		transfer_result_ = TransferResult::kPending;
-		const HAL_StatusTypeDef dma_start_status = HAL_I2C_Mem_Read_DMA(
-				icm20948_i2c_, ICM20948_ADDR << 1, UB0_ACCEL_XOUT_H,
-				I2C_MEMADD_SIZE_8BIT, icm20948_raw_buf_, kRawReadSize);
-		if (dma_start_status != HAL_OK) {
-			transfer_result_ = TransferResult::kIdle;
-			EndMetricsCycle();
-			vTaskDelayUntil(&xLastWakeTime, xFrequency);
-			continue;
-		}
-
-    	// Wait for DMA completion using task notification
-		ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
-
-		const TransferResult transfer_result = transfer_result_;
-		transfer_result_ = TransferResult::kIdle;
-
-		if (transfer_result != TransferResult::kComplete) {
-			EndMetricsCycle();
-			vTaskDelayUntil(&xLastWakeTime, xFrequency);
-			continue;
-		}
-
-		Icm20948GetData(&imu_data);
-
-		++imu_data.publish_seq;
-		icm20948_pub.publish(imu_data);
-
+		(void)StartInertialRead();
+		next_release = AdvanceRelease(next_release, now, xFrequency);
 //		DEBUG_PRINT("Ax = %g, Ay = %g, Az = %g\n", imu_data.accel_mps2[0], imu_data.accel_mps2[1], imu_data.accel_mps2[2]);
 //		DEBUG_PRINT("Gx = %g, Gy = %g, Gz = %g\n", imu_data.gyro_radps[0]/DEG2RAD, imu_data.gyro_radps[1]/DEG2RAD, imu_data.gyro_radps[2]/DEG2RAD);
 //		DEBUG_PRINT("Mx = %g, My = %g, Mz = %g\n", imu_data.mag_ut[0], imu_data.mag_ut[1], imu_data.mag_ut[2]);
 //		DEBUG_PRINT("-----------------------------------------------------\n");
 
-		// Wait until the next cycle
 		EndMetricsCycle();
-		vTaskDelayUntil(&xLastWakeTime, xFrequency);
+#if RTOS_METRICS_ENABLE && RTOS_CONTEXT_SWITCH_METRICS_ENABLE
+		UpdateAuxMetricMaximum(4U,
+				rtos_metrics::ContextSwitchCount() -
+				cycle_context_switch_start);
+#endif
     }
 }
 

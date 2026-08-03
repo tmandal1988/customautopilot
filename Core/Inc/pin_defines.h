@@ -56,6 +56,7 @@ extern "C" {
 #define GPSUART USART2
 #define SBUSRX UART7
 #define TELEM UART4
+#define MTF01PUART USART1
 #define LIOF USART5
 
 //#define LD1_Pin GPIO_PIN_0

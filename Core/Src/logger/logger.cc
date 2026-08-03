@@ -8,9 +8,13 @@
 #include "logger.h"
 
 #include <limits>
+#include <cstring>
 
 #include "parameters/parameter_store.h"
 #include "pubsub/topic.h"
+#if RTOS_METRICS_ENABLE && RTOS_METRICS_DEBUG_PRINT_ENABLE
+#include "rc_sbus.h"
+#endif
 #if RTOS_STACK_WATERMARK_METRICS_ENABLE
 #include "fcsModel_types.h"
 #endif
@@ -101,6 +105,9 @@ void Logger::Run() {
 
     // Wait until the next cycle.
     EndMetricsCycle();
+#if RTOS_METRICS_ENABLE && RTOS_METRICS_DEBUG_PRINT_ENABLE
+    ServiceRtosMetricsDebugPrint(now_ticks);
+#endif
     vTaskDelayUntil(&last_wake_time, interval_ticks);
   }
 }
@@ -130,7 +137,7 @@ void Logger::ServiceOneRtosMetricsRecord(uint32_t now_ticks) {
       context_switch_count - rtos_metrics_last_context_switch_count_;
   rtos_metrics_last_context_switch_count_ = context_switch_count;
 
-  auto& tasks = TaskBase::GetTaskList();
+  auto tasks = TaskBase::GetTaskList();
   if (tasks.empty()) {
     return;
   }
@@ -173,6 +180,194 @@ void Logger::ServiceOneRtosMetricsRecord(uint32_t now_ticks) {
                                       sizeof(record), false));
 
   ++rtos_metrics_cursor_;
+}
+#endif
+
+#if RTOS_METRICS_ENABLE && RTOS_METRICS_DEBUG_PRINT_ENABLE
+uint32_t Logger::CyclesToMicroseconds(uint32_t cycles,
+                                      uint32_t core_clock_hz) {
+  if (core_clock_hz == 0U) {
+    return 0U;
+  }
+  return static_cast<uint32_t>(
+      ((static_cast<uint64_t>(cycles) * 1000000ULL) +
+       (static_cast<uint64_t>(core_clock_hz) / 2ULL)) /
+      static_cast<uint64_t>(core_clock_hz));
+}
+
+uint32_t Logger::AbsI32(int32_t value) {
+  return (value < 0) ? (0U - static_cast<uint32_t>(value))
+                     : static_cast<uint32_t>(value);
+}
+
+bool Logger::CaptureRtosMetricsByName(
+    const char* task_name, uint32_t context_switch_count,
+    uint32_t context_switch_delta, uint32_t context_interval_ms,
+    RtosMetricsData* output) const {
+  if ((task_name == nullptr) || (output == nullptr)) {
+    return false;
+  }
+
+  auto tasks = TaskBase::GetTaskList();
+  const size_t task_count = tasks.size();
+  for (size_t index = 0U; index < task_count; ++index) {
+    TaskBase* const task = tasks[index];
+    if ((task != nullptr) &&
+        (std::strcmp(task->GetTaskName(), task_name) == 0)) {
+      task->CaptureMetrics(static_cast<uint8_t>(index),
+                           static_cast<uint8_t>(task_count),
+                           0U, context_switch_count, context_switch_delta,
+                           context_interval_ms, output);
+      return (output->flags & rtos_metrics::kHasExecutionSample) != 0U;
+    }
+  }
+
+  return false;
+}
+
+void Logger::ServiceRtosMetricsDebugPrint(uint32_t now_ticks) {
+  constexpr uint32_t kPrintIntervalTicks = pdMS_TO_TICKS(1000U);
+
+  if (!rtos_metrics_debug_initialized_) {
+    rtos_metrics_debug_initialized_ = true;
+    rtos_metrics_debug_last_tick_ = now_ticks;
+    rtos_metrics_debug_last_context_switch_count_ =
+        rtos_metrics::ContextSwitchCount();
+    return;
+  }
+
+  const uint32_t elapsed_ticks = now_ticks - rtos_metrics_debug_last_tick_;
+  if (elapsed_ticks < kPrintIntervalTicks) {
+    return;
+  }
+
+  rtos_metrics_debug_last_tick_ = now_ticks;
+  const uint32_t context_switch_count = rtos_metrics::ContextSwitchCount();
+  const uint32_t context_switch_delta =
+      context_switch_count - rtos_metrics_debug_last_context_switch_count_;
+  rtos_metrics_debug_last_context_switch_count_ = context_switch_count;
+  const uint32_t interval_ms = elapsed_ticks * portTICK_PERIOD_MS;
+  const uint32_t context_switch_rate =
+      (interval_ms == 0U)
+          ? 0U
+          : static_cast<uint32_t>(
+                (static_cast<uint64_t>(context_switch_delta) * 1000ULL) /
+                interval_ms);
+
+  RtosMetricsData control_pipeline{};
+  RtosMetricsData icm20948{};
+  RtosMetricsData ist8310{};
+  RtosMetricsData mtf01p{};
+  RtosMetricsData logger{};
+  RtosMetricsData mavlink{};
+  RtosMetricsData gps{};
+  RtosMetricsData rc_sbus{};
+  RcSbus::Diagnostics rc_diag{};
+  const bool have_rc_diag = RcSbus::CaptureDiagnostics(&rc_diag);
+
+  const bool have_control_pipeline = CaptureRtosMetricsByName(
+      "ControlPipeline", context_switch_count, context_switch_delta,
+      interval_ms, &control_pipeline);
+  const bool have_icm20948 = CaptureRtosMetricsByName(
+      "Icm20948Task", context_switch_count, context_switch_delta,
+      interval_ms, &icm20948);
+  const bool have_ist8310 = CaptureRtosMetricsByName(
+      "Ist8310Task", context_switch_count, context_switch_delta,
+      interval_ms, &ist8310);
+  const bool have_mtf01p = CaptureRtosMetricsByName(
+      "ReadMtf01pTask", context_switch_count, context_switch_delta,
+      interval_ms, &mtf01p);
+  const bool have_rc_sbus = CaptureRtosMetricsByName(
+      "ReadRcInTask", context_switch_count, context_switch_delta,
+      interval_ms, &rc_sbus);
+  const bool have_logger = CaptureRtosMetricsByName(
+      "LoggerTask", context_switch_count, context_switch_delta,
+      interval_ms, &logger);
+  const bool have_mavlink = CaptureRtosMetricsByName(
+      "MavlinkRxTxTask", context_switch_count, context_switch_delta,
+      interval_ms, &mavlink);
+  const bool have_gps = CaptureRtosMetricsByName(
+      "UbloxM9nTask2", context_switch_count, context_switch_delta,
+      interval_ms, &gps);
+
+  if (have_control_pipeline) {
+    DEBUG_PRINT(
+        "RTOS CP max=%luus resp=%luus jit=%luus miss=%lu/%lu | "
+        "est=%lu prep=%lu auto=%lu pub=%lu fcs=%lu\n",
+        static_cast<unsigned long>(CyclesToMicroseconds(
+            control_pipeline.max_elapsed_cycles,
+            control_pipeline.core_clock_hz)),
+        static_cast<unsigned long>(CyclesToMicroseconds(
+            control_pipeline.max_response_cycles,
+            control_pipeline.core_clock_hz)),
+        static_cast<unsigned long>(CyclesToMicroseconds(
+            AbsI32(control_pipeline.last_release_jitter_cycles),
+            control_pipeline.core_clock_hz)),
+        static_cast<unsigned long>(control_pipeline.deadline_miss_count),
+        static_cast<unsigned long>(control_pipeline.release_count),
+        static_cast<unsigned long>(CyclesToMicroseconds(
+            control_pipeline.reserved[0], control_pipeline.core_clock_hz)),
+        static_cast<unsigned long>(CyclesToMicroseconds(
+            control_pipeline.reserved[1], control_pipeline.core_clock_hz)),
+        static_cast<unsigned long>(CyclesToMicroseconds(
+            control_pipeline.reserved[2], control_pipeline.core_clock_hz)),
+        static_cast<unsigned long>(CyclesToMicroseconds(
+            control_pipeline.reserved[3], control_pipeline.core_clock_hz)),
+        static_cast<unsigned long>(CyclesToMicroseconds(
+            control_pipeline.reserved[4], control_pipeline.core_clock_hz)));
+  }
+
+  DEBUG_PRINT(
+      "RTOS tasks ICM=%luus "
+      "ICMd=busy%lu start%lu wait%luus work%luus csw%lu "
+      "RC=%luus/%lu/%lu/%lu/%lu "
+      "RCd=bytes%lu frames%lu pub%luus csw%lu stat%lu h%lu l%lu f%lu "
+      "IST=%luus "
+      "MTF=%luus/%lucsw/%lu/%luby "
+      "GPS=%luus/%lucsw/%lu/%luby LOG=%luus MAV=%luus ctx=%lu/s\n",
+      static_cast<unsigned long>(have_icm20948 ? CyclesToMicroseconds(
+          icm20948.max_elapsed_cycles, icm20948.core_clock_hz) : 0U),
+      static_cast<unsigned long>(have_icm20948 ? icm20948.reserved[0] : 0U),
+      static_cast<unsigned long>(have_icm20948 ? icm20948.reserved[1] : 0U),
+      static_cast<unsigned long>(have_icm20948 ? CyclesToMicroseconds(
+          icm20948.reserved[2], icm20948.core_clock_hz) : 0U),
+      static_cast<unsigned long>(have_icm20948 ? CyclesToMicroseconds(
+          icm20948.reserved[3], icm20948.core_clock_hz) : 0U),
+      static_cast<unsigned long>(have_icm20948 ? icm20948.reserved[4] : 0U),
+      static_cast<unsigned long>(have_rc_sbus ? CyclesToMicroseconds(
+          rc_sbus.max_elapsed_cycles, rc_sbus.core_clock_hz) : 0U),
+      static_cast<unsigned long>(have_rc_sbus ? rc_sbus.reserved[0] : 0U),
+      static_cast<unsigned long>(have_rc_sbus ? rc_sbus.reserved[1] : 0U),
+      static_cast<unsigned long>(have_rc_sbus ? rc_sbus.reserved[2] : 0U),
+      static_cast<unsigned long>(have_rc_sbus ? rc_sbus.reserved[3] : 0U),
+      static_cast<unsigned long>(have_rc_diag ? rc_diag.max_bytes_processed : 0U),
+      static_cast<unsigned long>(have_rc_diag ? rc_diag.max_frames_per_dispatch : 0U),
+      static_cast<unsigned long>((have_rc_diag && have_rc_sbus) ?
+          CyclesToMicroseconds(rc_diag.max_publish_cycles,
+                               rc_sbus.core_clock_hz) : 0U),
+      static_cast<unsigned long>(have_rc_diag ?
+          rc_diag.max_context_switch_delta : 0U),
+      static_cast<unsigned long>(have_rc_diag ? rc_diag.last_status : 0U),
+      static_cast<unsigned long>(have_rc_diag ? rc_diag.healthy_frames : 0U),
+      static_cast<unsigned long>(have_rc_diag ? rc_diag.lost_frames : 0U),
+      static_cast<unsigned long>(have_rc_diag ? rc_diag.failsafe_frames : 0U),
+      static_cast<unsigned long>(have_ist8310 ? CyclesToMicroseconds(
+          ist8310.max_elapsed_cycles, ist8310.core_clock_hz) : 0U),
+      static_cast<unsigned long>(have_mtf01p ? CyclesToMicroseconds(
+          mtf01p.max_elapsed_cycles, mtf01p.core_clock_hz) : 0U),
+      static_cast<unsigned long>(have_mtf01p ? mtf01p.reserved[0] : 0U),
+      static_cast<unsigned long>(have_mtf01p ? mtf01p.reserved[1] : 0U),
+      static_cast<unsigned long>(have_mtf01p ? mtf01p.reserved[2] : 0U),
+      static_cast<unsigned long>(have_gps ? CyclesToMicroseconds(
+          gps.max_elapsed_cycles, gps.core_clock_hz) : 0U),
+      static_cast<unsigned long>(have_gps ? gps.reserved[0] : 0U),
+      static_cast<unsigned long>(have_gps ? gps.reserved[1] : 0U),
+      static_cast<unsigned long>(have_gps ? gps.reserved[2] : 0U),
+      static_cast<unsigned long>(have_logger ? CyclesToMicroseconds(
+          logger.max_elapsed_cycles, logger.core_clock_hz) : 0U),
+      static_cast<unsigned long>(have_mavlink ? CyclesToMicroseconds(
+          mavlink.max_elapsed_cycles, mavlink.core_clock_hz) : 0U),
+      static_cast<unsigned long>(context_switch_rate));
 }
 #endif
 

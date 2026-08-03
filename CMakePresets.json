@@ -4,22 +4,27 @@
   "configurePresets": [
     {
       "name": "debug",
-      "displayName": "Debug (STM32 GNU 13.3.1)",
+      "displayName": "Debug (STM32 GNU 13.3.1, RTOS metrics on)",
+      "description": "Same application as flight, plus RTOS timing metrics logged to Topic 12 and printed over DEBUG_PRINT.",
       "generator": "Ninja",
       "binaryDir": "${sourceDir}/build/gcc-13.3-debug",
       "toolchainFile": "${sourceDir}/cmake/gcc-arm-none-eabi.cmake",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Debug",
-        "ENABLE_RTOS_METRICS": "OFF",
-        "ENABLE_RTOS_METRICS_LOGGING": "OFF",
-        "ENABLE_RTOS_CONTEXT_SWITCH_METRICS": "OFF",
-        "ENABLE_RTOS_STACK_WATERMARK_METRICS": "OFF",
-        "ENABLE_RTOS_STACK_OVERFLOW_DIAGNOSTICS": "OFF"
+        "ENABLE_RTOS_METRICS": "ON",
+        "ENABLE_RTOS_METRICS_LOGGING": "ON",
+        "ENABLE_RTOS_METRICS_DEBUG_PRINT": "ON",
+        "ENABLE_RTOS_CONTEXT_SWITCH_METRICS": "ON",
+        "ENABLE_RTOS_STACK_WATERMARK_METRICS": "ON",
+        "ENABLE_RTOS_STACK_OVERFLOW_DIAGNOSTICS": "OFF",
+        "ENABLE_CONTROL_PIPELINE": "ON",
+        "ENABLE_MTF01P_DEBUG_PRINT": "OFF"
       }
     },
     {
       "name": "flight",
-      "displayName": "Flight (STM32 GNU 13.3.1, metrics off)",
+      "displayName": "Flight (STM32 GNU 13.3.1, control pipeline, no metrics)",
+      "description": "Flight image. All RTOS metric collection, logging and printing is compiled out.",
       "generator": "Ninja",
       "binaryDir": "${sourceDir}/build/gcc-13.3-flight",
       "toolchainFile": "${sourceDir}/cmake/gcc-arm-none-eabi.cmake",
@@ -27,9 +32,12 @@
         "CMAKE_BUILD_TYPE": "Release",
         "ENABLE_RTOS_METRICS": "OFF",
         "ENABLE_RTOS_METRICS_LOGGING": "OFF",
+        "ENABLE_RTOS_METRICS_DEBUG_PRINT": "OFF",
         "ENABLE_RTOS_CONTEXT_SWITCH_METRICS": "OFF",
         "ENABLE_RTOS_STACK_WATERMARK_METRICS": "OFF",
-        "ENABLE_RTOS_STACK_OVERFLOW_DIAGNOSTICS": "OFF"
+        "ENABLE_RTOS_STACK_OVERFLOW_DIAGNOSTICS": "OFF",
+        "ENABLE_CONTROL_PIPELINE": "ON",
+        "ENABLE_MTF01P_DEBUG_PRINT": "OFF"
       }
     }
   ],
