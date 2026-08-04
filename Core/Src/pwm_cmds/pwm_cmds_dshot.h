@@ -1,84 +1,164 @@
 /*
- * pwm_cmds.h
+ * pwm_cmds_dshot.h
  *
- *  Created on: Jun 7, 2025
- *      Author: tanmay
+ * DShot motor output on TIM1 CH1..CH4, one DMA stream per channel.
+ *
+ * ---------------------------------------------------------------------------
+ * Frame format
+ * ---------------------------------------------------------------------------
+ * Every DShot frame is exactly 16 bits, sent MSB first:
+ *
+ *     bits 15..5 : 11-bit value      0        = motor stop / disarmed
+ *                                    1..47    = reserved commands (beep,
+ *                                               direction, save settings...)
+ *                                    48..2047 = throttle, 0 % .. 100 %
+ *     bit  4     : telemetry request (1 = ESC replies on its telemetry wire)
+ *     bits 3..0  : CRC-4
+ *
+ * CRC is computed over the 12 bits formed by (value << 1 | telemetry):
+ *     crc = (packet ^ (packet >> 4) ^ (packet >> 8)) & 0x0F
+ * A frame failing CRC is discarded by the ESC, so line noise cannot become a
+ * throttle command the way it can with analog PWM.
+ *
+ * ---------------------------------------------------------------------------
+ * Bit encoding on the wire
+ * ---------------------------------------------------------------------------
+ * There is no separate clock. Each bit occupies one fixed-length period and
+ * the bit's value is carried by the duty cycle of that period:
+ *
+ *     '1' -> line high for 75   % of the bit period
+ *     '0' -> line high for 37.5 % of the bit period
+ *
+ * That maps directly onto a timer in PWM mode: ARR holds the bit period and
+ * each bit is one CCR value. A 16-entry DMA burst into CCR therefore emits a
+ * whole frame with no CPU involvement after the transfer is kicked off.
+ *
+ * Bit period is set by the DShot rate:
+ *     DShot150 = 6.67 us, DShot300 = 3.33 us,
+ *     DShot600 = 1.67 us, DShot1200 = 0.83 us
+ *
+ * ---------------------------------------------------------------------------
+ * Start-up: how the ESC knows to expect DShot
+ * ---------------------------------------------------------------------------
+ * Nothing tells it explicitly. BLHeli_32 auto-detects the input protocol by
+ * measuring the signal it sees after power-up: it classifies analog PWM,
+ * OneShot125/42, Multishot and each DShot rate from the edge timing, then
+ * locks that choice until the next power cycle.
+ *
+ * Two consequences drive the sequencing in InitializeOutputs():
+ *   1. The flight controller must already be emitting valid frames when the
+ *      ESC powers up, or shortly after. If the line is idle the ESC keeps
+ *      waiting and never detects a protocol.
+ *   2. The ESC only arms after a continuous run of zero-throttle frames.
+ *      SendIdleFrames() supplies exactly that.
+ *
+ * Because detection happens once per power cycle, switching between analog
+ * PWM and DShot always requires powering the ESCs down and back up.
  */
 
-#ifndef SRC_PWM_CMDS_PWM_CMDS_DSHOT_H_
-#define SRC_PWM_CMDS_PWM_CMDS_DSHOT_H_
+#pragma once
 
-#include "task_manager/task_base.h"
-#include "messages/pwm_data.h"
-#include "pubsub/subscriber.h"
+#include "motor_protocol_config.h"
+
+#if MOTOR_PROTOCOL_DSHOT
+
+#include <cstdint>
+
 #include "debug.h"
+#include "messages/pwm_data.h"
 #include "pin_defines.h"
-
-/* Timer To PWM Channel Map
-* TIM1 -> CH1 - PWM1
-* TIM1 -> CH2 - PWM2
-* TIM1 -> CH3 - PWM3
-* TIM1 -> CH4 - PWM4
-* TIM2 -> CH1 - PWM5
-* TIM2 -> CH3 - PWM6
-* TIM2 -> CH4 - PWM7
-* TIM3 -> CH1 - PWM8
-*/
-
-#define MODE_TEST
-//#define MODE_PASSTHROUGH
-
-#ifdef MODE_PASSTHROUGH
-#include "messages/rc_channels.h"
-#endif
+#include "pubsub/subscriber.h"
+#include "task_manager/task_base.h"
 
 class PwmCmdsDshot : public TaskBase {
 public:
-	PwmCmdsDshot(TIM_HandleTypeDef* htim1, TIM_HandleTypeDef* htim2, TIM_HandleTypeDef* htim3, uint16_t dshot_speed);
+    PwmCmdsDshot(TIM_HandleTypeDef* htim1, TIM_HandleTypeDef* htim2,
+                 TIM_HandleTypeDef* htim3, bool register_task = true);
+
     void Run() override;
 
-	static PwmCmdsDshot* pwm_cmds_instance_handle_;
-	void OnPwmDmaComplete(TIM_HandleTypeDef* htim);
+    // Reconfigures TIM1 for the DShot bit period and holds the ESCs at zero
+    // throttle long enough for them to detect the protocol and arm.
+    void InitializeOutputs();
+
+    // Emits one 16-bit frame per motor. Called from the 250 Hz control loop.
+    void ApplyPwmData(const PwmData& pwm_data);
+
+    static PwmCmdsDshot* instance_;
+
+    // Called only by HAL_TIM_PWM_PulseFinishedCallback.
+    static void PulseFinishedCallback(TIM_HandleTypeDef* htim);
+
 private:
-	static constexpr int kDshotBits = 16;
-	static constexpr int kDshotBufferSize = kDshotBits + 1;
-	TIM_HandleTypeDef* pwm_timer1_;  // PWM Timer 1 Handle
-	TIM_HandleTypeDef* pwm_timer2_;  // PWM Timer 1 Handle
-	TIM_HandleTypeDef* pwm_timer3_;  // PWM Timer 1 Handle
+    static constexpr uint16_t LOOP_INTERVAL_MS = 4;  // 250 Hz
 
-	static constexpr uint16_t LOOP_INTERVAL_MS = 10; // 100Hz
-	static constexpr int kOneSecIntervalCount = 1000 / LOOP_INTERVAL_MS;
+    // DShot300 is the deliberate default. DShot600 halves the bit period and
+    // becomes marginal over the long ESC signal leads typical of a large
+    // multi-ESC airframe; 300 keeps generous edge margin and is still ~60 us
+    // per frame against a 4 ms control period.
+    static constexpr uint32_t kDshotBitrateHz = 300000U;
 
-	Subscriber<PwmData> pwm_sub_ = Subscriber<PwmData>(TopicID::PWM);
-	PwmData pwm_data_ = {0};
+    static constexpr uint8_t kMotorCount = 4U;
+    static constexpr uint8_t kFrameBits = 16U;
+    // Two trailing zero-duty entries park the line low once the frame ends.
+    // Without them CCR would retain the final bit's duty and hold the line
+    // high, which the ESC reads as a framing error.
+    static constexpr uint8_t kTrailingIdleEntries = 2U;
+    static constexpr uint8_t kBufferLength = kFrameBits + kTrailingIdleEntries;
 
-	uint32_t dma_buffer1_[kDshotBufferSize];
-	uint32_t dma_buffer2_[kDshotBufferSize];
-	uint32_t dma_buffer3_[kDshotBufferSize];
-	uint32_t dma_buffer4_[kDshotBufferSize];
+    // DShot value space.
+    static constexpr uint16_t kDshotMotorStop = 0U;
+    static constexpr uint16_t kDshotMinThrottle = 48U;
+    static constexpr uint16_t kDshotMaxThrottle = 2047U;
 
-	uint16_t dshot_speed_ ;
-	uint32_t timer_clock_hz_;
-	uint16_t bit_total_ticks_;
-	uint16_t bit1_high_ticks_;
-	uint16_t bit0_high_ticks_;
+    // Control-side throttle range, matching the analog driver exactly so the
+    // two protocols present an identical command interface to the FCS.
+    static constexpr uint16_t kMaxRcThrottle = 2000U;
+    static constexpr uint16_t kValidMinRcThrottle = 1000U;
+    static constexpr uint16_t kRcThrottleSpan =
+        kMaxRcThrottle - kValidMinRcThrottle;
 
-	uint32_t GetTimerClockHz(TIM_HandleTypeDef* htim);
-	void ComputeTiming(TIM_HandleTypeDef* htim);
-	uint16_t CreatePacket(uint16_t cmd);
-	void EncodePacket(uint16_t packet, TIM_HandleTypeDef* htim, uint32_t channel);
-	void SendCmd(TIM_HandleTypeDef* htim, uint32_t channel, uint16_t cmd);
-	uint32_t* GetDmaBuffer(TIM_HandleTypeDef* htim, uint32_t channel);
-	const char* ChannelToStr(uint32_t ch);
+    // Arming: BLHeli_32 needs a sustained run of zero-throttle frames before
+    // it will accept throttle. 2 s at 1 kHz is comfortably beyond the
+    // requirement and covers ESC boot and tone playback.
+    static constexpr uint32_t kIdleFrameCount = 2000U;
+    static constexpr uint32_t kIdleFramePeriodMs = 1U;
 
-	void ArmEsc(TIM_HandleTypeDef* tim, uint32_t ch);
+    TIM_HandleTypeDef* pwm_timer1_;
+    TIM_HandleTypeDef* pwm_timer2_;
+    TIM_HandleTypeDef* pwm_timer3_;
 
-	bool tim1_ch1_dma_cplt_ = true;
+    // Derived from the timer kernel clock in ConfigureTimebase().
+    uint32_t bit_period_ticks_ = 0U;
+    uint32_t bit1_high_ticks_ = 0U;
+    uint32_t bit0_high_ticks_ = 0U;
 
-#ifdef MODE_PASSTHROUGH
-	Subscriber<RcChannels> rcchannels_sub_ = Subscriber<RcChannels>(TopicID::RCCHANNELS);
-	RcChannels rcchannels_data_;
-#endif
+    // DMA is configured word-wide (DMA_MDATAALIGN_WORD), so the buffer must
+    // be uint32_t. D-cache is disabled project-wide, so no maintenance is
+    // required around these transfers.
+    alignas(4) uint32_t dshot_buffer_[kMotorCount][kBufferLength] = {};
+
+    // Set when a channel's DMA is in flight, cleared by its completion
+    // callback. Guards against re-arming a transfer that has not finished.
+    volatile uint8_t transfer_active_mask_ = 0U;
+    uint32_t dropped_frame_count_ = 0U;
+
+    static uint32_t TimerKernelClockHz();
+    static uint32_t ChannelForIndex(uint8_t index);
+
+    void ConfigureTimebase();
+    void SendIdleFrames(uint32_t frame_count);
+
+    // Pure functions; unit-checkable on a host.
+    static uint16_t BuildFrame(uint16_t value11, bool telemetry_request);
+    uint16_t ThrottleToDshot(uint16_t rc_throttle) const;
+    void FillBuffer(uint8_t motor_index, uint16_t frame);
+
+    void TransmitAll();
+    void OnPulseFinished(TIM_HandleTypeDef* htim);
+
+    Subscriber<PwmData> pwm_sub_ = Subscriber<PwmData>(TopicID::PWM);
+    PwmData pwm_data_ = {0};
 };
 
-#endif /* SRC_PWM_CMDS_PWM_CMDS_DSHOT_H_ */
+#endif  // MOTOR_PROTOCOL_DSHOT

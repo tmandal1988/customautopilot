@@ -21,7 +21,7 @@ extern I2C_HandleTypeDef hi2c1;
 ReadIst8310 read_ist8310_task_instance_(&hi2c1);
 
 ReadIst8310::ReadIst8310(I2C_HandleTypeDef* i2c_handle)
-    : TaskBase("Ist8310Task", 1536, osPriorityNormal),
+    : TaskBase("MagIst8310", 1536, osPriorityNormal),
       i2c_(i2c_handle) {
     instance_ = this;
 }

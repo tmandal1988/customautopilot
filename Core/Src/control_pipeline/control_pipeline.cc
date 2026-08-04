@@ -7,7 +7,7 @@ extern TIM_HandleTypeDef htim3;
 ControlPipeline::ControlPipeline(TIM_HandleTypeDef* htim1_handle,
                                  TIM_HandleTypeDef* htim2_handle,
                                  TIM_HandleTypeDef* htim3_handle)
-    : TaskBase("ControlPipeline", 24000, osPriorityHigh),
+    : TaskBase("FlightCtrl250Hz", 24000, osPriorityHigh),
       htim1_(htim1_handle),
       htim2_(htim2_handle),
       htim3_(htim3_handle) {}
@@ -22,7 +22,7 @@ void ControlPipeline::ConstructModules() {
   }
   if (pwm_output_ == nullptr) {
     pwm_output_ =
-        new (pwm_output_storage_) PwmCmds(htim1_, htim2_, htim3_, false);
+        new (pwm_output_storage_) MotorOutput(htim1_, htim2_, htim3_, false);
   }
 }
 

@@ -14,7 +14,7 @@
 
 class BlinkLedTask : public TaskBase {
 public:
-    BlinkLedTask() : TaskBase("BlinkLedTask", 768, osPriorityNormal) {}
+    BlinkLedTask() : TaskBase("Heartbeat1Hz", 768, osPriorityNormal) {}
 
     void Run() override;
 

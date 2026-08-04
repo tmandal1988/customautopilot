@@ -6,6 +6,8 @@
  */
 
 #pragma once
+#include <cstdio>
+
 #include "topic.h"
 #include "topic_definition.h"
 
@@ -21,7 +23,21 @@ public:
         const size_t index = static_cast<size_t>(topic_id);
         if (index >= kTopicCount) return;
         if (topics[index] == nullptr) {
-            topics[index] = new Topic<T>{T{}, 0, xSemaphoreCreateMutex()};
+            // Runs once per topic during start-up. A failure here is silent
+            // otherwise: publish() and copy() both bail out on a null topic,
+            // so the topic would simply never carry data. Report it instead.
+            SemaphoreHandle_t mutex = xSemaphoreCreateMutex();
+            Topic<T>* topic =
+                (mutex != nullptr) ? new Topic<T>{T{}, 0, mutex} : nullptr;
+            if (topic == nullptr) {
+                if (mutex != nullptr) {
+                    vSemaphoreDelete(mutex);
+                }
+                printf("FATAL: cannot allocate topic %u\n",
+                       static_cast<unsigned>(index));
+                return;
+            }
+            topics[index] = topic;
         }
     }
 

@@ -11,7 +11,7 @@
 #include "pubsub/pubsub_manager.h"
 
 FlightControls::FlightControls(bool register_task)
-    : TaskBase("FlightControlsTask", 2000, osPriorityAboveNormal,
+    : TaskBase("FcsInner250Hz", 2000, osPriorityAboveNormal,
                register_task),
       fcsModelObj_(&fcs_model_autocode_u_,
                    parameters::ParameterStore::Instance()

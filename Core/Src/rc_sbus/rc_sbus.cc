@@ -15,7 +15,7 @@ extern UART_HandleTypeDef huart7;
 RcSbus read_rcinputs_task_instance_(&huart7);
 
 RcSbus::RcSbus(UART_HandleTypeDef* huart):
-TaskBase("ReadRcInTask", 864, osPriorityAboveNormal),
+TaskBase("RcSbusRx", 864, osPriorityAboveNormal),
 rc_uart_(huart){
 	rc_sbus_instance_handle_ = this;
 }
@@ -115,9 +115,6 @@ void RcSbus::Run(){
 		}
 
 		PublishLostIfStale(rcchannels_pub, now);
-//		DEBUG_PRINT("RC Roll: %d, RC Pitch: %d, RC Throttle: %d, RC Yaw: %d, RC Sw1: %d, RC Sw2: %d, RC Sw3: %d, RC Knob: %d, RC Sw4: %d\n",
-//					rc_channels_.roll, rc_channels_.pitch, rc_channels_.throttle, rc_channels_.yaw, rc_channels_.sw1, rc_channels_.sw2, rc_channels_.sw3,
-//					rc_channels_.knob, rc_channels_.sw4);
 		EndMetricsCycle();
 #if RTOS_METRICS_ENABLE && RTOS_CONTEXT_SWITCH_METRICS_ENABLE
 		const uint32_t context_switch_delta =
@@ -404,14 +401,3 @@ void RcSbus::UartError(UART_HandleTypeDef* huart){
 	}
 }
 
-
-//// DMA transfer complete callback
-//extern "C" void HAL_UART_RxCpltCallback(UART_HandleTypeDef* huart) {
-//    if (huart->Instance == SBUSRX) {
-//        if (RcSbus::rc_sbus_instance_handle_ != nullptr) {
-//            RcSbus::ReceivedNewSbusFrame(0);  // ID currently unused
-//        }
-//    } else {
-//        __NOP();
-//    }
-//}

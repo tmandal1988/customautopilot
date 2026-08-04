@@ -18,6 +18,8 @@ option(ENABLE_RTOS_STACK_OVERFLOW_DIAGNOSTICS
        "Enable FreeRTOS level-2 stack-overflow checking for bench diagnosis" OFF)
 option(ENABLE_CONTROL_PIPELINE
        "Run estimator, flight controls, and PWM in one deterministic task" OFF)
+option(ENABLE_DSHOT
+       "Use DShot motor output instead of analog PWM (requires ESC power cycle)" OFF)
 option(ENABLE_MTF01P_DEBUG_PRINT
        "Print rate-limited MTF01P RX/data diagnostics over DEBUG_PRINT" OFF)
 
@@ -102,6 +104,11 @@ if(ENABLE_CONTROL_PIPELINE)
 else()
     list(APPEND PROJECT_DEFINES CONTROL_PIPELINE_ENABLE=0)
 endif()
+if(ENABLE_DSHOT)
+    list(APPEND PROJECT_DEFINES MOTOR_PROTOCOL_DSHOT=1)
+else()
+    list(APPEND PROJECT_DEFINES MOTOR_PROTOCOL_DSHOT=0)
+endif()
 if(ENABLE_MTF01P_DEBUG_PRINT)
     list(APPEND PROJECT_DEFINES MTF01P_DEBUG_PRINT_ENABLE=1)
 else()
@@ -156,17 +163,11 @@ set(LIB_SOURCES
     Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal.c
     Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_cortex.c
     Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_dma.c
-    Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_dma_ex.c
-    Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_exti.c
     Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_flash.c
     Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_flash_ex.c
     Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_gpio.c
-    Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_hsem.c
     Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_i2c.c
     Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_i2c_ex.c
-    Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_mdma.c
-    Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_mmc.c
-    Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_mmc_ex.c
     Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_pcd.c
     Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_pcd_ex.c
     Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_pwr.c
@@ -174,14 +175,11 @@ set(LIB_SOURCES
     Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_rcc.c
     Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_rcc_ex.c
     Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_sd.c
-    Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_sd_ex.c
     Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_spi.c
-    Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_spi_ex.c
     Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_tim.c
     Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_tim_ex.c
     Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_uart.c
     Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_uart_ex.c
-    Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_ll_delayblock.c
     Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_ll_sdmmc.c
     Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_ll_usb.c
     FATFS/App/fatfs.c
@@ -198,11 +196,8 @@ set(LIB_SOURCES
     Middlewares/Third_Party/FatFs/src/option/ccsbcs.c
     Middlewares/Third_Party/FatFs/src/option/syscall.c
     Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS_V2/cmsis_os2.c
-    Middlewares/Third_Party/FreeRTOS/Source/croutine.c
-    Middlewares/Third_Party/FreeRTOS/Source/event_groups.c
     Middlewares/Third_Party/FreeRTOS/Source/list.c
     Middlewares/Third_Party/FreeRTOS/Source/queue.c
-    Middlewares/Third_Party/FreeRTOS/Source/stream_buffer.c
     Middlewares/Third_Party/FreeRTOS/Source/tasks.c
     Middlewares/Third_Party/FreeRTOS/Source/timers.c
     Middlewares/Third_Party/FreeRTOS/Source/portable/GCC/ARM_CM4F/port.c

@@ -15,7 +15,7 @@ ReadIcm20948 read_icm20948_task_instance_(&hi2c2);
 
 
 ReadIcm20948::ReadIcm20948(I2C_HandleTypeDef* hi2c):
-TaskBase("Icm20948Task", 1500, osPriorityAboveNormal),
+TaskBase("Imu500Hz", 1500, osPriorityAboveNormal),
 read_icm20948_task_handle_(nullptr),
 icm20948_i2c_(hi2c){
 	read_icm20948_instance_ = this;
@@ -448,25 +448,6 @@ bool ReadIcm20948::Icm20948SetSampleMode(){
 	return false;
 }
 
-/*Enable raw data ready interrupt from any sensor to propagate to interrupt
-pin 1
-*/
-//bool ReadIcm20948::Icm20948EnableDataRdyInt(){
-//	HAL_StatusTypeDef ret_;
-//	bool success = true;
-//	ICM_20948_UB0_INT_ENABLE_1_t int_enable_1_reg;
-//
-//	success &= Icm20948ChangeRegBank(0);
-//	ret_ = Icm20948Read(UB0_INT_ENABLE_1, (uint8_t *)&int_enable_1_reg, 1, icm_i2c_wait_time_ms_);
-//	success &= (ret_ == HAL_OK);
-//
-//	int_enable_1_reg.RAW_DATA_0_RDY_EN = 1;
-//	ret_ = Icm20948Write(UB0_INT_ENABLE_1, (uint8_t *)&int_enable_1_reg, 1, icm_i2c_wait_time_ms_);
-//	success &= (ret_ == HAL_OK);
-//
-//	return success;
-//}
-
 /* Initialize all the sensors
  *
  */
@@ -743,21 +724,13 @@ void ReadIcm20948::Run() {
 		first_iteration = false;
 
 		// Blink LED every 100 iterations
-		if (++blink_counter >= 100) {
+		if (++blink_counter >= kBlinkPeriodCycles) {
 			HAL_GPIO_TogglePin(LED2_GPIO_Port, LED2_Pin);
 			blink_counter = 0;
-//			UBaseType_t highWaterMark = uxTaskGetStackHighWaterMark(NULL);
-//			uint32_t used = 1068 - highWaterMark * sizeof(StackType_t);
-//			DEBUG_PRINT("Used: %lu bytes, Free: %lu bytes (of %d total)\n",
-//				   used, highWaterMark * sizeof(StackType_t), 1068);
 		}
 
 		(void)StartInertialRead();
 		next_release = AdvanceRelease(next_release, now, xFrequency);
-//		DEBUG_PRINT("Ax = %g, Ay = %g, Az = %g\n", imu_data.accel_mps2[0], imu_data.accel_mps2[1], imu_data.accel_mps2[2]);
-//		DEBUG_PRINT("Gx = %g, Gy = %g, Gz = %g\n", imu_data.gyro_radps[0]/DEG2RAD, imu_data.gyro_radps[1]/DEG2RAD, imu_data.gyro_radps[2]/DEG2RAD);
-//		DEBUG_PRINT("Mx = %g, My = %g, Mz = %g\n", imu_data.mag_ut[0], imu_data.mag_ut[1], imu_data.mag_ut[2]);
-//		DEBUG_PRINT("-----------------------------------------------------\n");
 
 		EndMetricsCycle();
 #if RTOS_METRICS_ENABLE && RTOS_CONTEXT_SWITCH_METRICS_ENABLE
@@ -835,47 +808,8 @@ void ReadIcm20948::Icm20948GetData(ImuData *icm20948_data){
 		  icm20948_data->accel_mps2[1] = -(((float)data_buf[1]) / 2048);
 		  icm20948_data->accel_mps2[2] = -(((float)data_buf[2]) / 2048);
 
-//		  icm20948_data->accel_mps2[0] = (((float)data_buf[0]) / 2048)*9.81;
-//		  icm20948_data->accel_mps2[1] = -(((float)data_buf[1]) / 2048)*9.81;
-//		  icm20948_data->accel_mps2[2] = -(((float)data_buf[2]) / 2048)*9.81;
 
 		  icm20948_data->gyro_radps[0] = (((float)data_buf[3]) / 16.4)*DEG2RAD;
 		  icm20948_data->gyro_radps[1] = -(((float)data_buf[4]) / 16.4)*DEG2RAD;
 		  icm20948_data->gyro_radps[2] = -(((float)data_buf[5]) / 16.4)*DEG2RAD;
 }
-
-//bool ReadIcm20948::GetDataReadyFlag(){
-//	if(data_ready_to_read_flag_){
-//		data_ready_to_read_flag_ = false;
-//		return true;
-//	}else{
-//		return false;
-//	}
-//}
-
-//void ReadIcm20948::StartI2cDmaRead(){
-//	data_ready_to_read_flag_ = false;
-//	if(HAL_I2C_GetState(icm20948_i2c_) == HAL_I2C_STATE_READY){
-//		HAL_I2C_Mem_Read_DMA(icm20948_i2c_, ICM20948_ADDR << 1, UB0_ACCEL_XOUT_H, I2C_MEMADD_SIZE_8BIT,
-//				icm20948_raw_buf_, 23);
-//	}else{
-//		__NOP();
-//	}
-//}
-
-//void ReadIcm20948::SetDataReadyFlag(){
-//	data_ready_to_read_flag_ = true;
-//	timer_val_ = __HAL_TIM_GET_COUNTER(htim_);
-//}
-//
-//void ReadIcm20948::DataReadyPinIsrHandler(uint8_t id){
-//	if (icm20948_instance_handles_[id] != nullptr) {
-//		icm20948_instance_handles_[id]->StartI2cDmaRead();
-//	}
-//}
-
-//void ReadIcm20948::DmaRxCpltIsrHandler(uint8_t id){
-//	if (icm20948_instance_handles_[id] != nullptr){
-//		icm20948_instance_handles_[id]->SetDataReadyFlag();
-//	}
-//}

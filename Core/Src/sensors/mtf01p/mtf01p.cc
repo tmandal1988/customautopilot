@@ -16,7 +16,7 @@ extern UART_HandleTypeDef huart1;
 ReadMtf01p read_mtf01p_task_instance_(&huart1);
 
 ReadMtf01p::ReadMtf01p(UART_HandleTypeDef* huart):
-TaskBase("ReadMtf01pTask", 4000, osPriorityNormal),
+TaskBase("FlowMtf01pRx", 4000, osPriorityNormal),
 mtf01_uart_(huart){
 	read_mtf01p_instance_handle_ = this;
 }

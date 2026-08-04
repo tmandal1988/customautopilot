@@ -20,7 +20,7 @@ PwmCmds pwm_cmds_task_instance_(&htim1, &htim2, &htim3);
 
 PwmCmds::PwmCmds(TIM_HandleTypeDef* htim1, TIM_HandleTypeDef* htim2, TIM_HandleTypeDef* htim3,
                  bool register_task):
-TaskBase("PwmCmdsTask", 1024, osPriorityHigh, register_task),
+TaskBase("PwmOut250Hz", 1024, osPriorityHigh, register_task),
 pwm_timer1_(htim1),
 pwm_timer2_(htim2),
 pwm_timer3_(htim3){

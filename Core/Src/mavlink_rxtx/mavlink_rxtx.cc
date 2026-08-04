@@ -99,7 +99,7 @@ MavlinkRxTx mavlink_rxtx_task_instance_{&huart4};
 //  CTOR / DTOR
 // -----------------------------------------------------------------------------
 MavlinkRxTx::MavlinkRxTx(UART_HandleTypeDef* huart)
-    : TaskBase("MavlinkRxTxTask", 4096, osPriorityNormal),
+    : TaskBase("MavlinkRxTx", 4096, osPriorityNormal),
       mavlink_uart_{huart} {
   mavlink_rxtx_instance_handle_ = this;
 }

@@ -23,9 +23,6 @@
 #include "usb_device.h"
 #include "debug.h"
 
-//extern "C" {
-//#include "mavlink/common/mavlink.h"  // or "mavlink/common/mavlink.h" depending on your layout
-//}
 
 #include "task_manager/task_manager.h"
 
@@ -134,9 +131,10 @@ int main(void)
 
   /* Enable I-Cache---------------------------------------------------------*/
   SCB_EnableICache();
-//
-//  /* Enable D-Cache---------------------------------------------------------*/
-//  SCB_EnableDCache();
+
+  /* D-Cache is deliberately left disabled. Every DMA buffer in this
+     application is a plain (non-cache-line-aligned) object, so enabling it
+     would require explicit clean/invalidate around every transfer. */
 
   /* MCU Configuration--------------------------------------------------------*/
 
@@ -176,36 +174,11 @@ int main(void)
   MX_TIM2_Init();
   MX_TIM3_Init();
   MX_USART1_UART_Init();
-//  MX_UART5_Init();
-
-//  uint16_t kMaxPwmVal = 60000;
-//  uint16_t kMinPwmVal = 48000;
 
   HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_1);
-//  __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_1, kMaxPwmVal);
-
   HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_2);
-//  __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_2, kMaxPwmVal);
-
   HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_3);
-//  __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_3, kMaxPwmVal);
-
   HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_4);
-//  __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_4, kMaxPwmVal);
-//
-//  HAL_Delay(5000);
-//
-//  HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_1);
-//  __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_1, kMinPwmVal);
-//
-//  HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_2);
-//  __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_2, kMinPwmVal);
-//
-//  HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_3);
-//  __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_3, kMinPwmVal);
-//
-//  HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_4);
-//  __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_4, kMinPwmVal);
 
 
 
@@ -1051,32 +1024,6 @@ bool SetSdBus4BWide(){
 
 
  /* MPU Configuration */
-
-//void MPU_Config(void)
-//{
-//  MPU_Region_InitTypeDef MPU_InitStruct = {0};
-//
-//  /* Disables the MPU */
-//  HAL_MPU_Disable();
-//  /** Initializes and configures the Region and the memory to be protected
-//  */
-//  MPU_InitStruct.Enable = MPU_REGION_ENABLE;
-//  MPU_InitStruct.Number = MPU_REGION_NUMBER0;
-//  MPU_InitStruct.BaseAddress = 0x0;
-//  MPU_InitStruct.Size = MPU_REGION_SIZE_4GB;
-//  MPU_InitStruct.SubRegionDisable = 0x87;
-//  MPU_InitStruct.TypeExtField = MPU_TEX_LEVEL0;
-//  MPU_InitStruct.AccessPermission = MPU_REGION_NO_ACCESS;
-//  MPU_InitStruct.DisableExec = MPU_INSTRUCTION_ACCESS_DISABLE;
-//  MPU_InitStruct.IsShareable = MPU_ACCESS_SHAREABLE;
-//  MPU_InitStruct.IsCacheable = MPU_ACCESS_NOT_CACHEABLE;
-//  MPU_InitStruct.IsBufferable = MPU_ACCESS_NOT_BUFFERABLE;
-//
-//  HAL_MPU_ConfigRegion(&MPU_InitStruct);
-//  /* Enables the MPU */
-//  HAL_MPU_Enable(MPU_PRIVILEGED_DEFAULT);
-//
-//}
 
 void MPU_Config(void)
 {

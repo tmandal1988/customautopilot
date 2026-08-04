@@ -8,11 +8,10 @@
 #pragma once
 
 #include <cstdint>
-#include <chrono>
 #include "FreeRTOS.h"
 #include "semphr.h"
 
-// Get current time in microseconds
+// Milliseconds since boot, used to stamp every published sample.
 uint64_t getCurrentTimeMs();
 
 // Topic management structure
@@ -22,9 +21,3 @@ struct Topic {
     uint32_t updated_mask = 0; // Bitmask for subscriber updates
     SemaphoreHandle_t mutex;
 };
-
-//{
-//    auto now = std::chrono::steady_clock::now();
-//    return std::chrono::duration_cast<std::chrono::microseconds>(now.time_since_epoch()).count();
-//    return 1;
-//}

@@ -97,6 +97,8 @@ private:
 	static constexpr uint32_t icm_i2c_wait_time_ms_ = 10U;
 	static constexpr uint32_t kInitRetryDelayMs = 500U;
 	static constexpr uint32_t kDmaCompletionTimeoutMs = 2U;
+	// Heartbeat on LED2: one toggle per 100 releases, i.e. every 200 ms.
+	static constexpr int kBlinkPeriodCycles = 100;
 	static constexpr uint8_t kRuntimeFailureLogThreshold = 5U;
 	static constexpr uint8_t who_am_i_val_ = 0xEA;
 	static constexpr uint16_t kRawReadSize =

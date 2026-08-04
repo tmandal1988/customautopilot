@@ -12,7 +12,7 @@
 #include <cstring>
 
 StateEstimator::StateEstimator(bool register_task)
-    : TaskBase("StateEstimatorTask", 11000, osPriorityAboveNormal,
+    : TaskBase("EkfEst250Hz", 11000, osPriorityAboveNormal,
                register_task) {}
 
 void StateEstimator::InitializeEstimator() {

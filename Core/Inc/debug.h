@@ -5,6 +5,8 @@
  *      Author: tanmay
  */
 
+#pragma once
+
 #include <stdio.h>
 #include "debug_config.h"
 #include "usb_console/usb_console.h"

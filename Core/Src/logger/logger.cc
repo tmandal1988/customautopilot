@@ -60,7 +60,7 @@ parameters::ParameterChangeEvent MakeGapEvent(
 Logger::Logger()
     // Must outrank SdWriteTask: the logger samples latest-value topics on a
     // deadline, while the SD task has seconds of multi-buffer slack.
-    : TaskBase("LoggerTask", 4096, osPriorityNormal) {
+    : TaskBase("Logger500Hz", 4096, osPriorityNormal) {
 }
 
 void Logger::SetupTopics() {
@@ -266,28 +266,28 @@ void Logger::ServiceRtosMetricsDebugPrint(uint32_t now_ticks) {
   const bool have_rc_diag = RcSbus::CaptureDiagnostics(&rc_diag);
 
   const bool have_control_pipeline = CaptureRtosMetricsByName(
-      "ControlPipeline", context_switch_count, context_switch_delta,
+      "FlightCtrl250Hz", context_switch_count, context_switch_delta,
       interval_ms, &control_pipeline);
   const bool have_icm20948 = CaptureRtosMetricsByName(
-      "Icm20948Task", context_switch_count, context_switch_delta,
+      "Imu500Hz", context_switch_count, context_switch_delta,
       interval_ms, &icm20948);
   const bool have_ist8310 = CaptureRtosMetricsByName(
-      "Ist8310Task", context_switch_count, context_switch_delta,
+      "MagIst8310", context_switch_count, context_switch_delta,
       interval_ms, &ist8310);
   const bool have_mtf01p = CaptureRtosMetricsByName(
-      "ReadMtf01pTask", context_switch_count, context_switch_delta,
+      "FlowMtf01pRx", context_switch_count, context_switch_delta,
       interval_ms, &mtf01p);
   const bool have_rc_sbus = CaptureRtosMetricsByName(
-      "ReadRcInTask", context_switch_count, context_switch_delta,
+      "RcSbusRx", context_switch_count, context_switch_delta,
       interval_ms, &rc_sbus);
   const bool have_logger = CaptureRtosMetricsByName(
-      "LoggerTask", context_switch_count, context_switch_delta,
+      "Logger500Hz", context_switch_count, context_switch_delta,
       interval_ms, &logger);
   const bool have_mavlink = CaptureRtosMetricsByName(
-      "MavlinkRxTxTask", context_switch_count, context_switch_delta,
+      "MavlinkRxTx", context_switch_count, context_switch_delta,
       interval_ms, &mavlink);
   const bool have_gps = CaptureRtosMetricsByName(
-      "UbloxM9nTask2", context_switch_count, context_switch_delta,
+      "GpsUbloxRx", context_switch_count, context_switch_delta,
       interval_ms, &gps);
 
   if (have_control_pipeline) {

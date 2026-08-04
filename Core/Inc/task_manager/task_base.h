@@ -53,10 +53,29 @@ public:
         threadAttributes.cb_size = sizeof(taskControlBlock);
         threadAttributes.stack_mem = stackMemory;
 
+        // A null stack means AllocateStack() found the static pool exhausted.
+        // osThreadNew() rejects a half-static request (control block supplied,
+        // stack missing), so the task would simply never run. Name the real
+        // cause: the two failures need very different fixes.
+        if (stackMemory == nullptr) {
+            printf("FATAL: no static stack for task %s (needs %u B, pool has "
+                   "%u B free); increase kStaticStackPoolBytes\n",
+                   taskName, static_cast<unsigned>(stackSize),
+                   static_cast<unsigned>(StaticStackPoolFreeBytes()));
+            return;
+        }
+
         taskHandle = osThreadNew(TaskFunctionWrapper, this, &threadAttributes);
         if (taskHandle == nullptr) {
-            printf("Failed to create task: %s\n", taskName);
+            printf("FATAL: osThreadNew failed for task %s\n", taskName);
         }
+    }
+
+    // Remaining bytes in the shared static stack pool. Reported at boot so
+    // pool pressure is visible before it becomes a missing task.
+    static std::size_t StaticStackPoolFreeBytes() noexcept {
+        return (kStaticStackPoolWords - staticStackPoolUsedWords) *
+               sizeof(StackType_t);
     }
 
     static void TaskFunctionWrapper(void* argument) {

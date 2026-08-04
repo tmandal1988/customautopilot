@@ -27,10 +27,12 @@ void BlinkLedTask::Run() {
 			--heap_report_countdown;
 			if (heap_report_countdown == 0U) {
 				DEBUG_PRINT(
-					"FreeRTOS heap: %u free now, %u minimum ever, of %u total\n",
+					"FreeRTOS heap: %u free now, %u minimum ever, of %u total; "
+					"static stack pool: %u B free\n",
 					static_cast<unsigned>(xPortGetFreeHeapSize()),
 					static_cast<unsigned>(xPortGetMinimumEverFreeHeapSize()),
-					static_cast<unsigned>(configTOTAL_HEAP_SIZE));
+					static_cast<unsigned>(configTOTAL_HEAP_SIZE),
+					static_cast<unsigned>(StaticStackPoolFreeBytes()));
 			}
 		}
 

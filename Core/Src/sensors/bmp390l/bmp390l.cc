@@ -12,7 +12,7 @@ ReadBmp390l* ReadBmp390l::instance_ = nullptr;
 
 
 ReadBmp390l::ReadBmp390l(SPI_HandleTypeDef* hspi):
-TaskBase("Bmp390lTask", 1062, osPriorityAboveNormal),
+TaskBase("Baro62Hz", 1062, osPriorityAboveNormal),
 bmp390l_spi_(hspi){
 	instance_ = this;
 }
@@ -57,7 +57,6 @@ bool ReadBmp390l::ReadMultipleRegisters(uint8_t reg_addr, uint8_t num_bytes){
 	HAL_GPIO_WritePin(BARO_CS_GPIO_Port, BARO_CS_Pin, GPIO_PIN_SET);
 
 	return (status_rx == HAL_OK && status_tx == HAL_OK);
-//	return (status_tx == HAL_OK);
 }
 
 bool ReadBmp390l::Bmp390lInit(){
@@ -188,15 +187,6 @@ bool ReadBmp390l::Bmp390lInit(){
 	WriteSingleRegister(REG_ADDR_PWR_CTRL, REG_VAL_PWR_CTRL);
 	//confirm
 	ReadSingleRegister(REG_ADDR_PWR_CTRL);
-//	r_idx = 0;
-//	read_status = false;
-//	while(!read_status && r_idx < spi_retry_){
-//		ReadSingleRegister(REG_ADDR_PWR_CTRL);
-//		read_status = rx_buf_[1] == REG_VAL_PWR_CTRL;
-//		r_idx++;
-//		osDelay(1);
-//	}
-//	init_status &= read_status;
 	init_status &= rx_buf_[1] == REG_VAL_PWR_CTRL;
 	if(init_status){
 		DEBUG_PRINT("BM390L -> PWR_CTRL SET\n");
@@ -365,7 +355,6 @@ void ReadBmp390l::Run() {
 	BaroData baro_data = {};
 	bool status = Bmp390lInit();
 	Publisher<BaroData> bmp390l_pub(TopicID::BMP390L);
-//	int blink_counter = 0;
 	const TickType_t xFrequency = pdMS_TO_TICKS(READ_INTERVAL_MS);
 	const TickType_t runtime_transfer_timeout =
 			pdMS_TO_TICKS(kRuntimeTransferTimeoutMs);
@@ -403,15 +392,7 @@ void ReadBmp390l::Run() {
 
 		BeginMetricsCycle();
     	if(status){
-//    		if (++blink_counter >= 20) {
-//				blink_counter = 0;
-//				UBaseType_t highWaterMark = uxTaskGetStackHighWaterMark(NULL);
-//				uint32_t used = 1062 - highWaterMark * sizeof(StackType_t);
-//				DEBUG_PRINT("Used: %lu bytes, Free: %lu bytes (of %d total)\n",
-//				used, highWaterMark * sizeof(StackType_t), 1062);
-//    		}
     		(void)StartPressureTemperatureRead();
-//    		DEBUG_PRINT("Press: %g, Temp: %g\n", press_, temp_);
     	}
 		next_release = xTaskGetTickCount() + xFrequency;
 		EndMetricsCycle();

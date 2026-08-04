@@ -219,18 +219,21 @@ def print_summary(records: list[MetricsRecord]) -> None:
             f"latest total {records[-1].context_switch_count}"
         )
 
+    # "ControlPipeline" is the pre-rename name; keep it so logs captured before
+    # the rename still decode.
+    control_task_names = ("FlightCtrl250Hz", "ControlPipeline")
     control_pipeline = next(
         (
             row
             for row in latest.values()
-            if row.task_name == "ControlPipeline"
+            if row.task_name in control_task_names
             and row.flags & FLAG_HAS_AUX_METRICS
         ),
         None,
     )
     if control_pipeline is not None:
         print()
-        print("ControlPipeline/estimator stage maxima:")
+        print(f"{control_pipeline.task_name}/estimator stage maxima:")
         print(
             "  estimator total "
             f"{_cycles_to_us(control_pipeline.aux0, control_pipeline.core_clock_hz):.2f} us, "

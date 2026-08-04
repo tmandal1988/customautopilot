@@ -125,7 +125,7 @@ ParameterPersistence& ParameterPersistence::Instance() noexcept {
 }
 
 ParameterPersistence::ParameterPersistence() noexcept
-    : TaskBase("ParamPersistence", 1536U, osPriorityIdle) {}
+    : TaskBase("ParamPersist", 1536U, osPriorityIdle) {}
 
 bool ParameterPersistence::BankLayoutSupported() const noexcept {
   const bool linker_layout_matches =

@@ -3,7 +3,7 @@
 #include "flight_controls.h"
 #include "messages/ekf_data.h"
 #include "messages/pwm_data.h"
-#include "pwm_cmds_analog.h"
+#include "motor_output.h"
 #include "state_estimator.h"
 #include "task_manager/task_base.h"
 
@@ -21,7 +21,7 @@ private:
 
     StateEstimator* estimator_ = nullptr;
     FlightControls* flight_controls_ = nullptr;
-    PwmCmds* pwm_output_ = nullptr;
+    MotorOutput* pwm_output_ = nullptr;
 
     TIM_HandleTypeDef* htim1_;
     TIM_HandleTypeDef* htim2_;
@@ -31,7 +31,8 @@ private:
         estimator_storage_[sizeof(StateEstimator)] = {};
     alignas(FlightControls) std::uint8_t
         flight_controls_storage_[sizeof(FlightControls)] = {};
-    alignas(PwmCmds) std::uint8_t pwm_output_storage_[sizeof(PwmCmds)] = {};
+    alignas(MotorOutput) std::uint8_t
+        pwm_output_storage_[sizeof(MotorOutput)] = {};
 
     EkfData ekf_data_ = {};
     PwmData pwm_data_ = {};

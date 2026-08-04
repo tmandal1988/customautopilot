@@ -20,7 +20,7 @@ extern "C" {
 ReadUbloxM9nRb read_ubloxm9n_rb_task_instance_(&huart2);
 
 ReadUbloxM9nRb::ReadUbloxM9nRb(UART_HandleTypeDef* huart):
-TaskBase("UbloxM9nTask2", 1792, osPriorityNormal),
+TaskBase("GpsUbloxRx", 1792, osPriorityNormal),
 gps_uart_(huart){
 
 ubloxm9n_rb_instance_handle_ = this;

@@ -6,44 +6,17 @@
  */
 
 #include "rc_sbus/rc_sbus.h"
-//#include "sensors/ubloxm9n/ubloxm9n.h"
-#include "sensors/ubloxm9n2/ubloxm9n2.h"
-//#include "sensors/ubloxm8n/ubloxm8n.h"
 #include "sensors/ubloxm9n_rb/ubloxm9n_rb.h"
 #include "sensors/mtf01p/mtf01p.h"
 #include "mavlink_rxtx/mavlink_rxtx.h"
 
+// Every UART receiver in this application is driven by DMA idle-line events,
+// so the transfer-complete callback below intentionally does nothing.
 extern "C" void HAL_UART_RxCpltCallback(UART_HandleTypeDef* huart) {
     if ((huart != nullptr) && (huart->Instance == SBUSRX)) {
         return;
     }
-//    else if (huart->Instance == GPSUART) {
-//        if (ReadUbloxM9n::ubloxm9n_instance_handle_ != nullptr) {
-//        	ReadUbloxM9n::ReceivedNewNavPvtFrame();
-////        }
-//        if (ReadUbloxM9n2::ubloxm9n2_instance_handle_ != nullptr) {
-//        	ReadUbloxM9n2::ReceivedNewNavPvtFrame();
-//        }
-//        if (ReadUbloxM8n::ubloxm8n_instance_handle_ != nullptr) {
-//			ReadUbloxM8n::ReceivedNewNavPvtFrame();
-//		}
-//    }
-		else {
-				__NOP();
-			}
-//	if (huart->Instance == GPSUART) {
-////        if (ReadUbloxM9n::ubloxm9n_instance_handle_ != nullptr) {
-////        	ReadUbloxM9n::ReceivedNewNavPvtFrame();
-////        }
-////        if (ReadUbloxM9n2::ubloxm9n2_instance_handle_ != nullptr) {
-////        	ReadUbloxM9n2::ReceivedNewNavPvtFrame();
-////        }
-//        if (ReadUbloxM8n::ubloxm8n_instance_handle_ != nullptr) {
-//			ReadUbloxM8n::ReceivedNewNavPvtFrame();
-//		}
-//    } else {
-//        __NOP();
-//    }
+    __NOP();
 }
 
 extern "C" void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef* huart,

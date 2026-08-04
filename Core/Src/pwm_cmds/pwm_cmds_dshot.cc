@@ -1,346 +1,251 @@
 /*
- * pwm_cmds.cc
+ * pwm_cmds_dshot.cc
  *
- *  Created on: Jun 7, 2025
- *      Author: tanmay
+ * DShot300 output on TIM1 CH1..CH4. See pwm_cmds_dshot.h for the protocol
+ * description and the ESC start-up sequence.
+ *
+ * The whole translation unit compiles away unless MOTOR_PROTOCOL_DSHOT is 1,
+ * so an analog build is bit-for-bit unaffected by this file existing.
  */
 
 #include "pwm_cmds_dshot.h"
 
-// Definition of the static member variable
-PwmCmdsDshot* PwmCmdsDshot::pwm_cmds_instance_handle_ = nullptr;
+#if MOTOR_PROTOCOL_DSHOT
 
+#include "pubsub/publisher.h"
+
+PwmCmdsDshot* PwmCmdsDshot::instance_ = nullptr;
+
+PwmCmdsDshot::PwmCmdsDshot(TIM_HandleTypeDef* htim1, TIM_HandleTypeDef* htim2,
+                           TIM_HandleTypeDef* htim3, bool register_task)
+    : TaskBase("MotorDshot250", 1024, osPriorityHigh, register_task),
+      pwm_timer1_(htim1),
+      pwm_timer2_(htim2),
+      pwm_timer3_(htim3) {
+    instance_ = this;
+}
+
+// TIM1 sits on APB2. When the APB2 prescaler is not 1 the timer kernel clock
+// is twice PCLK2, which is the case in this clock tree (480 MHz SYSCLK ->
+// 240 MHz HCLK -> 120 MHz PCLK2 -> 240 MHz timer clock). Deriving it at run
+// time rather than hard-coding keeps the bit timing correct if the clock tree
+// is ever retuned.
+uint32_t PwmCmdsDshot::TimerKernelClockHz() {
+    const uint32_t pclk2 = HAL_RCC_GetPCLK2Freq();
+    const uint32_t apb2_prescaler =
+        (RCC->D2CFGR & RCC_D2CFGR_D2PPRE2) >> RCC_D2CFGR_D2PPRE2_Pos;
+    // Bit 2 of the field set means a divider greater than 1 is in use.
+    return ((apb2_prescaler & 0x4U) != 0U) ? (pclk2 * 2U) : pclk2;
+}
+
+uint32_t PwmCmdsDshot::ChannelForIndex(uint8_t index) {
+    switch (index) {
+        case 0U:  return TIM_CHANNEL_1;
+        case 1U:  return TIM_CHANNEL_2;
+        case 2U:  return TIM_CHANNEL_3;
+        default:  return TIM_CHANNEL_4;
+    }
+}
+
+void PwmCmdsDshot::ConfigureTimebase() {
+    const uint32_t timer_hz = TimerKernelClockHz();
+
+    // One timer period per DShot bit. Prescaler 0 keeps the counter at full
+    // rate so the 75 % / 37.5 % duty split has maximum resolution: at
+    // 240 MHz / 300 kbit/s that is 800 ticks per bit.
+    bit_period_ticks_ = timer_hz / kDshotBitrateHz;
+    bit1_high_ticks_ = (bit_period_ticks_ * 3U) / 4U;    // 75 %
+    bit0_high_ticks_ = (bit_period_ticks_ * 3U) / 8U;    // 37.5 %
+
+    // main() starts these channels in plain PWM mode; they must be stopped
+    // before the timebase changes and before DMA drives them.
+    for (uint8_t i = 0U; i < kMotorCount; ++i) {
+        (void)HAL_TIM_PWM_Stop(pwm_timer1_, ChannelForIndex(i));
+    }
+
+    __HAL_TIM_SET_PRESCALER(pwm_timer1_, 0U);
+    __HAL_TIM_SET_AUTORELOAD(pwm_timer1_, bit_period_ticks_ - 1U);
+    for (uint8_t i = 0U; i < kMotorCount; ++i) {
+        __HAL_TIM_SET_COMPARE(pwm_timer1_, ChannelForIndex(i), 0U);
+    }
+    // Load the new prescaler/ARR immediately instead of at the next update.
+    pwm_timer1_->Instance->EGR = TIM_EGR_UG;
+
+    DEBUG_PRINT(
+        "DShot%lu: timer %lu Hz, %lu ticks/bit (1=%lu, 0=%lu), frame %lu us\n",
+        static_cast<unsigned long>(kDshotBitrateHz / 1000U),
+        static_cast<unsigned long>(timer_hz),
+        static_cast<unsigned long>(bit_period_ticks_),
+        static_cast<unsigned long>(bit1_high_ticks_),
+        static_cast<unsigned long>(bit0_high_ticks_),
+        static_cast<unsigned long>(
+            (kBufferLength * 1000000UL) / kDshotBitrateHz));
+}
+
+uint16_t PwmCmdsDshot::BuildFrame(uint16_t value11, bool telemetry_request) {
+    const uint16_t packet = static_cast<uint16_t>(
+        ((value11 & 0x07FFU) << 1) | (telemetry_request ? 1U : 0U));
+    const uint16_t crc = static_cast<uint16_t>(
+        (packet ^ (packet >> 4) ^ (packet >> 8)) & 0x000FU);
+    return static_cast<uint16_t>((packet << 4) | crc);
+}
+
+// Maps the FCS throttle command onto the DShot value space.
+//
+// Resolution note: pwm_cmds[] is a uint16_t carrying 1000..2000, i.e. 1001
+// distinct commands. The DShot throttle range 48..2047 provides 1999 steps,
+// so every distinct command maps to a distinct DShot value - roughly two
+// DShot counts per input step. This mapping cannot coarsen the commanded
+// throttle; the quantisation limit is the uint16_t in PwmData, which is
+// common to both output protocols.
+uint16_t PwmCmdsDshot::ThrottleToDshot(uint16_t rc_throttle) const {
+    // At or below the FCS idle command the motors are commanded to stop.
+    // This matches the analog driver, where 1000 us is the calibrated zero.
+    if (rc_throttle <= kValidMinRcThrottle) {
+        return kDshotMotorStop;
+    }
+
+    const uint16_t clamped =
+        (rc_throttle > kMaxRcThrottle) ? kMaxRcThrottle : rc_throttle;
+    const uint32_t span =
+        static_cast<uint32_t>(clamped) - kValidMinRcThrottle;  // 1..1000
+
+    // Rounded rather than truncated so no input step is lost to integer
+    // division.
+    const uint32_t scaled =
+        ((span * (kDshotMaxThrottle - kDshotMinThrottle)) +
+         (kRcThrottleSpan / 2U)) / kRcThrottleSpan;
+
+    return static_cast<uint16_t>(kDshotMinThrottle + scaled);
+}
+
+void PwmCmdsDshot::FillBuffer(uint8_t motor_index, uint16_t frame) {
+    uint32_t* const buffer = dshot_buffer_[motor_index];
+    for (uint8_t bit = 0U; bit < kFrameBits; ++bit) {
+        // MSB first.
+        const bool is_one =
+            (frame & static_cast<uint16_t>(0x8000U >> bit)) != 0U;
+        buffer[bit] = is_one ? bit1_high_ticks_ : bit0_high_ticks_;
+    }
+    for (uint8_t i = kFrameBits; i < kBufferLength; ++i) {
+        buffer[i] = 0U;
+    }
+}
+
+void PwmCmdsDshot::TransmitAll() {
+    for (uint8_t i = 0U; i < kMotorCount; ++i) {
+        const uint8_t bit = static_cast<uint8_t>(1U << i);
+
+        // A transfer still in flight means the previous frame has not drained.
+        // Skipping is the safe response: the ESC simply holds its last valid
+        // command, which is exactly what a dropped frame should do.
+        if ((transfer_active_mask_ & bit) != 0U) {
+            ++dropped_frame_count_;
+            continue;
+        }
+
+        transfer_active_mask_ =
+            static_cast<uint8_t>(transfer_active_mask_ | bit);
+        if (HAL_TIM_PWM_Start_DMA(pwm_timer1_, ChannelForIndex(i),
+                                  dshot_buffer_[i],
+                                  kBufferLength) != HAL_OK) {
+            transfer_active_mask_ =
+                static_cast<uint8_t>(transfer_active_mask_ & ~bit);
+            ++dropped_frame_count_;
+        }
+    }
+}
+
+void PwmCmdsDshot::ApplyPwmData(const PwmData& pwm_data) {
+    for (uint8_t i = 0U; i < kMotorCount; ++i) {
+        const uint16_t value = ThrottleToDshot(pwm_data.pwm_cmds[i]);
+        FillBuffer(i, BuildFrame(value, false));
+    }
+    TransmitAll();
+}
+
+void PwmCmdsDshot::SendIdleFrames(uint32_t frame_count) {
+    for (uint8_t i = 0U; i < kMotorCount; ++i) {
+        FillBuffer(i, BuildFrame(kDshotMotorStop, false));
+    }
+    for (uint32_t frame = 0U; frame < frame_count; ++frame) {
+        TransmitAll();
+        osDelay(kIdleFramePeriodMs);
+    }
+}
+
+void PwmCmdsDshot::InitializeOutputs() {
+    ConfigureTimebase();
+
+    // The ESC classifies the input protocol from the signal present after it
+    // powers up, then waits for a run of zero-throttle frames before arming.
+    // Both requirements are satisfied by streaming motor-stop frames here.
+    DEBUG_PRINT("DShot: streaming idle frames for ESC detect/arm\n");
+    SendIdleFrames(kIdleFrameCount);
+    DEBUG_PRINT("DShot: idle sequence complete (%lu frames dropped)\n",
+                static_cast<unsigned long>(dropped_frame_count_));
+}
+
+void PwmCmdsDshot::OnPulseFinished(TIM_HandleTypeDef* htim) {
+    if (htim != pwm_timer1_) {
+        return;
+    }
+
+    uint8_t index;
+    uint32_t channel;
+    switch (htim->Channel) {
+        case HAL_TIM_ACTIVE_CHANNEL_1: index = 0U; channel = TIM_CHANNEL_1; break;
+        case HAL_TIM_ACTIVE_CHANNEL_2: index = 1U; channel = TIM_CHANNEL_2; break;
+        case HAL_TIM_ACTIVE_CHANNEL_3: index = 2U; channel = TIM_CHANNEL_3; break;
+        case HAL_TIM_ACTIVE_CHANNEL_4: index = 3U; channel = TIM_CHANNEL_4; break;
+        default: return;
+    }
+
+    // Normal-mode DMA is one-shot: stop it so the next frame can re-arm.
+    (void)HAL_TIM_PWM_Stop_DMA(htim, channel);
+    transfer_active_mask_ = static_cast<uint8_t>(
+        transfer_active_mask_ & ~static_cast<uint8_t>(1U << index));
+}
+
+void PwmCmdsDshot::PulseFinishedCallback(TIM_HandleTypeDef* htim) {
+    if (instance_ != nullptr) {
+        instance_->OnPulseFinished(htim);
+    }
+}
+
+// Standalone-task entry point, used only when ControlPipeline is disabled.
+// Under ControlPipeline this object is a sub-module and ApplyPwmData() is
+// driven directly by the 250 Hz loop.
+void PwmCmdsDshot::Run() {
+    DEBUG_PRINT("Starting DShot motor output module\n");
+    InitializeOutputs();
+
+    ConfigurePeriodicMetrics(LOOP_INTERVAL_MS * 1000U,
+                             LOOP_INTERVAL_MS * 1000U);
+    const TickType_t loop_frequency = pdMS_TO_TICKS(LOOP_INTERVAL_MS);
+    TickType_t last_wake_time = xTaskGetTickCount();
+
+    for (;;) {
+        BeginMetricsCycle();
+        if (pwm_sub_.copy(pwm_data_)) {
+            ApplyPwmData(pwm_data_);
+        }
+        EndMetricsCycle();
+        vTaskDelayUntil(&last_wake_time, loop_frequency);
+    }
+}
+
+// TIM1 is the only timer driven by DMA in this build, so this override is
+// unambiguous. It replaces the HAL's weak no-op only when DShot is selected.
+extern "C" void HAL_TIM_PWM_PulseFinishedCallback(TIM_HandleTypeDef* htim) {
+    PwmCmdsDshot::PulseFinishedCallback(htim);
+}
+
+#if !CONTROL_PIPELINE_ENABLE
 extern TIM_HandleTypeDef htim1;
 extern TIM_HandleTypeDef htim2;
 extern TIM_HandleTypeDef htim3;
-
-//PwmCmdsDshot pwm_cmds_task_instance_(&htim1, &htim2, &htim3, 300);
-
-PwmCmdsDshot::PwmCmdsDshot(TIM_HandleTypeDef* htim1, TIM_HandleTypeDef* htim2, TIM_HandleTypeDef* htim3, uint16_t dshot_speed):
-TaskBase("PwmCmdsTask", 1024, osPriorityNormal),
-pwm_timer1_(htim1),
-pwm_timer2_(htim2),
-pwm_timer3_(htim3),
-dshot_speed_(dshot_speed){
-	pwm_cmds_instance_handle_ = this;
-}
-
-uint32_t PwmCmdsDshot::GetTimerClockHz(TIM_HandleTypeDef* htim) {
-  RCC_ClkInitTypeDef clk_config;
-  uint32_t flash_latency;
-  HAL_RCC_GetClockConfig(&clk_config, &flash_latency);
-
-  // TIM1 and TIM8 are on APB2
-  if (htim->Instance == TIM1 || htim->Instance == TIM8) {
-    uint32_t pclk = HAL_RCC_GetPCLK2Freq();
-
-    // APB2 prescaler multiplier
-    return (clk_config.APB2CLKDivider == RCC_HCLK_DIV1) ? pclk : (pclk * 2);
-  }
-
-  // TIM2 to TIM7 are on APB1
-  if (htim->Instance == TIM2 || htim->Instance == TIM3 ||
-      htim->Instance == TIM4 || htim->Instance == TIM5 ||
-      htim->Instance == TIM6 || htim->Instance == TIM7) {
-    uint32_t pclk = HAL_RCC_GetPCLK1Freq();
-
-    // APB1 prescaler multiplier
-    return (clk_config.APB1CLKDivider == RCC_HCLK_DIV1) ? pclk : (pclk * 2);
-  }
-
-  // Default fallback
-  return 0;
-}
-
-void PwmCmdsDshot::ComputeTiming(TIM_HandleTypeDef* htim) {
-  uint32_t timer_input_clk = GetTimerClockHz(htim);
-  uint32_t prescaler = htim->Instance->PSC;
-  uint32_t timer_tick_hz = timer_input_clk / (prescaler + 1U);
-
-  bit_total_ticks_ = timer_tick_hz / (dshot_speed_ * 1000U);
-  bit1_high_ticks_ = static_cast<uint16_t>(
-      (static_cast<uint32_t>(bit_total_ticks_) * 75U) / 100U);
-  bit0_high_ticks_ = static_cast<uint16_t>(
-      (static_cast<uint32_t>(bit_total_ticks_) * 37U) / 100U);
-
-  bit0_high_ticks_ = 300;
-  DEBUG_PRINT("Total Tick: %d, High Tick: %d, Low Tick: %d\n", bit_total_ticks_, bit1_high_ticks_, bit0_high_ticks_);
-
-  __HAL_TIM_SET_AUTORELOAD(htim, bit_total_ticks_ - 1);
-}
-
-void PwmCmdsDshot::ArmEsc(TIM_HandleTypeDef* tim, uint32_t ch)
-{
-	DEBUG_PRINT("Arming...............\n");
-    const uint16_t idle = 0;                 /* zero-throttle value   */
-    const int      frames = 1000;              /* BLHeli wants ~100     */
-//    TickType_t last_send = xTaskGetTickCount();
-    TickType_t xLastWakeTime = xTaskGetTickCount();
-
-    for (int i = 0; i < frames; ++i) {
-    	vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(LOOP_INTERVAL_MS));  // 1ms loop
-//    	TickType_t now = xTaskGetTickCount();
-//    	if(tim1_ch1_dma_cplt_){
-//    		tim1_ch1_dma_cplt_ = false;
-//    		last_send = now;
-    		SendCmd(tim, ch, idle);               /* one D-Shot frame      */
-//    	}
-//        osDelay(1);                           /* 2 ms gap  → 500 Hz    */
-    }
-    DEBUG_PRINT("Arming Complete\n");
-}
-
-uint16_t PwmCmdsDshot::CreatePacket(uint16_t cmd) {
-	uint16_t packet;
-
-	packet = (cmd << 1) | 0;
-
-	// compute checksum
-	uint8_t csum = 0;
-	uint16_t csum_data = packet;
-
-	for (uint8_t i = 0; i < 3; i++)
-	{
-		csum ^= csum_data; // xor data by nibbles
-		csum_data >>= 4;
-	}
-
-	csum &= 0xf;
-
-	packet = (packet << 4) | csum;
-
-	return packet;
-}
-
-void PwmCmdsDshot::EncodePacket(uint16_t packet, TIM_HandleTypeDef* htim, uint32_t channel) {
-  uint32_t* buffer = GetDmaBuffer(htim, channel);
-  if (!buffer) return;
-
-  for (int i = 0; i < kDshotBits; ++i) {
-//	bool bit_set = (packet & (1U << (15 - i))) != 0;
-//    buffer[i] = bit_set ? bit1_high_ticks_ : bit0_high_ticks_;
-	  buffer[i] = (packet & 0x8000) ? bit1_high_ticks_ : bit0_high_ticks_;
-	  		packet <<= 1;
-  }
-
-//   Trailing zeros to bring line low
-  buffer[kDshotBits] = 0;
-//  buffer[kDshotBits + 1] = 0;
-//  buffer[kDshotBits + 2] = 0;
-
-//  DEBUG_PRINT("Encoded buffer for TIM1 CH%lu: \n", channel);
-//  for (int i = 0; i < kDshotBits; ++i) {
-//    DEBUG_PRINT("%lu \n", buffer[i]);
-//  }
-//  DEBUG_PRINT("\n");
-}
-
-void PwmCmdsDshot::SendCmd(TIM_HandleTypeDef* htim,
-                      uint32_t           channel,
-                      uint16_t           cmd)
-{
-    /* look-ups ------------------------------------------------------------ */
-    DMA_HandleTypeDef* dma =
-        htim->hdma[TIM_DMA_ID_CC1 + (channel >> 2)];
-    if (!dma) return;                                        /* safety */
-
-    /* skip if stream is still busy --------------------------------------- */
-    if (dma->State != HAL_DMA_STATE_READY)
-        return;
-
-    uint32_t* buf = GetDmaBuffer(htim, channel);
-    if (!buf) return;
-
-    /* build a fresh DShot frame ------------------------------------------ */
-    EncodePacket(CreatePacket(cmd), htim, channel);
-
-    /* flush cache (H7) ---------------------------------------------------- */
-//    SCB_CleanDCache_by_Addr(buf, kDshotBufferSize * sizeof(uint32_t));
-
-    /* start DMA + PWM in one call ---------------------------------------- */
-    HAL_StatusTypeDef stat =
-        HAL_TIM_PWM_Start_DMA(htim, channel, buf, kDshotBufferSize);
-
-    if (stat != HAL_OK) {
-        /* print both channel and HAL status code */
-        DEBUG_PRINT("❌ HAL_TIM_PWM_Start_DMA failed on CH%lu  (status=%d)\n",
-                    channel, stat);
-    }
-}
-
-const char* PwmCmdsDshot::ChannelToStr(uint32_t ch) {
-  switch (ch) {
-    case TIM_CHANNEL_1: return "CH1";
-    case TIM_CHANNEL_2: return "CH2";
-    case TIM_CHANNEL_3: return "CH3";
-    case TIM_CHANNEL_4: return "CH4";
-    default: return "UNKNOWN";
-  }
-}
-
-uint32_t* PwmCmdsDshot::GetDmaBuffer(TIM_HandleTypeDef* htim, uint32_t channel) {
-  if (htim->Instance != TIM1) {
-    DEBUG_PRINT("Unsupported TIM instance: 0x%x\n", reinterpret_cast<uintptr_t>(htim->Instance));
-    return nullptr;
-  }
-
-  switch (channel) {
-    case TIM_CHANNEL_1: return dma_buffer1_;
-    case TIM_CHANNEL_2: return dma_buffer2_;
-    case TIM_CHANNEL_3: return dma_buffer3_;
-    case TIM_CHANNEL_4: return dma_buffer4_;
-    default:
-      DEBUG_PRINT("Invalid TIM1 channel: %lu\n", channel);
-      return nullptr;
-  }
-}
-
-
-void PwmCmdsDshot::Run() {
-	osDelay(5000);
-	DEBUG_PRINT("Starting PWM CMDS Module\n");
-	ComputeTiming(pwm_timer1_);
-//	ArmEsc(pwm_timer1_, TIM_CHANNEL_1);
-//	HAL_TIM_PWM_Start(pwm_timer1_, TIM_CHANNEL_1);
-
-	TickType_t xLastWakeTime = xTaskGetTickCount();
-	const TickType_t loop_frequency = pdMS_TO_TICKS(LOOP_INTERVAL_MS);  // 1000Hz
-	// Initialize the xLastWakeTime variable with the current time.
-	xLastWakeTime = xTaskGetTickCount();
-
-#ifdef MODE_TEST
-	uint16_t min_pwm_val = 24000;
-	uint16_t max_pwm_val = 48000;
-	uint16_t delta_pwm_val = 2000;
-	uint16_t current_pwm_val = min_pwm_val;
-	uint8_t current_mtr_idx = 0;
-
-	uint16_t min_dshot_cmd = 500;
-	uint16_t max_dshot_cmd = 2047;
-	uint16_t delta_dshot_cmd = 0;//100;
-	uint16_t current_dshot_cmd = min_dshot_cmd;
-	uint16_t heartbeat_counter = 0;
-//	uint8_t current_mtr_idx = 0;
+PwmCmdsDshot pwm_cmds_task_instance_(&htim1, &htim2, &htim3);
 #endif
-//	TickType_t last_send = xTaskGetTickCount();
-	ArmEsc(pwm_timer1_, TIM_CHANNEL_1);
-	while(1){
-#ifdef MODE_TEST
-		//Sequence through each motors
-		DEBUG_PRINT("Current Mtr Idx: %d, Current PWM Val: %d\n", current_mtr_idx, current_dshot_cmd);
-		if (++heartbeat_counter >= kOneSecIntervalCount) {
-				heartbeat_counter = 0;
-				current_dshot_cmd += delta_dshot_cmd;
-		}
-		//MOTOR 1
-//		TickType_t now = xTaskGetTickCount();
-		if(current_mtr_idx == 0){
-//			if(tim1_ch1_dma_cplt_){
-//				tim1_ch1_dma_cplt_ = false;
-//				last_send = now;
-				SendCmd(pwm_timer1_, TIM_CHANNEL_1, current_dshot_cmd);
-//			}
-			if (current_dshot_cmd > max_dshot_cmd){
-				current_dshot_cmd = min_dshot_cmd;
-			}
-		}
 
-//		//MOTOR 2
-//		if(current_mtr_idx == 1){
-////			if (pwm_timer1_->hdma[TIM_DMA_ID_CC2]->State == HAL_DMA_STATE_READY){
-////				SendCmd(pwm_timer1_, TIM_CHANNEL_2, current_dshot_cmd);
-////			}
-//			current_dshot_cmd += delta_dshot_cmd;
-//			if (current_dshot_cmd > max_dshot_cmd){
-//				osDelay(10);
-//				current_mtr_idx += 1;
-//				current_dshot_cmd = min_dshot_cmd;
-//				if (pwm_timer1_->hdma[TIM_DMA_ID_CC2]->State == HAL_DMA_STATE_READY){
-////					SendCmd(pwm_timer1_, TIM_CHANNEL_2, current_dshot_cmd);
-//				}
-//				osDelay(2000);
-//				continue;
-//			}else{
-//				osDelay(500);
-//			}
-//		}
-//
-//		//MOTOR 3
-//		if(current_mtr_idx == 2){
-//			if (pwm_timer1_->hdma[TIM_DMA_ID_CC3]->State == HAL_DMA_STATE_READY){
-////				SendCmd(pwm_timer1_, TIM_CHANNEL_3, current_dshot_cmd);
-//			}
-//			current_dshot_cmd += delta_dshot_cmd;
-//			if (current_dshot_cmd > max_dshot_cmd){
-//				osDelay(10);
-//				current_mtr_idx += 1;
-//				current_dshot_cmd = min_dshot_cmd;
-//				if (pwm_timer1_->hdma[TIM_DMA_ID_CC3]->State == HAL_DMA_STATE_READY){
-////					SendCmd(pwm_timer1_, TIM_CHANNEL_3, current_dshot_cmd);
-//				}
-//				osDelay(2000);
-//				continue;
-//			}else{
-//				osDelay(1);
-//			}
-//		}
-//
-//		//MOTOR 4
-//		if(current_mtr_idx == 3){
-//			if (pwm_timer1_->hdma[TIM_DMA_ID_CC4]->State == HAL_DMA_STATE_READY){
-////				SendCmd(pwm_timer1_, TIM_CHANNEL_4, current_dshot_cmd);
-//			}
-//			current_dshot_cmd += delta_dshot_cmd;
-//			if (current_dshot_cmd > max_dshot_cmd){
-//				osDelay(10);
-//				current_mtr_idx = 0;
-//				current_dshot_cmd = min_dshot_cmd;
-//				if (pwm_timer1_->hdma[TIM_DMA_ID_CC4]->State == HAL_DMA_STATE_READY){
-////					SendCmd(pwm_timer1_, TIM_CHANNEL_4, current_dshot_cmd);
-//				}
-//				osDelay(5000);
-//				continue;
-//			}else{
-//				osDelay(1);
-//			}
-//		}
-		vTaskDelayUntil(&xLastWakeTime, loop_frequency);
-#elif defined MODE_PASSTHROUGH
-		if(rcchannels_sub_.copy(rcchannels_data_)){
-			__HAL_TIM_SET_COMPARE(pwm_timer1_, TIM_CHANNEL_1, static_cast<uint16_t>(24 *rcchannels_data_.throttle));
-			__HAL_TIM_SET_COMPARE(pwm_timer1_, TIM_CHANNEL_2, static_cast<uint16_t>(24 *rcchannels_data_.throttle));
-			__HAL_TIM_SET_COMPARE(pwm_timer1_, TIM_CHANNEL_3, static_cast<uint16_t>(24 *rcchannels_data_.throttle));
-			__HAL_TIM_SET_COMPARE(pwm_timer1_, TIM_CHANNEL_4, static_cast<uint16_t>(24 *rcchannels_data_.throttle));
-		}
-		vTaskDelayUntil(&xLastWakeTime, loop_frequency);
-
-#else
-		if(pwm_sub_.copy(pwm_data_)){
-			__HAL_TIM_SET_COMPARE(pwm_timer1_, TIM_CHANNEL_1, static_cast<uint16_t>(24 * pwm_data_.pwm_cmds[0]));
-			__HAL_TIM_SET_COMPARE(pwm_timer1_, TIM_CHANNEL_2, static_cast<uint16_t>(24 * pwm_data_.pwm_cmds[1]));
-			__HAL_TIM_SET_COMPARE(pwm_timer1_, TIM_CHANNEL_3, static_cast<uint16_t>(24 * pwm_data_.pwm_cmds[2]));
-			__HAL_TIM_SET_COMPARE(pwm_timer1_, TIM_CHANNEL_4, static_cast<uint16_t>(24 * pwm_data_.pwm_cmds[3]));
-		}
-		vTaskDelayUntil(&xLastWakeTime, loop_frequency);
-#endif
-	}
-}
-
-void PwmCmdsDshot::OnPwmDmaComplete(TIM_HandleTypeDef* htim) {
-  if (htim->Instance == TIM1) {
-    if (htim->Channel == HAL_TIM_ACTIVE_CHANNEL_1) {
-      tim1_ch1_dma_cplt_ = true;
-      HAL_TIM_PWM_Stop_DMA(htim, TIM_CHANNEL_1);
-      // Set a flag, notify task, or chain another DMA if needed
-    } else if (htim->Channel == HAL_TIM_ACTIVE_CHANNEL_2) {
-    } else if (htim->Channel == HAL_TIM_ACTIVE_CHANNEL_3) {
-    } else if (htim->Channel == HAL_TIM_ACTIVE_CHANNEL_4) {
-    }
-  }
-}
-
-extern "C" void HAL_TIM_PWM_PulseFinishedCallback(TIM_HandleTypeDef *htim) {
-  if (PwmCmdsDshot::pwm_cmds_instance_handle_ != nullptr) {
-    PwmCmdsDshot::pwm_cmds_instance_handle_->OnPwmDmaComplete(htim);
-  }
-}
+#endif  // MOTOR_PROTOCOL_DSHOT
