@@ -22,7 +22,7 @@
 #include "usbd_cdc_if.h"
 
 /* USER CODE BEGIN INCLUDE */
-//#include "usb_console/usb_console_c_wrapper.h"
+#include "usb_console/usb_console_c_wrapper.h"
 /* USER CODE END INCLUDE */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -261,7 +261,10 @@ static int8_t CDC_Control_FS(uint8_t cmd, uint8_t* pbuf, uint16_t length)
 static int8_t CDC_Receive_FS(uint8_t* Buf, uint32_t *Len)
 {
   /* USER CODE BEGIN 6 */
-//  UsbConsoleOnUsbData((const char*)Buf, *Len);
+  // Runs in USB interrupt context. UsbConsole only accumulates bytes into a
+  // line buffer and parses a completed line, so the work here stays bounded;
+  // every filesystem action happens later on the SD task.
+  UsbConsoleOnUsbData((const char*)Buf, *Len);
   USBD_CDC_SetRxBuffer(&hUsbDeviceFS, &Buf[0]);
   USBD_CDC_ReceivePacket(&hUsbDeviceFS);
   return (USBD_OK);

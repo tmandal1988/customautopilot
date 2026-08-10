@@ -144,6 +144,7 @@ set(LIB_INCLUDES
     ${CMAKE_SOURCE_DIR}/USB_DEVICE/Target
     ${CMAKE_SOURCE_DIR}/Middlewares/ST/STM32_USB_Device_Library/Core/Inc
     ${CMAKE_SOURCE_DIR}/Middlewares/ST/STM32_USB_Device_Library/Class/CDC/Inc
+    ${CMAKE_SOURCE_DIR}/Middlewares/ST/STM32_USB_Device_Library/Class/MSC/Inc
     ${CMAKE_SOURCE_DIR}/FATFS/Target
     ${CMAKE_SOURCE_DIR}/FATFS/App
     ${CMAKE_SOURCE_DIR}/Middlewares/Third_Party/FatFs/src
@@ -187,6 +188,10 @@ set(LIB_SOURCES
     FATFS/Target/fatfs_platform.c
     FATFS/Target/sd_diskio.c
     Middlewares/ST/STM32_USB_Device_Library/Class/CDC/Src/usbd_cdc.c
+    Middlewares/ST/STM32_USB_Device_Library/Class/MSC/Src/usbd_msc.c
+    Middlewares/ST/STM32_USB_Device_Library/Class/MSC/Src/usbd_msc_bot.c
+    Middlewares/ST/STM32_USB_Device_Library/Class/MSC/Src/usbd_msc_data.c
+    Middlewares/ST/STM32_USB_Device_Library/Class/MSC/Src/usbd_msc_scsi.c
     Middlewares/ST/STM32_USB_Device_Library/Core/Src/usbd_core.c
     Middlewares/ST/STM32_USB_Device_Library/Core/Src/usbd_ctlreq.c
     Middlewares/ST/STM32_USB_Device_Library/Core/Src/usbd_ioreq.c
@@ -205,6 +210,8 @@ set(LIB_SOURCES
     USB_DEVICE/App/usb_device.c
     USB_DEVICE/App/usbd_cdc_if.c
     USB_DEVICE/App/usbd_desc.c
+    USB_DEVICE/App/usbd_storage_if.c
+    USB_DEVICE/App/usb_mode.c
     USB_DEVICE/Target/usbd_conf.c
 )
 

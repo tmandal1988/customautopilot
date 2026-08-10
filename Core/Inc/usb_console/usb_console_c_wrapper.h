@@ -11,6 +11,8 @@
 // Provides a C-callable wrapper to forward USB CDC data
 // to the UsbConsole C++ class for command parsing.
 
+#include <stddef.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif

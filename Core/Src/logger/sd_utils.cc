@@ -7,11 +7,18 @@
 
 #include "sd_utils.h"
 
+#include <cstdio>
+#include <cstring>
+
 #include "data_buffer.h"
+#include "fcsModel_types.h"
+#include "usb_mode.h"
 #include "logger_parameter_catalog.h"
 #include "parameter_catalog.h"
 #include "parameters/parameter_store.h"
 #include "usb_console/usb_console.h"
+
+using log_file_name::EqualsIgnoreCaseAscii;
 
 SdUtils::SdUtils()
     // Lowest priority in the system: RAM buffering absorbs normal SD-card
@@ -318,6 +325,248 @@ void SdUtils::BeginStop() {
   xSemaphoreGive(DataBuffer::mutex_);
 }
 
+bool SdUtils::FindHighestLogIndex(uint32_t* highest_index) {
+  FRESULT result = f_opendir(&directory_scratch_, "/");
+  if (result != FR_OK) {
+    ERROR_PRINT("Failed to open root dir to scan for logs (res=%d)\r\n",
+                result);
+    return false;
+  }
+
+  uint32_t highest = 0U;
+  while (true) {
+    result = f_readdir(&directory_scratch_, &file_info_scratch_);
+    if (result != FR_OK) {
+      ERROR_PRINT("Failed to read root dir while scanning logs (res=%d)\r\n",
+                  result);
+      f_closedir(&directory_scratch_);
+      return false;
+    }
+    if (file_info_scratch_.fname[0] == 0) {
+      break;
+    }
+    if ((file_info_scratch_.fattrib & AM_DIR) != 0) {
+      continue;
+    }
+    uint32_t index = 0U;
+    if (log_file_name::ParseIndex(file_info_scratch_.fname, &index) && (index > highest)) {
+      highest = index;
+    }
+  }
+  f_closedir(&directory_scratch_);
+
+  *highest_index = highest;
+  return true;
+}
+
+bool SdUtils::SelectNextLogFileName() {
+  uint32_t highest = 0U;
+  if (!FindHighestLogIndex(&highest)) {
+    return false;
+  }
+
+  uint32_t next_index = 0U;
+  if (!log_file_name::NextIndex(highest, &next_index)) {
+    ERROR_PRINT(
+        "Log index space exhausted (LOG_%04lu.BIN is the last name). Free it "
+        "with 'DELETE ALL' and reboot\r\n",
+        static_cast<unsigned long>(log_file_name::kMaxIndex));
+    return false;
+  }
+
+  active_log_index_ = next_index;
+  log_file_name::Format(active_log_index_, active_file_name_);
+  return true;
+}
+
+void SdUtils::HandleListCommand() {
+  // Read-only, but the scan below yields once per directory entry on this
+  // task. That is time the SD task is not spending on buffer flushes, so it
+  // has no business running while the vehicle is flyable.
+  if (!FlightStateIsInactive("LIST")) {
+    return;
+  }
+  if (file_open_) {
+    DEBUG_PRINT("SD Card write in progress, issue a STOP command first\r\n");
+    return;
+  }
+
+  FRESULT result = f_opendir(&directory_scratch_, "/");
+  if (result != FR_OK) {
+    DEBUG_PRINT("Failed to open root dir\r\n");
+    return;
+  }
+  while (true) {
+    result = f_readdir(&directory_scratch_, &file_info_scratch_);
+    if (result != FR_OK || file_info_scratch_.fname[0] == 0) {
+      break;
+    }
+    if (!(file_info_scratch_.fattrib & AM_DIR)) {
+      // The active marker tells the operator which name a DELETE would take
+      // out from under the session that START would resume.
+      const bool is_active =
+          EqualsIgnoreCaseAscii(file_info_scratch_.fname, active_file_name_);
+      DEBUG_PRINT("[FILE] %-20s %lu B%s\r\n", file_info_scratch_.fname,
+                  static_cast<unsigned long>(file_info_scratch_.fsize),
+                  is_active ? "  (active)" : "");
+    }
+    osDelay(1);
+  }
+  f_closedir(&directory_scratch_);
+}
+
+void SdUtils::DeleteAllLogs() {
+  uint32_t highest = 0U;
+  if (!FindHighestLogIndex(&highest)) {
+    return;
+  }
+
+  // Names are generated, so the range 1..highest can be walked directly. That
+  // avoids deleting entries while an f_readdir iteration is open on the same
+  // directory, and it costs one directory scan rather than one per file.
+  uint32_t deleted_count = 0U;
+  uint32_t failed_count = 0U;
+  char candidate_name[log_file_name::kNameBufferSize];
+  for (uint32_t index = 1U; index <= highest; ++index) {
+    // The active file is kept: START reopens it with FA_OPEN_APPEND, and
+    // deleting it here would silently discard this power cycle's flight.
+    // It can still be removed explicitly by name.
+    if (index == active_log_index_) {
+      continue;
+    }
+    log_file_name::Format(index, candidate_name);
+    const FRESULT result = f_unlink(candidate_name);
+    if (result == FR_OK) {
+      ++deleted_count;
+      osDelay(1);
+    } else if (result != FR_NO_FILE) {
+      ++failed_count;
+      ERROR_PRINT("Failed to delete %s (res=%d)\r\n", candidate_name, result);
+    }
+  }
+
+  // active_log_index_ is 0 when SdInit() never got as far as choosing a name,
+  // which is the state the exhausted-index error leaves behind. That is the
+  // case this command exists to recover, so it must not claim to have kept a
+  // file that does not exist.
+  if (active_log_index_ != 0U) {
+    DEBUG_PRINT(
+        "DELETE ALL: removed %lu file(s), kept active %s, %lu failure(s)\r\n",
+        static_cast<unsigned long>(deleted_count), active_file_name_,
+        static_cast<unsigned long>(failed_count));
+  } else {
+    DEBUG_PRINT(
+        "DELETE ALL: removed %lu file(s), no active log to keep, %lu "
+        "failure(s). Reboot to start logging again\r\n",
+        static_cast<unsigned long>(deleted_count),
+        static_cast<unsigned long>(failed_count));
+  }
+}
+
+void SdUtils::HandleDeleteCommand(const char* argument) {
+  // file_open_ alone is not enough: an SD error mid-flight closes the file,
+  // and a stray DELETE would then run with the vehicle still airborne.
+  if (!FlightStateIsInactive("DELETE")) {
+    return;
+  }
+  if (file_open_) {
+    DEBUG_PRINT("SD Card write in progress, issue a STOP command first\r\n");
+    return;
+  }
+  if ((argument == nullptr) || (argument[0] == '\0')) {
+    DEBUG_PRINT("Usage: DELETE <name> | DELETE ALL\r\n");
+    return;
+  }
+
+  if (EqualsIgnoreCaseAscii(argument, "ALL")) {
+    DeleteAllLogs();
+    return;
+  }
+
+  const FRESULT result = f_unlink(argument);
+  if (result != FR_OK) {
+    DEBUG_PRINT("Failed to delete %s (res=%d)\r\n", argument, result);
+    return;
+  }
+  if (EqualsIgnoreCaseAscii(argument, active_file_name_)) {
+    // Not an error: the operator named this file explicitly. START recreates
+    // it empty, so say so rather than leaving the next session surprising.
+    DEBUG_PRINT("Deleted %s, which is this session's active log; START would "
+                "recreate it empty\r\n",
+                argument);
+  } else {
+    DEBUG_PRINT("Deleted %s\r\n", argument);
+  }
+}
+
+bool SdUtils::FlightStateIsInactive(const char* action) {
+  // A failed copy means "nothing new since my last read", not "no state".
+  // Refresh the cache when a sample is available and judge on the cache.
+  if (fcs_state_subscriber_.copy(latest_fcs_state_)) {
+    fcs_state_seen_ = true;
+  }
+
+  // Never having seen a sample is different: FCSDEBUG is published every
+  // control frame, so silence since boot means the flight stack is not running
+  // as expected. Absence of a sample is not evidence of safety.
+  if (!fcs_state_seen_) {
+    ERROR_PRINT("Refusing %s: no flight-control state has been published\r\n",
+                action);
+    return false;
+  }
+
+  const enumStateMachine flight_state =
+      static_cast<enumStateMachine>(latest_fcs_state_.sm_mode);
+  if (flight_state != enumStateMachine::INACTIVE) {
+    // MTR_ARMED is refused as well as INFLIGHT: armed on the ground can become
+    // airborne at any moment.
+    ERROR_PRINT("Refusing %s: flight-control state is %d, not INACTIVE\r\n",
+                action, static_cast<int>(latest_fcs_state_.sm_mode));
+    return false;
+  }
+
+  return true;
+}
+
+bool SdUtils::HandleMassStorageCommand() {
+  // Flight state first, so that a command issued in flight reports the reason
+  // that actually matters rather than "STOP first".
+  if (!FlightStateIsInactive("mass storage")) {
+    return false;
+  }
+  if (file_open_) {
+    DEBUG_PRINT("SD Card write in progress, issue a STOP command first\r\n");
+    return false;
+  }
+
+  // Unmount before the host can touch a block. Anything FatFs still had
+  // cached would be stale the moment the host writes, and a later remount is
+  // not part of this one-way switch anyway.
+  const FRESULT result = f_mount(nullptr, (TCHAR const*)SDPath, 0);
+  if (result != FR_OK) {
+    ERROR_PRINT("Failed to unmount SD before mass storage (res=%d)\r\n",
+                result);
+    return false;
+  }
+
+  // Say this while there is still a console to say it on: the switch below
+  // takes the CDC port away.
+  DEBUG_PRINT(
+      "Entering USB mass storage mode. This console will disconnect and the "
+      "card will appear as a USB drive. Power-cycle the board to return to "
+      "flight configuration\r\n");
+
+  if (!UsbModeEnterMassStorage()) {
+    // The console is already gone at this point, so this line is for a
+    // debugger rather than the operator. USB is left stopped deliberately:
+    // half-switched is worse than absent, and a reboot is the way out.
+    ERROR_PRINT("USB mass storage switch failed; reboot required\r\n");
+    return false;
+  }
+
+  return true;
+}
+
 bool SdUtils::SdInit() {
   file_ = &SDFile;
 
@@ -328,14 +577,21 @@ bool SdUtils::SdInit() {
   }
   DEBUG_PRINT("SD Card mounted successfully\r\n");
 
-  result = f_open(file_, file_name, FA_CREATE_ALWAYS | FA_WRITE);
+  if (!SelectNextLogFileName()) {
+    return false;
+  }
+
+  // FA_CREATE_NEW, never FA_CREATE_ALWAYS: if the index scan ever selects a
+  // name that is already on the card, this fails with FR_EXIST instead of
+  // truncating a flight that has not been downloaded yet.
+  result = f_open(file_, active_file_name_, FA_CREATE_NEW | FA_WRITE);
   if (result != FR_OK) {
-    ERROR_PRINT("Failed to open %s (res=%d)\r\n", file_name, result);
+    ERROR_PRINT("Failed to create %s (res=%d)\r\n", active_file_name_, result);
     return false;
   }
 
   file_open_ = true;
-  DEBUG_PRINT("%s created\r\n", file_name);
+  DEBUG_PRINT("%s created\r\n", active_file_name_);
   if (!SyncFile()) {
     CloseFile();
     return false;
@@ -362,10 +618,15 @@ void SdUtils::Run() {
   UsbCommand usb_cmd{UsbCommand::NONE};
 
   while (true) {
-    if (UsbConsole::Instance().HasNewCommand()) {
-      DIR dir;
-      FILINFO file_info;
-      FRESULT result;
+    // In MASSSTORAGE the CDC console no longer exists, so no command can
+    // arrive. The guard is here so a stale command queued just before the
+    // switch cannot reopen a file on a volume the host now owns.
+    if ((state != CardState::MASSSTORAGE) &&
+        UsbConsole::Instance().HasNewCommand()) {
+      // Read the argument before GetLatestCommand() consumes the command.
+      char command_argument[kMaxCommandArgLength];
+      UsbConsole::Instance().CopyLatestArgument(command_argument,
+                                                sizeof(command_argument));
       usb_cmd = UsbConsole::Instance().GetLatestCommand();
       switch (usb_cmd) {
         case UsbCommand::STOP:
@@ -373,6 +634,10 @@ void SdUtils::Run() {
             ERROR_PRINT(
                 "Logging is in an SD error state; reboot before stopping or "
                 "restarting\r\n");
+          } else if (!FlightStateIsInactive("STOP")) {
+            // Stray bytes on a tethered USB link must not be able to end the
+            // log of a flight in progress. START stays ungated: beginning to
+            // log is never the harmful direction.
           } else if (file_open_ && state != CardState::DRAININGSTOP &&
                      state != CardState::WAITINGPARAMSTOP) {
             RequestParameterLogStop();
@@ -393,56 +658,16 @@ void SdUtils::Run() {
           break;
 
         case UsbCommand::LIST:
-          if (!file_open_) {
-            result = f_opendir(&dir, "/");
-            if (result != FR_OK) {
-              DEBUG_PRINT("Failed to open root dir\r\n");
-              break;
-            }
-            while (true) {
-              result = f_readdir(&dir, &file_info);
-              if (result != FR_OK || file_info.fname[0] == 0) {
-                break;
-              }
-              if (!(file_info.fattrib & AM_DIR)) {
-                DEBUG_PRINT("[FILE] %-20s %lu B\r\n", file_info.fname,
-                            static_cast<unsigned long>(file_info.fsize));
-              }
-              osDelay(1);
-            }
-            f_closedir(&dir);
-          } else {
-            DEBUG_PRINT(
-                "SD Card write in progress, issue a STOP command first\r\n");
-          }
+          HandleListCommand();
           break;
 
-        case UsbCommand::COPY:
-          if (!file_open_) {
-            result = f_open(file_, file_name, FA_READ);
-            if (result != FR_OK) {
-              DEBUG_PRINT("Failed to open file: %s\r\n", file_name);
-              break;
-            }
+        case UsbCommand::DELETE:
+          HandleDeleteCommand(command_argument);
+          break;
 
-            DEBUG_PRINT("== Contents of %s ==\r\n", file_name);
-            UINT bytes_read;
-            char buffer[128];
-            while (true) {
-              result =
-                  f_read(file_, buffer, sizeof(buffer) - 1, &bytes_read);
-              if (result != FR_OK || bytes_read == 0) {
-                break;
-              }
-              buffer[bytes_read] = '\0';
-              DEBUG_PRINT("%s", buffer);
-              osDelay(1);
-            }
-            f_close(file_);
-            DEBUG_PRINT("\r\n== End of file ==\r\n");
-          } else {
-            DEBUG_PRINT(
-                "SD Card write in progress, issue a STOP command first\r\n");
+        case UsbCommand::MSC:
+          if (HandleMassStorageCommand()) {
+            state = CardState::MASSSTORAGE;
           }
           break;
 
@@ -451,18 +676,19 @@ void SdUtils::Run() {
       }
     }
 
-    // Measure one bounded SD state-machine dispatch. The USB LIST/COPY command
-    // loops above are intentionally excluded because they are interactive,
-    // post-flight operations that can exceed the 32-bit DWT wrap interval.
+    // Measure one bounded SD state-machine dispatch. The USB LIST/DELETE
+    // command handlers above are intentionally excluded because they are
+    // interactive, post-flight operations that can exceed the 32-bit DWT wrap
+    // interval.
     auto metrics_scope = MeasureMetricsScope();
     switch (state) {
       case CardState::IDLESTART: {
         ResetBufferState();
         ResetTelemetry();
         const FRESULT result =
-            f_open(file_, file_name, FA_OPEN_APPEND | FA_WRITE);
+            f_open(file_, active_file_name_, FA_OPEN_APPEND | FA_WRITE);
         if (result != FR_OK) {
-          ERROR_PRINT("Failed to reopen %s (res=%d)\r\n", file_name,
+          ERROR_PRINT("Failed to reopen %s (res=%d)\r\n", active_file_name_,
                       result);
           state = CardState::ERROR;
           break;
@@ -599,6 +825,7 @@ void SdUtils::Run() {
 
       case CardState::IDLESTOP:
       case CardState::ERROR:
+      case CardState::MASSSTORAGE:
         break;
     }
     metrics_scope.Complete();

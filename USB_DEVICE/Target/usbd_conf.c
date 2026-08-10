@@ -24,6 +24,7 @@
 #include "usbd_def.h"
 #include "usbd_core.h"
 #include "usbd_cdc.h"
+#include "usbd_msc.h"
 
 /* USER CODE BEGIN Includes */
 
@@ -638,7 +639,23 @@ USBD_StatusTypeDef USBD_LL_SetTestMode(USBD_HandleTypeDef *pdev, uint8_t testmod
 void *USBD_static_malloc(uint32_t size)
 {
   UNUSED(size);
-  static uint32_t mem[(sizeof(USBD_CDC_HandleTypeDef)/4)+1];/* On 32-bit boundary */
+  /* This device switches class at run time between CDC (console) and MSC
+   * (log download), so the single static handle must fit whichever class is
+   * registered. USBD_MSC_BOT_HandleTypeDef is the larger of the two because it
+   * carries a 512-byte bot_data block; sizing this for CDC alone would let
+   * USBD_MSC_Init() write past the end of mem[]. */
+  #define USBD_LARGEST_CLASS_HANDLE_SIZE                        \
+    ((sizeof(USBD_CDC_HandleTypeDef) > sizeof(USBD_MSC_BOT_HandleTypeDef)) \
+         ? sizeof(USBD_CDC_HandleTypeDef)                       \
+         : sizeof(USBD_MSC_BOT_HandleTypeDef))
+  static uint32_t mem[(USBD_LARGEST_CLASS_HANDLE_SIZE/4)+1];/* On 32-bit boundary */
+  /* This allocator ignores size, so a class whose handle outgrows mem[] would
+   * corrupt memory with no runtime symptom at the point of failure. Both
+   * classes that can be registered are checked here, at build time. */
+  _Static_assert(sizeof(mem) >= sizeof(USBD_CDC_HandleTypeDef),
+                 "USBD static handle too small for CDC");
+  _Static_assert(sizeof(mem) >= sizeof(USBD_MSC_BOT_HandleTypeDef),
+                 "USBD static handle too small for MSC");
   return mem;
 }
 

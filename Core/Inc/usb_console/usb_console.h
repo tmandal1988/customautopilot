@@ -17,6 +17,8 @@ enum class UsbCommand {
   STOP,
   LIST,
   COPY,
+  DELETE,
+  MSC,
   UNKNOWN
 };
 
@@ -36,6 +38,13 @@ class UsbConsole {
 
   // New: get the raw command buffer (copied safely)
   void GetLatestRawCommand(char* out_buf, size_t max_len);
+
+  // Copies whatever followed the verb of the latest command, with surrounding
+  // whitespace removed ("DELETE  LOG_0003.BIN" yields "LOG_0003.BIN"). Writes
+  // an empty string when the command carried no argument. Unlike the two
+  // accessors above this does not consume the command, so a caller can read
+  // the argument before dispatching on GetLatestCommand().
+  void CopyLatestArgument(char* out_buf, size_t max_len) const;
 
  private:
   UsbConsole() = default;

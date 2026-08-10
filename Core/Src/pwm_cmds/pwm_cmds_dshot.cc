@@ -13,6 +13,7 @@
 #if MOTOR_PROTOCOL_DSHOT
 
 #include "pubsub/publisher.h"
+#include "usb_mode.h"
 
 PwmCmdsDshot* PwmCmdsDshot::instance_ = nullptr;
 
@@ -157,10 +158,20 @@ void PwmCmdsDshot::TransmitAll() {
 }
 
 void PwmCmdsDshot::ApplyPwmData(const PwmData& pwm_data) {
+    // Log-download mode hands the SD card to a USB host and can only be left
+    // by rebooting, so nothing downstream of it may ever spin a motor. The
+    // inhibit lives here rather than at the topic subscription because both
+    // this task and ControlPipeline reach the outputs through this function,
+    // and ControlPipeline calls it directly without publishing to TopicID::PWM.
+    const bool inhibited = UsbModeIsMassStorageActive();
     for (uint8_t i = 0U; i < kMotorCount; ++i) {
-        const uint16_t value = ThrottleToDshot(pwm_data.pwm_cmds[i]);
+        const uint16_t value =
+            inhibited ? kDshotMotorStop : ThrottleToDshot(pwm_data.pwm_cmds[i]);
         FillBuffer(i, BuildFrame(value, false));
     }
+    // Frames keep flowing while inhibited: the ESCs stay in a known
+    // signal-present stopped state instead of running their own lost-signal
+    // handling, which on some firmware includes a beep or a restart attempt.
     TransmitAll();
 }
 

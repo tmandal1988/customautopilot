@@ -65,10 +65,53 @@ void UsbConsole::GetLatestRawCommand(char* out_buf, size_t max_len) {
   command_ready_ = false;
 }
 
+// Copies whatever followed the verb of the latest command, with surrounding
+// whitespace removed. Reads last_cmd_buf_, which OnUsbDataReceived writes
+// before it publishes command_ready_, so a caller that has already observed
+// HasNewCommand() sees the matching argument.
+void UsbConsole::CopyLatestArgument(char* out_buf, size_t max_len) const {
+  if (!out_buf || max_len == 0) return;
+  out_buf[0] = '\0';
+
+  // Skip the verb, then the separator run before the argument.
+  size_t read_index = 0;
+  while (read_index < kMaxCmdLen && last_cmd_buf_[read_index] != '\0' &&
+         last_cmd_buf_[read_index] != ' ') {
+    ++read_index;
+  }
+  while (read_index < kMaxCmdLen && last_cmd_buf_[read_index] == ' ') {
+    ++read_index;
+  }
+
+  size_t write_index = 0;
+  while (read_index < kMaxCmdLen && last_cmd_buf_[read_index] != '\0' &&
+         write_index + 1 < max_len) {
+    out_buf[write_index++] = last_cmd_buf_[read_index++];
+  }
+  out_buf[write_index] = '\0';
+
+  // Trailing separators, so "DELETE ALL " is still recognized as "ALL".
+  while (write_index > 0 && out_buf[write_index - 1] == ' ') {
+    out_buf[--write_index] = '\0';
+  }
+}
+
+// Compares only the verb, so commands that carry an argument still match.
+static bool VerbMatches(const char* input, size_t verb_len, const char* verb) {
+  return (strlen(verb) == verb_len) && (strncmp(input, verb, verb_len) == 0);
+}
+
 UsbCommand UsbConsole::ParseCommand(const char* str) {
-  if (strcmp(str, "START") == 0) return UsbCommand::START;
-  if (strcmp(str, "STOP") == 0) return UsbCommand::STOP;
-  if (strcmp(str, "LIST") == 0) return UsbCommand::LIST;
+  const char* separator = strchr(str, ' ');
+  const size_t verb_len = (separator != nullptr)
+                              ? static_cast<size_t>(separator - str)
+                              : strlen(str);
+
+  if (VerbMatches(str, verb_len, "START")) return UsbCommand::START;
+  if (VerbMatches(str, verb_len, "STOP")) return UsbCommand::STOP;
+  if (VerbMatches(str, verb_len, "LIST")) return UsbCommand::LIST;
+  if (VerbMatches(str, verb_len, "DELETE")) return UsbCommand::DELETE;
+  if (VerbMatches(str, verb_len, "MSC")) return UsbCommand::MSC;
 
   return UsbCommand::UNKNOWN;
 }

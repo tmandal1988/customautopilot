@@ -7,6 +7,8 @@
 
 #include "pwm_cmds_analog.h"
 
+#include "usb_mode.h"
+
 // Definition of the static member variable
 PwmCmds* PwmCmds::pwm_cmds_instance_handle_ = nullptr;
 
@@ -59,6 +61,17 @@ void PwmCmds::InitializeOutputs() {
 }
 
 void PwmCmds::ApplyPwmData(const PwmData& pwm_data) {
+	// See PwmCmdsDshot::ApplyPwmData. ControlPipeline calls this directly
+	// instead of publishing to TopicID::PWM, so this function is the only
+	// point every motor command passes through.
+	if (UsbModeIsMassStorageActive()) {
+		__HAL_TIM_SET_COMPARE(pwm_timer1_, TIM_CHANNEL_1, kMinPwmVal);
+		__HAL_TIM_SET_COMPARE(pwm_timer1_, TIM_CHANNEL_2, kMinPwmVal);
+		__HAL_TIM_SET_COMPARE(pwm_timer1_, TIM_CHANNEL_3, kMinPwmVal);
+		__HAL_TIM_SET_COMPARE(pwm_timer1_, TIM_CHANNEL_4, kMinPwmVal);
+		return;
+	}
+
 	uint16_t pwm_oneshot42_cmd = PwmToOneShot(pwm_data.pwm_cmds[0]);
 	__HAL_TIM_SET_COMPARE(pwm_timer1_, TIM_CHANNEL_1, pwm_oneshot42_cmd);
 
