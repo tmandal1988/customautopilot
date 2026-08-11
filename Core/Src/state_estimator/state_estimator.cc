@@ -145,7 +145,7 @@ bool StateEstimator::StepOnce(TickType_t scheduled_start_tick,
         mtf01p_data_.flow_quality;
     state_estimator_autocode_u_.mtf01pData.flowStatus =
         mtf01p_data_.flow_status;
-    state_estimator_autocode_u_.mtf01pData.isMtf01pDataValid = false;
+    state_estimator_autocode_u_.mtf01pData.isMtf01pDataValid = true;
   } else {
     state_estimator_autocode_u_.mtf01pData.isMtf01pDataValid = false;
   }

@@ -5,7 +5,7 @@
 //
 // Model version                  : 1.47
 // Simulink Coder version         : 25.1 (R2025a) 21-Nov-2024
-// C/C++ source code generated on : Sun Jul 26 11:57:41 2026
+// C/C++ source code generated on : Mon Aug 10 17:44:34 2026
 //
 // Target selection: ert.tlc
 // Embedded hardware selection: ARM Compatible->ARM Cortex-M
@@ -43,15 +43,15 @@ class stateEstimatorAutocode final
 
     busMagParams magParams_Value;
 
-    // Computed Parameter: stateEstSmParams_Value
-    //  Referenced by: '<Root>/stateEstSmParams'
-
-    busStateEstSmParams stateEstSmParams_Value;
-
     // Expression: mtf01pParams
     //  Referenced by: '<Root>/mtf01pParams'
 
     busMtf01pParams mtf01pParams_Value;
+
+    // Computed Parameter: stateEstSmParams_Value
+    //  Referenced by: '<Root>/stateEstSmParams'
+
+    busStateEstSmParams stateEstSmParams_Value;
 
     // Expression: lidarParams
     //  Referenced by: '<Root>/lidarParams'

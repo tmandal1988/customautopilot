@@ -3,9 +3,9 @@
 //
 // Code generated for Simulink model 'stateEstimatorEskf'.
 //
-// Model version                  : 7.0
+// Model version                  : 7.7
 // Simulink Coder version         : 25.1 (R2025a) 21-Nov-2024
-// C/C++ source code generated on : Sat Jul 25 13:23:09 2026
+// C/C++ source code generated on : Mon Aug 10 17:43:41 2026
 //
 // Target selection: ert.tlc
 // Embedded hardware selection: ARM Compatible->ARM Cortex-M
@@ -58,16 +58,16 @@ class stateEstimatorEskf final
     real32_T xErrorJac[380];           // '<S1>/EKF'
     real32_T stateEstInitPct;          // '<Root>/estimatorStateMachine'
     real32_T UnitDelay_DSTATE;         // '<S7>/Unit Delay'
-    real32_T DiscreteTransferFcn_states;// '<S66>/Discrete Transfer Fcn'
-    real32_T DiscreteTransferFcn_states_n;// '<S65>/Discrete Transfer Fcn'
+    real32_T DiscreteTransferFcn_states;// '<S67>/Discrete Transfer Fcn'
+    real32_T DiscreteTransferFcn_states_n;// '<S66>/Discrete Transfer Fcn'
     real32_T XAxis_tmp;                // '<S56>/X Axis'
     real32_T XAxis1_tmp;               // '<S56>/X Axis1'
     real32_T XAxis2_tmp;               // '<S56>/X Axis2'
     real32_T XAxis_tmp_o;              // '<S57>/X Axis'
     real32_T XAxis1_tmp_l;             // '<S57>/X Axis1'
     real32_T XAxis2_tmp_o;             // '<S57>/X Axis2'
-    real32_T DiscreteTransferFcn_tmp;  // '<S66>/Discrete Transfer Fcn'
-    real32_T DiscreteTransferFcn_tmp_b;// '<S65>/Discrete Transfer Fcn'
+    real32_T DiscreteTransferFcn_tmp;  // '<S67>/Discrete Transfer Fcn'
+    real32_T DiscreteTransferFcn_tmp_b;// '<S66>/Discrete Transfer Fcn'
     real32_T imuIdx;                   // '<Root>/estimatorStateMachine'
     real32_T magIdx;                   // '<Root>/estimatorStateMachine'
     real32_T baroIdx;                  // '<Root>/estimatorStateMachine'
@@ -263,12 +263,13 @@ extern const stateEstimatorEskf::ConstP_stateEstimatorEskf_T
 //  '<S60>'  : 'stateEstimatorEskf/latLonAltToNedPos/convertLlhToNedPos'
 //  '<S61>'  : 'stateEstimatorEskf/latLonAltToNedPos/Detect Rise Positive/Positive'
 //  '<S62>'  : 'stateEstimatorEskf/opticalFlowToNeVel/Chart'
-//  '<S63>'  : 'stateEstimatorEskf/opticalFlowToNeVel/filterOf'
-//  '<S64>'  : 'stateEstimatorEskf/opticalFlowToNeVel/getMtf01pValidity'
-//  '<S65>'  : 'stateEstimatorEskf/opticalFlowToNeVel/filterOf/Discrete First Order Filter'
-//  '<S66>'  : 'stateEstimatorEskf/opticalFlowToNeVel/filterOf/Discrete First Order Filter1'
-//  '<S67>'  : 'stateEstimatorEskf/opticalFlowToNeVel/filterOf/Discrete First Order Filter/Compute Filter Numerator And Denominator'
-//  '<S68>'  : 'stateEstimatorEskf/opticalFlowToNeVel/filterOf/Discrete First Order Filter1/Compute Filter Numerator And Denominator'
+//  '<S63>'  : 'stateEstimatorEskf/opticalFlowToNeVel/Cross Product'
+//  '<S64>'  : 'stateEstimatorEskf/opticalFlowToNeVel/filterOf'
+//  '<S65>'  : 'stateEstimatorEskf/opticalFlowToNeVel/getMtf01pValidity'
+//  '<S66>'  : 'stateEstimatorEskf/opticalFlowToNeVel/filterOf/Discrete First Order Filter'
+//  '<S67>'  : 'stateEstimatorEskf/opticalFlowToNeVel/filterOf/Discrete First Order Filter1'
+//  '<S68>'  : 'stateEstimatorEskf/opticalFlowToNeVel/filterOf/Discrete First Order Filter/Compute Filter Numerator And Denominator'
+//  '<S69>'  : 'stateEstimatorEskf/opticalFlowToNeVel/filterOf/Discrete First Order Filter1/Compute Filter Numerator And Denominator'
 
 
 //-

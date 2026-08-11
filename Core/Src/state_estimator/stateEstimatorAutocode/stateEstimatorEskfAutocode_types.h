@@ -5,7 +5,7 @@
 //
 // Model version                  : 1.47
 // Simulink Coder version         : 25.1 (R2025a) 21-Nov-2024
-// C/C++ source code generated on : Sun Jul 26 11:57:41 2026
+// C/C++ source code generated on : Mon Aug 10 17:44:34 2026
 //
 // Target selection: ert.tlc
 // Embedded hardware selection: ARM Compatible->ARM Cortex-M
@@ -260,6 +260,9 @@ struct busMtf01pParams
 
   // OF data filter cutoff
   real32_T filterBw_radps;
+
+  // Position vector of the sensor from the CG
+  real32_T posVector_m[3];
 };
 
 #endif

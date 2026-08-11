@@ -3,9 +3,9 @@
 //
 // Code generated for Simulink model 'stateEstimatorEskf'.
 //
-// Model version                  : 7.0
+// Model version                  : 7.7
 // Simulink Coder version         : 25.1 (R2025a) 21-Nov-2024
-// C/C++ source code generated on : Sat Jul 25 13:23:09 2026
+// C/C++ source code generated on : Mon Aug 10 17:43:41 2026
 //
 // Target selection: ert.tlc
 // Embedded hardware selection: ARM Compatible->ARM Cortex-M
@@ -1866,24 +1866,22 @@ void stateEstimatorEskf::stateEs_errorStateEkf_function2(const real32_T
       applyGpsPosAndVelCorr_wtI6aFgH(states, nedPosAndVel, covP, 5.0, tmp, tmp_0,
         tmp_1, measNoiseR, b_ekfParams.nisParams.nisNedPosAndVel[1]);
 
-      // 'errorStateEkf_function2:285' if (~isBaroValid)
-      if (static_cast<boolean_T>(static_cast<int32_T>(sensorIn_isBaroValid) ^ 1))
-      {
-        // 'errorStateEkf_function2:286' [states, covP] = applyGpsPosAndVelCorr(states, nedPosAndVel, covP, 6, idxEs, ... 
-        // 'errorStateEkf_function2:287'                 idxEs2, idxNs2, measNoiseR, ekfParams.nisParams.nisNedPosAndVel(3)); 
-        for (i_0 = 0; i_0 < 19; i_0++) {
-          tmp[i_0] = static_cast<real_T>(i_0) + 1.0;
-        }
-
-        for (i_0 = 0; i_0 < 16; i_0++) {
-          tmp_0[i_0] = static_cast<real_T>(i_0) + 4.0;
-          tmp_1[i_0] = static_cast<real_T>(i_0) + 5.0;
-        }
-
-        applyGpsPosAndVelCorr_wtI6aFgH(states, nedPosAndVel, covP, 6.0, tmp,
-          tmp_0, tmp_1, measNoiseR, b_ekfParams.nisParams.nisNedPosAndVel[2]);
+      //  if (~isBaroValid)
+      // 'errorStateEkf_function2:286' [states, covP] = applyGpsPosAndVelCorr(states, nedPosAndVel, covP, 6, idxEs, ... 
+      // 'errorStateEkf_function2:287'                 idxEs2, idxNs2, measNoiseR, ekfParams.nisParams.nisNedPosAndVel(3)); 
+      for (i_0 = 0; i_0 < 19; i_0++) {
+        tmp[i_0] = static_cast<real_T>(i_0) + 1.0;
       }
 
+      for (i_0 = 0; i_0 < 16; i_0++) {
+        tmp_0[i_0] = static_cast<real_T>(i_0) + 4.0;
+        tmp_1[i_0] = static_cast<real_T>(i_0) + 5.0;
+      }
+
+      applyGpsPosAndVelCorr_wtI6aFgH(states, nedPosAndVel, covP, 6.0, tmp, tmp_0,
+        tmp_1, measNoiseR, b_ekfParams.nisParams.nisNedPosAndVel[2]);
+
+      //  end
       // 'errorStateEkf_function2:289' [states, covP] = applyGpsPosAndVelCorr(states, nedPosAndVel, covP, 7, idxEs, ... 
       // 'errorStateEkf_function2:290'             idxEs2, idxNs2, measNoiseR, ekfParams.nisParams.nisNedPosAndVel(4)); 
       for (i_0 = 0; i_0 < 19; i_0++) {
@@ -1957,8 +1955,8 @@ void stateEstimatorEskf::stateEs_errorStateEkf_function2(const real32_T
       nQuat = (sensorIn_baroAlt_m + states[6]) - states[19];
 
       // 'errorStateEkf_function2:321' NIS = nu*nu*iS;
-      // 'errorStateEkf_function2:323' if NIS < 27
-      if (nQuat * nQuat * b_tmp1 < 27.0F) {
+      // 'errorStateEkf_function2:323' if NIS < 3.68
+      if (nQuat * nQuat * b_tmp1 < 3.68) {
         // 'errorStateEkf_function2:324' ekfDebug.isBaroUsed = true;
         ekfDebug->isBaroUsed = true;
 
@@ -2385,13 +2383,13 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
   real32_T Product[3];
   real32_T rtb_Merge_idx_0_tmp;
   real32_T rtb_Merge_idx_0_tmp_0;
-  real32_T rtb_Merge_idx_0_tmp_1;
   real32_T rtb_Product1_b;
   real32_T rtb_Product2_c;
+  real32_T rtb_Sum2_idx_0;
+  real32_T rtb_Sum2_idx_1;
+  real32_T rtb_Sum2_idx_2;
   real32_T rtb_UnitDelay_g;
   real32_T rtb_XAxis1;
-  real32_T rtb_ofBodyFlow_mps_idx_0;
-  real32_T rtb_ofBodyFlow_mps_idx_1;
   real32_T rtu_magData_idx_2;
   boolean_T rtb_AND;
   boolean_T rtb_Compare;
@@ -2487,43 +2485,48 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
     rtu_imuNotchFiltParams->gyroNtchFilt.zDen[1]) -
     stateEstimatorEskf_DW.XAxis2_states_j[1] *
     rtu_imuNotchFiltParams->gyroNtchFilt.zDen[2];
+  rtb_Product1_b = (rtu_imuNotchFiltParams->gyroNtchFilt.zNum[0] *
+                    stateEstimatorEskf_DW.XAxis2_tmp_o +
+                    stateEstimatorEskf_DW.XAxis2_states_j[0] *
+                    rtu_imuNotchFiltParams->gyroNtchFilt.zNum[1]) +
+    stateEstimatorEskf_DW.XAxis2_states_j[1] *
+    rtu_imuNotchFiltParams->gyroNtchFilt.zNum[2];
 
   // Sum: '<S9>/Sum'
   rtb_Product2_c = rtu_magData->bodyMagVector_uT[0] - rtu_magParams->offset_uT[0];
-  rtb_Product1_b = rtu_magData->bodyMagVector_uT[1] - rtu_magParams->offset_uT[1];
+  rtb_Sum2_idx_2 = rtu_magData->bodyMagVector_uT[1] - rtu_magParams->offset_uT[1];
   rtu_magData_idx_2 = rtu_magData->bodyMagVector_uT[2] -
     rtu_magParams->offset_uT[2];
 
   // Product: '<S9>/Matrix Multiply' incorporates:
-  //   Product: '<S10>/Product'
+  //   Sum: '<S10>/Sum2'
 
-  rtb_ofBodyFlow_mps_idx_0 = (rtu_magParams->scaleAlignMat_nd[0] *
-    rtb_Product2_c + rtu_magParams->scaleAlignMat_nd[3] * rtb_Product1_b) +
+  rtb_Sum2_idx_0 = (rtu_magParams->scaleAlignMat_nd[0] * rtb_Product2_c +
+                    rtu_magParams->scaleAlignMat_nd[3] * rtb_Sum2_idx_2) +
     rtu_magParams->scaleAlignMat_nd[6] * rtu_magData_idx_2;
-  rtb_ofBodyFlow_mps_idx_1 = (rtu_magParams->scaleAlignMat_nd[1] *
-    rtb_Product2_c + rtu_magParams->scaleAlignMat_nd[4] * rtb_Product1_b) +
+  rtb_Sum2_idx_1 = (rtu_magParams->scaleAlignMat_nd[1] * rtb_Product2_c +
+                    rtu_magParams->scaleAlignMat_nd[4] * rtb_Sum2_idx_2) +
     rtu_magParams->scaleAlignMat_nd[7] * rtu_magData_idx_2;
-  rtb_Product1_b = (rtu_magParams->scaleAlignMat_nd[2] * rtb_Product2_c +
-                    rtu_magParams->scaleAlignMat_nd[5] * rtb_Product1_b) +
+  rtb_Sum2_idx_2 = (rtu_magParams->scaleAlignMat_nd[2] * rtb_Product2_c +
+                    rtu_magParams->scaleAlignMat_nd[5] * rtb_Sum2_idx_2) +
     rtu_magParams->scaleAlignMat_nd[8] * rtu_magData_idx_2;
 
   // MinMax: '<S9>/Max' incorporates:
   //   Constant: '<S9>/Constant2'
   //   Math: '<S9>/Transpose'
-  //   Product: '<S10>/Product'
   //   Product: '<S9>/Matrix Multiply1'
   //   Sqrt: '<S9>/Sqrt'
+  //   Sum: '<S10>/Sum2'
 
-  rtb_Product2_c = std::fmax(std::sqrt((rtb_ofBodyFlow_mps_idx_0 *
-    rtb_ofBodyFlow_mps_idx_0 + rtb_ofBodyFlow_mps_idx_1 *
-    rtb_ofBodyFlow_mps_idx_1) + rtb_Product1_b * rtb_Product1_b), 1.0E-7F);
+  rtb_Product2_c = std::fmax(std::sqrt((rtb_Sum2_idx_0 * rtb_Sum2_idx_0 +
+    rtb_Sum2_idx_1 * rtb_Sum2_idx_1) + rtb_Sum2_idx_2 * rtb_Sum2_idx_2), 1.0E-7F);
 
   // Product: '<S9>/Divide' incorporates:
-  //   Product: '<S10>/Product'
+  //   Sum: '<S10>/Sum2'
 
-  Divide[0] = rtb_ofBodyFlow_mps_idx_0 / rtb_Product2_c;
-  Divide[1] = rtb_ofBodyFlow_mps_idx_1 / rtb_Product2_c;
-  Divide[2] = rtb_Product1_b / rtb_Product2_c;
+  Divide[0] = rtb_Sum2_idx_0 / rtb_Product2_c;
+  Divide[1] = rtb_Sum2_idx_1 / rtb_Product2_c;
+  Divide[2] = rtb_Sum2_idx_2 / rtb_Product2_c;
 
   // Product: '<S11>/Divide1' incorporates:
   //   Constant: '<S11>/Constant'
@@ -2538,16 +2541,10 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
 
   // SignalConversion generated from: '<S5>/ SFunction ' incorporates:
   //   Chart: '<Root>/estimatorStateMachine'
-  //   DiscreteTransferFcn: '<S57>/X Axis2'
 
   stateEstimatorEskf_DW.TmpSignalConversionAtSFunctionI[0] = rtb_UnitDelay_g;
   stateEstimatorEskf_DW.TmpSignalConversionAtSFunctionI[1] = rtb_XAxis1;
-  stateEstimatorEskf_DW.TmpSignalConversionAtSFunctionI[2] =
-    (rtu_imuNotchFiltParams->gyroNtchFilt.zNum[0] *
-     stateEstimatorEskf_DW.XAxis2_tmp_o + stateEstimatorEskf_DW.XAxis2_states_j
-     [0] * rtu_imuNotchFiltParams->gyroNtchFilt.zNum[1]) +
-    stateEstimatorEskf_DW.XAxis2_states_j[1] *
-    rtu_imuNotchFiltParams->gyroNtchFilt.zNum[2];
+  stateEstimatorEskf_DW.TmpSignalConversionAtSFunctionI[2] = rtb_Product1_b;
 
   // Chart: '<Root>/estimatorStateMachine' incorporates:
   //   Product: '<S4>/Product'
@@ -3307,6 +3304,13 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
 
   // End of MATLAB Function: '<S7>/convertLlhToNedPos'
 
+  // Sum: '<S10>/Sum2' incorporates:
+  //   UnitDelay: '<Root>/Unit Delay'
+
+  rtb_Sum2_idx_0 = rtb_UnitDelay_g - stateEstimatorEskf_DW.UnitDelay_DSTATE_e[10];
+  rtb_Sum2_idx_1 = rtb_XAxis1 - stateEstimatorEskf_DW.UnitDelay_DSTATE_e[11];
+  rtb_Sum2_idx_2 = rtb_Product1_b - stateEstimatorEskf_DW.UnitDelay_DSTATE_e[12];
+
   // Product: '<S10>/Product1'
   rtb_Product1_b = rtu_mtf01pData->dist_m * rtb_Product2_c;
 
@@ -3316,26 +3320,93 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
   //   SignalConversion generated from: '<S10>/Vector Concatenate'
   //   Sum: '<S10>/Sum'
   //   Sum: '<S10>/Sum1'
-  //   Sum: '<S10>/Sum2'
-  //   UnitDelay: '<Root>/Unit Delay'
   //   UnitDelay: '<Root>/Unit Delay2'
   //
-  rtb_XAxis1 = ((rtu_mtf01pParams->sensorToBodyRot[0] *
-                 rtu_mtf01pData->flowX_radps + rtu_mtf01pParams->
-                 sensorToBodyRot[2] * rtu_mtf01pData->flowY_radps) - (rtb_XAxis1
-    - stateEstimatorEskf_DW.UnitDelay_DSTATE_e[11])) * rtb_Product1_b;
-  rtb_ofBodyFlow_mps_idx_0 = stateEstimatorEskf_DW.UnitDelay2_DSTATE[0] *
-    rtb_XAxis1;
-  rtb_ofBodyFlow_mps_idx_1 = stateEstimatorEskf_DW.UnitDelay2_DSTATE[1] *
-    rtb_XAxis1;
-  rtb_XAxis1 = ((rtu_mtf01pParams->sensorToBodyRot[1] *
-                 rtu_mtf01pData->flowX_radps + rtu_mtf01pParams->
-                 sensorToBodyRot[3] * rtu_mtf01pData->flowY_radps) +
-                (rtb_UnitDelay_g - stateEstimatorEskf_DW.UnitDelay_DSTATE_e[10]))
-    * rtb_Product1_b;
+  rtb_UnitDelay_g = ((rtu_mtf01pParams->sensorToBodyRot[0] *
+                      rtu_mtf01pData->flowX_radps +
+                      rtu_mtf01pParams->sensorToBodyRot[2] *
+                      rtu_mtf01pData->flowY_radps) - rtb_Sum2_idx_1) *
+    rtb_Product1_b;
+  rtb_XAxis1 = stateEstimatorEskf_DW.UnitDelay2_DSTATE[0] * rtb_UnitDelay_g;
+  rtu_magData_idx_2 = stateEstimatorEskf_DW.UnitDelay2_DSTATE[1] *
+    rtb_UnitDelay_g;
+  rtb_UnitDelay_g = ((rtu_mtf01pParams->sensorToBodyRot[1] *
+                      rtu_mtf01pData->flowX_radps +
+                      rtu_mtf01pParams->sensorToBodyRot[3] *
+                      rtu_mtf01pData->flowY_radps) + rtb_Sum2_idx_0) *
+    rtb_Product1_b;
 
-  // MATLAB Function: '<S66>/Compute Filter Numerator And Denominator' incorporates:
-  //   MATLAB Function: '<S65>/Compute Filter Numerator And Denominator'
+  // MATLAB Function: '<S67>/Compute Filter Numerator And Denominator' incorporates:
+  //   MATLAB Function: '<S66>/Compute Filter Numerator And Denominator'
+
+  //  Call the main function
+  // MATLAB Function 'Discrete First Order Filter/Compute Filter Numerator And Denominator': '<S69>:1' 
+  // '<S69>:1:4' [num, den] = computeFirstOrderFilterNumAndDen_function(filterBandwidth_radps, sampleTime_s); 
+  //  This function computes the numerator and denominator of the discrete
+  //  first order filter
+  //
+  // Inputs:
+  // filterBandwidth_radps: Bandwidth of the filter
+  // sampleTime_s: sampling time
+  //
+  // Outputs:
+  // num: Numerator array for the discrete transfer function
+  // den: Denominator array for the discrete transfer function
+  // 'computeFirstOrderFilterNumAndDen_function:13' B0 = filterBandwidth_radps;
+  // 'computeFirstOrderFilterNumAndDen_function:14' B1 = 0;
+  // 'computeFirstOrderFilterNumAndDen_function:16' A0 = B0;
+  // 'computeFirstOrderFilterNumAndDen_function:17' A1 = 1;
+  // 'computeFirstOrderFilterNumAndDen_function:18' K = 2/sampleTime_s;
+  // 'computeFirstOrderFilterNumAndDen_function:20' [num, den] = computeDiscreteTFNumAndDen_function([B0, B1], [A0, A1], K); 
+  // COMPUTEDISCRETETFNUMANDDEN_FUNCTION computes the numerator and denominator
+  //  for a first and second order discrete transfer function from it's
+  //  continuous counterpart
+  //
+  //  Inputs:
+  //  B: Array of coefficients of continuous transfer function numerator arranged 
+  //  in ascending power of s
+  //  A: Array of coefficients of continuous transfer function denominator arranged 
+  //  in ascending power of s
+  //  K: 2/sampling time in sec
+  //
+  //  Outputs:
+  // num: numerator of the equivalent discrete transfer function in descending power of z 
+  // den: denominator of the equivalent discrete transfer function in descending power of z 
+  //  get the length of coefficient array to determine the order of transfer
+  //  function
+  // 'computeDiscreteTFNumAndDen_function:19' nArray = length(B);
+  // 'computeDiscreteTFNumAndDen_function:21' if (nArray == 2)
+  //  For 1st order system
+  // 'computeDiscreteTFNumAndDen_function:23' normalizer = A(1) + A(2)*K;
+  // 'computeDiscreteTFNumAndDen_function:24' b0 = (B(1) + B(2)*K)/normalizer;
+  // 'computeDiscreteTFNumAndDen_function:25' b1 = (B(1) - B(2)*K)/normalizer;
+  // 'computeDiscreteTFNumAndDen_function:27' a0 = 1;
+  // 'computeDiscreteTFNumAndDen_function:28' a1 = (A(1) - A(2)*K)/normalizer;
+  // 'computeDiscreteTFNumAndDen_function:29' num = [b0, b1];
+  // 'computeDiscreteTFNumAndDen_function:30' den = [a0, a1];
+  rtb_Product1_b = (rtu_mtf01pParams->filterBw_radps - 500.0F) /
+    (rtu_mtf01pParams->filterBw_radps + 500.0F);
+
+  // DiscreteTransferFcn: '<S67>/Discrete Transfer Fcn' incorporates:
+  //   MATLAB Function: '<S67>/Compute Filter Numerator And Denominator'
+  //   Product: '<S10>/Matrix Multiply1'
+  //   Product: '<S63>/Element Product'
+  //   Sum: '<S10>/Sum3'
+  //   Sum: '<S63>/Sum'
+  //   UnitDelay: '<Root>/Unit Delay2'
+
+  stateEstimatorEskf_DW.DiscreteTransferFcn_tmp =
+    ((stateEstimatorEskf_DW.UnitDelay2_DSTATE[3] * rtb_UnitDelay_g + rtb_XAxis1)
+     + (rtb_Sum2_idx_1 * rtu_mtf01pParams->posVector_m[2] -
+        rtu_mtf01pParams->posVector_m[1] * rtb_Sum2_idx_2)) - rtb_Product1_b *
+    stateEstimatorEskf_DW.DiscreteTransferFcn_states;
+
+  // DiscreteTransferFcn: '<S66>/Discrete Transfer Fcn' incorporates:
+  //   Product: '<S10>/Matrix Multiply1'
+  //   Product: '<S63>/Element Product'
+  //   Sum: '<S10>/Sum3'
+  //   Sum: '<S63>/Sum'
+  //   UnitDelay: '<Root>/Unit Delay2'
 
   //  Call the main function
   // MATLAB Function 'Discrete First Order Filter/Compute Filter Numerator And Denominator': '<S68>:1' 
@@ -3382,71 +3453,10 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
   // 'computeDiscreteTFNumAndDen_function:28' a1 = (A(1) - A(2)*K)/normalizer;
   // 'computeDiscreteTFNumAndDen_function:29' num = [b0, b1];
   // 'computeDiscreteTFNumAndDen_function:30' den = [a0, a1];
-  rtb_UnitDelay_g = (rtu_mtf01pParams->filterBw_radps - 500.0F) /
-    (rtu_mtf01pParams->filterBw_radps + 500.0F);
-
-  // DiscreteTransferFcn: '<S66>/Discrete Transfer Fcn' incorporates:
-  //   MATLAB Function: '<S66>/Compute Filter Numerator And Denominator'
-  //   Product: '<S10>/Matrix Multiply1'
-  //   UnitDelay: '<Root>/Unit Delay2'
-
-  stateEstimatorEskf_DW.DiscreteTransferFcn_tmp =
-    (stateEstimatorEskf_DW.UnitDelay2_DSTATE[3] * rtb_XAxis1 +
-     rtb_ofBodyFlow_mps_idx_0) - rtb_UnitDelay_g *
-    stateEstimatorEskf_DW.DiscreteTransferFcn_states;
-
-  // DiscreteTransferFcn: '<S65>/Discrete Transfer Fcn' incorporates:
-  //   Product: '<S10>/Matrix Multiply1'
-  //   UnitDelay: '<Root>/Unit Delay2'
-
-  //  Call the main function
-  // MATLAB Function 'Discrete First Order Filter/Compute Filter Numerator And Denominator': '<S67>:1' 
-  // '<S67>:1:4' [num, den] = computeFirstOrderFilterNumAndDen_function(filterBandwidth_radps, sampleTime_s); 
-  //  This function computes the numerator and denominator of the discrete
-  //  first order filter
-  //
-  // Inputs:
-  // filterBandwidth_radps: Bandwidth of the filter
-  // sampleTime_s: sampling time
-  //
-  // Outputs:
-  // num: Numerator array for the discrete transfer function
-  // den: Denominator array for the discrete transfer function
-  // 'computeFirstOrderFilterNumAndDen_function:13' B0 = filterBandwidth_radps;
-  // 'computeFirstOrderFilterNumAndDen_function:14' B1 = 0;
-  // 'computeFirstOrderFilterNumAndDen_function:16' A0 = B0;
-  // 'computeFirstOrderFilterNumAndDen_function:17' A1 = 1;
-  // 'computeFirstOrderFilterNumAndDen_function:18' K = 2/sampleTime_s;
-  // 'computeFirstOrderFilterNumAndDen_function:20' [num, den] = computeDiscreteTFNumAndDen_function([B0, B1], [A0, A1], K); 
-  // COMPUTEDISCRETETFNUMANDDEN_FUNCTION computes the numerator and denominator
-  //  for a first and second order discrete transfer function from it's
-  //  continuous counterpart
-  //
-  //  Inputs:
-  //  B: Array of coefficients of continuous transfer function numerator arranged 
-  //  in ascending power of s
-  //  A: Array of coefficients of continuous transfer function denominator arranged 
-  //  in ascending power of s
-  //  K: 2/sampling time in sec
-  //
-  //  Outputs:
-  // num: numerator of the equivalent discrete transfer function in descending power of z 
-  // den: denominator of the equivalent discrete transfer function in descending power of z 
-  //  get the length of coefficient array to determine the order of transfer
-  //  function
-  // 'computeDiscreteTFNumAndDen_function:19' nArray = length(B);
-  // 'computeDiscreteTFNumAndDen_function:21' if (nArray == 2)
-  //  For 1st order system
-  // 'computeDiscreteTFNumAndDen_function:23' normalizer = A(1) + A(2)*K;
-  // 'computeDiscreteTFNumAndDen_function:24' b0 = (B(1) + B(2)*K)/normalizer;
-  // 'computeDiscreteTFNumAndDen_function:25' b1 = (B(1) - B(2)*K)/normalizer;
-  // 'computeDiscreteTFNumAndDen_function:27' a0 = 1;
-  // 'computeDiscreteTFNumAndDen_function:28' a1 = (A(1) - A(2)*K)/normalizer;
-  // 'computeDiscreteTFNumAndDen_function:29' num = [b0, b1];
-  // 'computeDiscreteTFNumAndDen_function:30' den = [a0, a1];
   stateEstimatorEskf_DW.DiscreteTransferFcn_tmp_b =
-    (stateEstimatorEskf_DW.UnitDelay2_DSTATE[4] * rtb_XAxis1 +
-     rtb_ofBodyFlow_mps_idx_1) - rtb_UnitDelay_g *
+    ((stateEstimatorEskf_DW.UnitDelay2_DSTATE[4] * rtb_UnitDelay_g +
+      rtu_magData_idx_2) + (rtu_mtf01pParams->posVector_m[0] * rtb_Sum2_idx_2 -
+      rtb_Sum2_idx_0 * rtu_mtf01pParams->posVector_m[2])) - rtb_Product1_b *
     stateEstimatorEskf_DW.DiscreteTransferFcn_states_n;
 
   // Logic: '<S10>/AND' incorporates:
@@ -3454,13 +3464,13 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
 
   // This function generates a validity flag based to inform EKF when to not
   // use optical flow data
-  // MATLAB Function 'opticalFlowToNeVel/getMtf01pValidity': '<S64>:1'
-  // '<S64>:1:4' mtf01pValidityFlag = true;
+  // MATLAB Function 'opticalFlowToNeVel/getMtf01pValidity': '<S65>:1'
+  // '<S65>:1:4' mtf01pValidityFlag = true;
   // Update flag based distance health
-  // '<S64>:1:7' mtf01pValidityFlag = mtf01pValidityFlag & (mtf01pData.distPrecision <= mtf01pParams.distPrecisionThr) & ... 
-  // '<S64>:1:8'     (mtf01pData.distStatus == 1) & (mtf01pData.dist_m > mtf01pParams.distLimit_m(1)) & (mtf01pData.dist_m < mtf01pParams.distLimit_m(2)); 
+  // '<S65>:1:7' mtf01pValidityFlag = mtf01pValidityFlag & (mtf01pData.distPrecision <= mtf01pParams.distPrecisionThr) & ... 
+  // '<S65>:1:8'     (mtf01pData.distStatus == 1) & (mtf01pData.dist_m > mtf01pParams.distLimit_m(1)) & (mtf01pData.dist_m < mtf01pParams.distLimit_m(2)); 
   // Update flag based on flow health
-  // '<S64>:1:11' mtf01pValidityFlag = mtf01pValidityFlag & (mtf01pData.flowStatus == 1); 
+  // '<S65>:1:11' mtf01pValidityFlag = mtf01pValidityFlag & (mtf01pData.flowStatus == 1); 
   rtb_AND = static_cast<boolean_T>(static_cast<boolean_T>(static_cast<boolean_T>
     (static_cast<boolean_T>(static_cast<boolean_T>
     ((rtu_mtf01pData->distPrecision <= rtu_mtf01pParams->distPrecisionThr) &
@@ -3549,24 +3559,24 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
     stateEstimatorEskf_DW.UnitDelay_DSTATE;
   sensorIn.nedPosAndVel.pos_m[0] = static_cast<real32_T>(rtb_nedPos_m_idx_0);
 
-  // MATLAB Function: '<S66>/Compute Filter Numerator And Denominator' incorporates:
-  //   MATLAB Function: '<S65>/Compute Filter Numerator And Denominator'
+  // MATLAB Function: '<S67>/Compute Filter Numerator And Denominator' incorporates:
+  //   MATLAB Function: '<S66>/Compute Filter Numerator And Denominator'
 
-  rtb_XAxis1 = rtu_mtf01pParams->filterBw_radps /
+  rtb_UnitDelay_g = rtu_mtf01pParams->filterBw_radps /
     (rtu_mtf01pParams->filterBw_radps + 500.0F);
 
   // BusAssignment: '<Root>/Bus Assignment' incorporates:
   //   DataTypeConversion: '<S7>/Cast To Single'
-  //   DiscreteTransferFcn: '<S65>/Discrete Transfer Fcn'
   //   DiscreteTransferFcn: '<S66>/Discrete Transfer Fcn'
-  //   MATLAB Function: '<S66>/Compute Filter Numerator And Denominator'
+  //   DiscreteTransferFcn: '<S67>/Discrete Transfer Fcn'
+  //   MATLAB Function: '<S67>/Compute Filter Numerator And Denominator'
 
-  sensorIn.ofNeVel_mps[0] = rtb_XAxis1 *
-    stateEstimatorEskf_DW.DiscreteTransferFcn_tmp + rtb_XAxis1 *
+  sensorIn.ofNeVel_mps[0] = rtb_UnitDelay_g *
+    stateEstimatorEskf_DW.DiscreteTransferFcn_tmp + rtb_UnitDelay_g *
     stateEstimatorEskf_DW.DiscreteTransferFcn_states;
   sensorIn.nedPosAndVel.pos_m[1] = static_cast<real32_T>(nRef);
-  sensorIn.ofNeVel_mps[1] = rtb_XAxis1 *
-    stateEstimatorEskf_DW.DiscreteTransferFcn_tmp_b + rtb_XAxis1 *
+  sensorIn.ofNeVel_mps[1] = rtb_UnitDelay_g *
+    stateEstimatorEskf_DW.DiscreteTransferFcn_tmp_b + rtb_UnitDelay_g *
     stateEstimatorEskf_DW.DiscreteTransferFcn_states_n;
 
   // BusCreator: '<Root>/Bus Creator'
@@ -3699,16 +3709,16 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
   //   Product: '<S44>/Product2'
   //   Sum: '<S44>/Sum'
 
-  rtb_ofBodyFlow_mps_idx_1 = (rtb_Product1_b * rtb_UnitDelay_g - rtb_XAxis1 *
-    rtb_Product2_c) * 2.0F;
+  rtb_Sum2_idx_1 = (rtb_Product1_b * rtb_UnitDelay_g - rtb_XAxis1 *
+                    rtb_Product2_c) * 2.0F;
 
   // If: '<S13>/If' incorporates:
   //   Concatenate: '<S51>/Vector Concatenate'
   //   Gain: '<S17>/Gain1'
   //   Selector: '<S17>/Selector1'
 
-  if (static_cast<boolean_T>((-rtb_ofBodyFlow_mps_idx_1 >= 1.0F) |
-       (-rtb_ofBodyFlow_mps_idx_1 <= -1.0F))) {
+  if (static_cast<boolean_T>((-rtb_Sum2_idx_1 >= 1.0F) | (-rtb_Sum2_idx_1 <=
+        -1.0F))) {
     // Outputs for IfAction SubSystem: '<S13>/AxisRotZeroR3' incorporates:
     //   ActionPort: '<S16>/Action Port'
 
@@ -3724,7 +3734,7 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
     //   Sum: '<S45>/Sum'
     //   Sum: '<S46>/Sum'
 
-    rtb_ofBodyFlow_mps_idx_0 = std::atan2(-((rtb_Product1_b * rtb_Product2_c -
+    rtb_Sum2_idx_0 = std::atan2(-((rtb_Product1_b * rtb_Product2_c -
       rtb_UnitDelay_g * rtb_XAxis1) * 2.0F), ((rtb_XAxis1 * rtb_XAxis1 -
       rtb_Product1_b * rtb_Product1_b) + rtb_Product2_c * rtb_Product2_c) -
       rtb_UnitDelay_g * rtb_UnitDelay_g);
@@ -3734,52 +3744,52 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
     //   Constant: '<S25>/Constant'
     //   Fcn: '<S16>/Fcn2'
 
-    if (-rtb_ofBodyFlow_mps_idx_1 > 1.0F) {
+    if (-rtb_Sum2_idx_1 > 1.0F) {
       // Outputs for IfAction SubSystem: '<S23>/If Action Subsystem' incorporates:
       //   ActionPort: '<S24>/Action Port'
 
-      rtb_XAxis1 = 1.0F;
+      rtb_UnitDelay_g = 1.0F;
 
       // End of Outputs for SubSystem: '<S23>/If Action Subsystem'
-    } else if (-rtb_ofBodyFlow_mps_idx_1 < -1.0F) {
+    } else if (-rtb_Sum2_idx_1 < -1.0F) {
       // Outputs for IfAction SubSystem: '<S23>/If Action Subsystem1' incorporates:
       //   ActionPort: '<S25>/Action Port'
 
-      rtb_XAxis1 = 1.0F;
+      rtb_UnitDelay_g = 1.0F;
 
       // End of Outputs for SubSystem: '<S23>/If Action Subsystem1'
     } else {
-      rtb_XAxis1 = -rtb_ofBodyFlow_mps_idx_1;
+      rtb_UnitDelay_g = -rtb_Sum2_idx_1;
     }
 
-    rtb_ofBodyFlow_mps_idx_1 = std::asin(rtb_XAxis1);
+    rtb_Sum2_idx_1 = std::asin(rtb_UnitDelay_g);
 
     // End of If: '<S23>/If'
 
     // Fcn: '<S16>/Fcn3'
-    rtb_UnitDelay_g = 0.0F;
+    rtb_Product2_c = 0.0F;
 
     // End of Outputs for SubSystem: '<S13>/AxisRotZeroR3'
   } else {
     // Product: '<S42>/Product3' incorporates:
     //   Product: '<S50>/Product3'
 
-    rtu_magData_idx_2 = rtb_XAxis1 * rtb_XAxis1;
+    rtb_Sum2_idx_2 = rtb_XAxis1 * rtb_XAxis1;
 
     // Product: '<S42>/Product2' incorporates:
     //   Product: '<S50>/Product2'
 
-    rtb_Merge_idx_0_tmp = rtb_Product1_b * rtb_Product1_b;
+    rtu_magData_idx_2 = rtb_Product1_b * rtb_Product1_b;
 
     // Product: '<S42>/Product1' incorporates:
     //   Product: '<S50>/Product1'
 
-    rtb_Merge_idx_0_tmp_0 = rtb_Product2_c * rtb_Product2_c;
+    rtb_Merge_idx_0_tmp = rtb_Product2_c * rtb_Product2_c;
 
     // Product: '<S42>/Product' incorporates:
     //   Product: '<S50>/Product'
 
-    rtb_Merge_idx_0_tmp_1 = rtb_UnitDelay_g * rtb_UnitDelay_g;
+    rtb_Merge_idx_0_tmp_0 = rtb_UnitDelay_g * rtb_UnitDelay_g;
 
     // Outputs for IfAction SubSystem: '<S13>/AxisRotDefault' incorporates:
     //   ActionPort: '<S15>/Action Port'
@@ -3795,12 +3805,12 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
     //   Sum: '<S42>/Sum'
     //   Sum: '<S43>/Sum'
 
-    rtb_ofBodyFlow_mps_idx_0 = std::atan2((rtb_UnitDelay_g * rtb_XAxis1 +
-      rtb_Product1_b * rtb_Product2_c) * 2.0F, ((rtu_magData_idx_2 +
-      rtb_Merge_idx_0_tmp) - rtb_Merge_idx_0_tmp_0) - rtb_Merge_idx_0_tmp_1);
+    rtb_Sum2_idx_0 = std::atan2((rtb_UnitDelay_g * rtb_XAxis1 + rtb_Product1_b *
+      rtb_Product2_c) * 2.0F, ((rtb_Sum2_idx_2 + rtu_magData_idx_2) -
+      rtb_Merge_idx_0_tmp) - rtb_Merge_idx_0_tmp_0);
 
     // Fcn: '<S15>/Fcn2'
-    rtb_ofBodyFlow_mps_idx_1 = std::asin(-rtb_ofBodyFlow_mps_idx_1);
+    rtb_Sum2_idx_1 = std::asin(-rtb_Sum2_idx_1);
 
     // Fcn: '<S15>/Fcn3' incorporates:
     //   Gain: '<S47>/Gain'
@@ -3809,9 +3819,9 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
     //   Sum: '<S47>/Sum'
     //   Sum: '<S50>/Sum'
 
-    rtb_UnitDelay_g = std::atan2((rtb_XAxis1 * rtb_Product1_b + rtb_Product2_c *
-      rtb_UnitDelay_g) * 2.0F, ((rtu_magData_idx_2 - rtb_Merge_idx_0_tmp) -
-      rtb_Merge_idx_0_tmp_0) + rtb_Merge_idx_0_tmp_1);
+    rtb_Product2_c = std::atan2((rtb_XAxis1 * rtb_Product1_b + rtb_Product2_c *
+      rtb_UnitDelay_g) * 2.0F, ((rtb_Sum2_idx_2 - rtu_magData_idx_2) -
+      rtb_Merge_idx_0_tmp) + rtb_Merge_idx_0_tmp_0);
 
     // End of Outputs for SubSystem: '<S13>/AxisRotDefault'
   }
@@ -3819,9 +3829,9 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
   // End of If: '<S13>/If'
 
   // SignalConversion generated from: '<Root>/eulAng_rad'
-  rty_eulAng_rad[0] = rtb_UnitDelay_g;
-  rty_eulAng_rad[1] = rtb_ofBodyFlow_mps_idx_1;
-  rty_eulAng_rad[2] = rtb_ofBodyFlow_mps_idx_0;
+  rty_eulAng_rad[0] = rtb_Product2_c;
+  rty_eulAng_rad[1] = rtb_Sum2_idx_1;
+  rty_eulAng_rad[2] = rtb_Sum2_idx_0;
 
   // Sum: '<Root>/Sum' incorporates:
   //   Product: '<S4>/Product'
@@ -3863,19 +3873,19 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
   // '<S6>:1:7' s_theta = sin(eul_rad(2));
   // '<S6>:1:8' c_theta = cos(eul_rad(2));
   // '<S6>:1:10' s_psi = sin(eul_rad(3));
-  rtb_Product2_c = std::sin(rtb_ofBodyFlow_mps_idx_0);
+  rtb_Product1_b = std::sin(rtb_Sum2_idx_0);
 
   // '<S6>:1:11' c_psi = cos(eul_rad(3));
-  rtb_XAxis1 = std::cos(rtb_ofBodyFlow_mps_idx_0);
+  rtb_UnitDelay_g = std::cos(rtb_Sum2_idx_0);
 
   // '<S6>:1:13' dcmFromNed = [c_psi*c_theta, c_theta*s_psi, -s_theta;
   // '<S6>:1:14'     c_psi*s_phi*s_theta - c_phi*s_psi, c_phi*c_psi + s_phi*s_psi*s_theta, c_theta*s_phi; 
   // '<S6>:1:15'     s_phi*s_psi + c_phi*c_psi*s_theta, c_phi*s_psi*s_theta - c_psi*s_phi, c_phi*c_theta]; 
-  rty_dcmNedToFep[0] = rtb_XAxis1;
-  rty_dcmNedToFep[3] = rtb_Product2_c;
+  rty_dcmNedToFep[0] = rtb_UnitDelay_g;
+  rty_dcmNedToFep[3] = rtb_Product1_b;
   rty_dcmNedToFep[6] = -0.0F;
-  rty_dcmNedToFep[1] = 0.0F - rtb_Product2_c;
-  rty_dcmNedToFep[4] = rtb_XAxis1;
+  rty_dcmNedToFep[1] = 0.0F - rtb_Product1_b;
+  rty_dcmNedToFep[4] = rtb_UnitDelay_g;
   rty_dcmNedToFep[7] = 0.0F;
   rty_dcmNedToFep[2] = 0.0F;
   rty_dcmNedToFep[5] = 0.0F;
@@ -3909,9 +3919,9 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
   stateEstimatorEskf_DW.XAxis2_states_j[0] = stateEstimatorEskf_DW.XAxis2_tmp_o;
 
   // Update for UnitDelay: '<Root>/Unit Delay1'
-  stateEstimatorEskf_DW.UnitDelay1_DSTATE[0] = rtb_UnitDelay_g;
-  stateEstimatorEskf_DW.UnitDelay1_DSTATE[1] = rtb_ofBodyFlow_mps_idx_1;
-  stateEstimatorEskf_DW.UnitDelay1_DSTATE[2] = rtb_ofBodyFlow_mps_idx_0;
+  stateEstimatorEskf_DW.UnitDelay1_DSTATE[0] = rtb_Product2_c;
+  stateEstimatorEskf_DW.UnitDelay1_DSTATE[1] = rtb_Sum2_idx_1;
+  stateEstimatorEskf_DW.UnitDelay1_DSTATE[2] = rtb_Sum2_idx_0;
 
   // Switch: '<S7>/Switch' incorporates:
   //   RelationalOperator: '<S59>/FixPt Relational Operator'
@@ -3943,11 +3953,11 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
   stateEstimatorEskf_DW.UnitDelay2_DSTATE[7] = dcmBodyToNed[7];
   stateEstimatorEskf_DW.UnitDelay2_DSTATE[8] = dcmBodyToNed[8];
 
-  // Update for DiscreteTransferFcn: '<S66>/Discrete Transfer Fcn'
+  // Update for DiscreteTransferFcn: '<S67>/Discrete Transfer Fcn'
   stateEstimatorEskf_DW.DiscreteTransferFcn_states =
     stateEstimatorEskf_DW.DiscreteTransferFcn_tmp;
 
-  // Update for DiscreteTransferFcn: '<S65>/Discrete Transfer Fcn'
+  // Update for DiscreteTransferFcn: '<S66>/Discrete Transfer Fcn'
   stateEstimatorEskf_DW.DiscreteTransferFcn_states_n =
     stateEstimatorEskf_DW.DiscreteTransferFcn_tmp_b;
 

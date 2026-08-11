@@ -3,9 +3,9 @@
 //
 // Code generated for Simulink model 'stateEstimatorEskf'.
 //
-// Model version                  : 7.0
+// Model version                  : 7.7
 // Simulink Coder version         : 25.1 (R2025a) 21-Nov-2024
-// C/C++ source code generated on : Sat Jul 25 13:23:09 2026
+// C/C++ source code generated on : Mon Aug 10 17:43:41 2026
 //
 #ifndef quatToDcm_smxwJjrc_h_
 #define quatToDcm_smxwJjrc_h_
