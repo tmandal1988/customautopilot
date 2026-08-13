@@ -3,9 +3,9 @@
 //
 // Code generated for Simulink model 'stateEstimatorEskf'.
 //
-// Model version                  : 7.7
+// Model version                  : 7.53
 // Simulink Coder version         : 25.1 (R2025a) 21-Nov-2024
-// C/C++ source code generated on : Mon Aug 10 17:43:41 2026
+// C/C++ source code generated on : Thu Aug 13 15:28:24 2026
 //
 // Target selection: ert.tlc
 // Embedded hardware selection: ARM Compatible->ARM Cortex-M
@@ -18,6 +18,7 @@
 #ifndef stateEstimatorEskf_types_h_
 #define stateEstimatorEskf_types_h_
 #include "rtwtypes.h"
+#include "multiword_types.h"
 #ifndef DEFINED_TYPEDEF_FOR_enumStateEstimateMode_
 #define DEFINED_TYPEDEF_FOR_enumStateEstimateMode_
 
@@ -93,6 +94,9 @@ struct busImuData
 
   // Flag to indicate if Imu data is valid or not
   boolean_T isImuDataValid;
+
+  // Time when the data was published (not captured)
+  uint64m_T timestamp_ms;
 };
 
 #endif
@@ -109,6 +113,9 @@ struct busMagData
   // true -> Mag data is valid
   // false -> Mag data in invalid
   boolean_T isMagDataValid;
+
+  // Time when the data was published (not captured)
+  uint64m_T timestamp_ms;
 };
 
 #endif
@@ -129,6 +136,9 @@ struct busGpsData
   // false -> GPS data is invalid
   boolean_T isGpsDataValid;
   boolean_T isGpsInitialized;
+
+  // Time when the data was published (not captured)
+  uint64m_T timestamp_ms;
 };
 
 #endif
@@ -148,6 +158,9 @@ struct busBaroData
   // true -> baro data is valid
   // false -> baro data is invalid
   boolean_T isBaroDataValid;
+
+  // Time when the data was published (not captured)
+  uint64m_T timestamp_ms;
 };
 
 #endif
@@ -168,6 +181,9 @@ struct busLidarData
   // true -> Lidar initialized
   // false -> Lidar not initialized
   boolean_T isLidarInitialized;
+
+  // Time when the data was published (not captured)
+  uint64m_T timestamp_ms;
 };
 
 #endif
@@ -204,6 +220,9 @@ struct busMtf01pData
 
   // A flag that indicates if we received a new MTF01P measurement
   boolean_T isMtf01pDataValid;
+
+  // Time when the data was published (not captured)
+  uint64m_T timestamp_ms;
 };
 
 #endif
@@ -319,6 +338,33 @@ struct busStateEstSmParams
 
 #endif
 
+#ifndef DEFINED_TYPEDEF_FOR_busSensorTimestamp_
+#define DEFINED_TYPEDEF_FOR_busSensorTimestamp_
+
+// Bus containing all the sensors timestamps
+struct busSensorTimestamp
+{
+  // IMU Timestamp in milliseconds
+  uint64m_T imuTimestamp_ms;
+
+  // Mag Timestamp in milliseconds
+  uint64m_T magTimestamp_ms;
+
+  // GPS Timestamp in milliseconds
+  uint64m_T gpsTimestamp_ms;
+
+  // Baro Timestamp in milliseconds
+  uint64m_T baroTimestamp_ms;
+
+  // Lidar Timestamp in milliseconds
+  uint64m_T lidarTimestamp_ms;
+
+  // Optical flow Timestamp in milliseconds
+  uint64m_T ofTimestamp_ms;
+};
+
+#endif
+
 #ifndef DEFINED_TYPEDEF_FOR_busStateEstimatorDebug_
 #define DEFINED_TYPEDEF_FOR_busStateEstimatorDebug_
 
@@ -349,6 +395,33 @@ struct busPosAndVel
 
 #endif
 
+#ifndef DEFINED_TYPEDEF_FOR_busSensorValidity_
+#define DEFINED_TYPEDEF_FOR_busSensorValidity_
+
+// Bus containing all the sensor validity flags used in state estimator
+struct busSensorValidity
+{
+  // Flag to indicate if IMU data is valid.
+  boolean_T isImuValid;
+
+  // Flag to indicate if mag data is valid
+  boolean_T isMagValid;
+
+  // Flag to indicate if GPS measurements are valid or not
+  boolean_T isGpsValid;
+
+  // Flag to indicate if baro measurement is valid or not
+  boolean_T isBaroValid;
+
+  // Flag to indicate if LIDAR measurement is valid or not
+  boolean_T isLidarValid;
+
+  // Flag to indicate if optical flow data is valid or not
+  boolean_T isOfValid;
+};
+
+#endif
+
 #ifndef DEFINED_TYPEDEF_FOR_busSensorIn_
 #define DEFINED_TYPEDEF_FOR_busSensorIn_
 
@@ -364,41 +437,29 @@ struct busSensorIn
   // Delta time between imu readings
   real32_T dtImuTime_s;
 
-  // Flag to indicate if IMU data is valid of not
-  boolean_T isImuDataValid;
-
   // Mag - x, y, z body mag field normalized
   real32_T normMagVec_nd[3];
 
   // Local NED mag field normalized
   real32_T localNedUnitMag_nd[3];
 
-  // Flag to indicate if mag data is valid
-  boolean_T isMagValid;
-
   // NED position and velocity
   busPosAndVel nedPosAndVel;
-
-  // Flag to indicate if GPS measurements are valid or not
-  boolean_T isGpsValid;
 
   // Baro altitude
   real32_T baroAlt_m;
 
-  // Flag to indicate if baro measurement is valid or not
-  boolean_T isBaroValid;
-
   // AGL measurement from the LIDAR
   real32_T lidarAgl_m;
-
-  // Flag to indicate if LIDAR measurement is valid or not
-  boolean_T isLidarValid;
 
   // North and East velocities from Optical Flow
   real32_T ofNeVel_mps[2];
 
-  // Flag to indicate if optical flow data is valid or not
-  boolean_T isOfValid;
+  // All the sensor validity flags
+  busSensorValidity sensorValidity;
+
+  // Bus containing all the sensor timestamps
+  busSensorTimestamp sensorTimestamp;
 };
 
 #endif
@@ -425,15 +486,72 @@ struct struct_vlrWXdgCyensSoz7WQOtZH
 
 #endif
 
-#ifndef DEFINED_TYPEDEF_FOR_struct_lNBPdDZBS05BfQyyvsjhxE_
-#define DEFINED_TYPEDEF_FOR_struct_lNBPdDZBS05BfQyyvsjhxE_
+#ifndef DEFINED_TYPEDEF_FOR_struct_B3klaF95tNPEuo89dbikyD_
+#define DEFINED_TYPEDEF_FOR_struct_B3klaF95tNPEuo89dbikyD_
 
-struct struct_lNBPdDZBS05BfQyyvsjhxE
+struct struct_B3klaF95tNPEuo89dbikyD
+{
+  uint16_T gpsDelaySamples;
+};
+
+#endif
+
+#ifndef DEFINED_TYPEDEF_FOR_struct_Hz689b8u1yO88NSxvDmUlD_
+#define DEFINED_TYPEDEF_FOR_struct_Hz689b8u1yO88NSxvDmUlD_
+
+struct struct_Hz689b8u1yO88NSxvDmUlD
+{
+  uint16_T delaySamples;
+  uint64m_T imuPeriod_ms;
+};
+
+#endif
+
+#ifndef DEFINED_TYPEDEF_FOR_struct_1gioOrskUltZEWezrVP0GF_
+#define DEFINED_TYPEDEF_FOR_struct_1gioOrskUltZEWezrVP0GF_
+
+struct struct_1gioOrskUltZEWezrVP0GF
+{
+  uint16_T delaySamples;
+  real32_T attCorrectionGain;
+  real32_T velCorrectionGain;
+  real32_T posCorrectionGain;
+};
+
+#endif
+
+#ifndef DEFINED_TYPEDEF_FOR_struct_e9BQKwOo5Wim01SbgNn0F_
+#define DEFINED_TYPEDEF_FOR_struct_e9BQKwOo5Wim01SbgNn0F_
+
+struct struct_e9BQKwOo5Wim01SbgNn0F
+{
+  uint16_T capacity;
+  uint64m_T minInterval_ms;
+  uint64m_T maxAge_ms;
+  uint64m_T resetThreshold_ms;
+};
+
+#endif
+
+#ifndef DEFINED_TYPEDEF_FOR_struct_vLaQwIJ2Vqz5mLwc4gApSE_
+#define DEFINED_TYPEDEF_FOR_struct_vLaQwIJ2Vqz5mLwc4gApSE_
+
+struct struct_vLaQwIJ2Vqz5mLwc4gApSE
 {
   uint8_T numStates;
   uint8_T numErrorStates;
   uint8_T numMeas;
   struct_vlrWXdgCyensSoz7WQOtZH nisParams;
+  boolean_T useLidar;
+  boolean_T useOpticalFlow;
+  struct_B3klaF95tNPEuo89dbikyD stateFifoParams;
+  struct_Hz689b8u1yO88NSxvDmUlD imuFifoParams;
+  struct_1gioOrskUltZEWezrVP0GF outputPredictorParams;
+  struct_e9BQKwOo5Wim01SbgNn0F gpsFifoParams;
+  struct_e9BQKwOo5Wim01SbgNn0F magFifoParams;
+  struct_e9BQKwOo5Wim01SbgNn0F baroFifoParams;
+  struct_e9BQKwOo5Wim01SbgNn0F lidarFifoParams;
+  struct_e9BQKwOo5Wim01SbgNn0F flowFifoParams;
 };
 
 #endif

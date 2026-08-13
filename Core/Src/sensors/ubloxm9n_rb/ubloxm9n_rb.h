@@ -14,6 +14,7 @@
 #include "pubsub/publisher.h"
 #include "constants.h"
 #include "debug.h"
+#include "gps_itow_deduplicator.h"
 #include "parameters/parameter_store.h"
 #include "ubloxm9n_rb_parameter_catalog.h"
 
@@ -220,11 +221,11 @@ private:
 	bool rx_restart_pending_ = false;
 	TickType_t next_rx_restart_due_ = 0;
 	TickType_t next_health_due_ = 0;
-	TickType_t last_valid_frame_tick_ = 0;
 	uint8_t nav_pvt_raw_buff_[UBX_NAV_PVT_SIZE] = {0};
 	UbloxM9nNavPvt nav_pvt_data_;
-
-	bool new_nav_pvt_frame_ = false;
+	// Retained across UART recovery and full receiver reinitialization so a
+	// replayed last epoch cannot re-enter the canonical GPS topic.
+	GpsItowDeduplicator nav_pvt_i_tow_filter_;
 
 	GpsData gps_data_;
 

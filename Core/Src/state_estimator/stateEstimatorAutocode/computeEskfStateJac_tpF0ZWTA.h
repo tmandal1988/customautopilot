@@ -3,13 +3,14 @@
 //
 // Code generated for Simulink model 'stateEstimatorEskf'.
 //
-// Model version                  : 7.7
+// Model version                  : 7.53
 // Simulink Coder version         : 25.1 (R2025a) 21-Nov-2024
-// C/C++ source code generated on : Mon Aug 10 17:43:41 2026
+// C/C++ source code generated on : Thu Aug 13 15:28:24 2026
 //
 #ifndef computeEskfStateJac_tpF0ZWTA_h_
 #define computeEskfStateJac_tpF0ZWTA_h_
 #include "rtwtypes.h"
+#include "multiword_types.h"
 
 extern void computeEskfStateJac_tpF0ZWTA(const real32_T states[20], const
   real32_T dcmBodyToNed[9], const real32_T bodyAccels_mps2[3], real32_T dAng,

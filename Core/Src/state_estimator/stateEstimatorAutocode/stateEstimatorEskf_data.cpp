@@ -3,9 +3,9 @@
 //
 // Code generated for Simulink model 'stateEstimatorEskf'.
 //
-// Model version                  : 7.7
+// Model version                  : 7.53
 // Simulink Coder version         : 25.1 (R2025a) 21-Nov-2024
-// C/C++ source code generated on : Mon Aug 10 17:43:41 2026
+// C/C++ source code generated on : Thu Aug 13 15:28:24 2026
 //
 // Target selection: ert.tlc
 // Embedded hardware selection: ARM Compatible->ARM Cortex-M
@@ -20,7 +20,7 @@
 // Constant parameters (default storage)
 const stateEstimatorEskf::ConstP_stateEstimatorEskf_T stateEstimatorEskf_ConstP{
   // Expression: ekfParams
-  //  Referenced by: '<S1>/EKF'
+  //  Referenced by: '<S13>/DelayedHorizonBufferManager'
 
   {
     20U,
@@ -29,6 +29,75 @@ const stateEstimatorEskf::ConstP_stateEstimatorEskf_T stateEstimatorEskf_ConstP{
 
     {
       { 27.0F, 27.0F, 3.68F, 27.0F, 27.0F, 27.0F }
+    },
+    false,
+    true,
+
+    {
+      50U
+    },
+
+    {
+      50U,
+
+      { { 0x4U, 0U } }
+    },
+
+    {
+      50U,
+      0.01F,
+      0.02F,
+      0.02F
+    },
+
+    {
+      6U,
+
+      { { 0x1EU, 0U } },
+
+      { { 0x64U, 0U } },
+
+      { { 0x3E8U, 0U } }
+    },
+
+    {
+      48U,
+
+      { { 0x2U, 0U } },
+
+      { { 0x32U, 0U } },
+
+      { { 0x1F4U, 0U } }
+    },
+
+    {
+      16U,
+
+      { { 0x12U, 0U } },
+
+      { { 0x1F4U, 0U } },
+
+      { { 0x3E8U, 0U } }
+    },
+
+    {
+      24U,
+
+      { { 0x9U, 0U } },
+
+      { { 0x1F4U, 0U } },
+
+      { { 0x3E8U, 0U } }
+    },
+
+    {
+      16U,
+
+      { { 0x12U, 0U } },
+
+      { { 0x1F4U, 0U } },
+
+      { { 0x3E8U, 0U } }
     }
   }
 };

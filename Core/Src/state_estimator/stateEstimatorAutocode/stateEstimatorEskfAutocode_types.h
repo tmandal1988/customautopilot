@@ -3,9 +3,9 @@
 //
 // Code generated for Simulink model 'stateEstimatorEskfAutocode'.
 //
-// Model version                  : 1.47
+// Model version                  : 7.0
 // Simulink Coder version         : 25.1 (R2025a) 21-Nov-2024
-// C/C++ source code generated on : Mon Aug 10 17:44:34 2026
+// C/C++ source code generated on : Thu Aug 13 16:23:17 2026
 //
 // Target selection: ert.tlc
 // Embedded hardware selection: ARM Compatible->ARM Cortex-M
@@ -18,6 +18,7 @@
 #ifndef stateEstimatorEskfAutocode_types_h_
 #define stateEstimatorEskfAutocode_types_h_
 #include "rtwtypes.h"
+#include "multiword_types.h"
 #ifndef DEFINED_TYPEDEF_FOR_busImuData_
 #define DEFINED_TYPEDEF_FOR_busImuData_
 
@@ -35,6 +36,9 @@ struct busImuData
 
   // Flag to indicate if Imu data is valid or not
   boolean_T isImuDataValid;
+
+  // Time when the data was published (not captured)
+  uint64m_T timestamp_ms;
 };
 
 #endif
@@ -51,6 +55,9 @@ struct busMagData
   // true -> Mag data is valid
   // false -> Mag data in invalid
   boolean_T isMagDataValid;
+
+  // Time when the data was published (not captured)
+  uint64m_T timestamp_ms;
 };
 
 #endif
@@ -71,6 +78,9 @@ struct busGpsData
   // false -> GPS data is invalid
   boolean_T isGpsDataValid;
   boolean_T isGpsInitialized;
+
+  // Time when the data was published (not captured)
+  uint64m_T timestamp_ms;
 };
 
 #endif
@@ -90,6 +100,9 @@ struct busBaroData
   // true -> baro data is valid
   // false -> baro data is invalid
   boolean_T isBaroDataValid;
+
+  // Time when the data was published (not captured)
+  uint64m_T timestamp_ms;
 };
 
 #endif
@@ -110,6 +123,9 @@ struct busLidarData
   // true -> Lidar initialized
   // false -> Lidar not initialized
   boolean_T isLidarInitialized;
+
+  // Time when the data was published (not captured)
+  uint64m_T timestamp_ms;
 };
 
 #endif
@@ -146,6 +162,9 @@ struct busMtf01pData
 
   // A flag that indicates if we received a new MTF01P measurement
   boolean_T isMtf01pDataValid;
+
+  // Time when the data was published (not captured)
+  uint64m_T timestamp_ms;
 };
 
 #endif

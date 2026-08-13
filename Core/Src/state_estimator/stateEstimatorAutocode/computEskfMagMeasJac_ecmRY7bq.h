@@ -3,13 +3,14 @@
 //
 // Code generated for Simulink model 'stateEstimatorEskf'.
 //
-// Model version                  : 7.7
+// Model version                  : 7.53
 // Simulink Coder version         : 25.1 (R2025a) 21-Nov-2024
-// C/C++ source code generated on : Mon Aug 10 17:43:41 2026
+// C/C++ source code generated on : Thu Aug 13 15:28:24 2026
 //
 #ifndef computEskfMagMeasJac_ecmRY7bq_h_
 #define computEskfMagMeasJac_ecmRY7bq_h_
 #include "rtwtypes.h"
+#include "multiword_types.h"
 
 extern void computEskfMagMeasJac_ecmRY7bq(const real32_T states[20], const
   real32_T localNedUnitMag[3], real32_T measJac[60]);

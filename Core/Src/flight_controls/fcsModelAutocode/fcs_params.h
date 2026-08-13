@@ -282,7 +282,7 @@ inline void AssignFcsCtrlParams(busFcsParams& fcs_ctrl_params) noexcept {
 	//#################################################*
 
 	//**************************************************
-	fcs_ctrl_params.innerLoopCtrlParams.angRateCtrlParams.ctrlParamsArray[0].Kp = 32.00000000;
+	fcs_ctrl_params.innerLoopCtrlParams.angRateCtrlParams.ctrlParamsArray[0].Kp = 40.00000000;
 	//#################################################*
 
 	//**************************************************
@@ -316,7 +316,7 @@ inline void AssignFcsCtrlParams(busFcsParams& fcs_ctrl_params) noexcept {
 	//#################################################*
 
 	//**************************************************
-	fcs_ctrl_params.innerLoopCtrlParams.angRateCtrlParams.ctrlParamsArray[1].Kp = 32.00000000;
+	fcs_ctrl_params.innerLoopCtrlParams.angRateCtrlParams.ctrlParamsArray[1].Kp = 40.00000000;
 	//#################################################*
 
 	//**************************************************
@@ -350,7 +350,7 @@ inline void AssignFcsCtrlParams(busFcsParams& fcs_ctrl_params) noexcept {
 	//#################################################*
 
 	//**************************************************
-	fcs_ctrl_params.innerLoopCtrlParams.angRateCtrlParams.ctrlParamsArray[2].Kp = 30.00000000;
+	fcs_ctrl_params.innerLoopCtrlParams.angRateCtrlParams.ctrlParamsArray[2].Kp = 35.00000000;
 	//#################################################*
 
 	//**************************************************

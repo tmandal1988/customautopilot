@@ -3,9 +3,9 @@
 //
 // Code generated for Simulink model 'stateEstimatorEskf'.
 //
-// Model version                  : 7.7
+// Model version                  : 7.53
 // Simulink Coder version         : 25.1 (R2025a) 21-Nov-2024
-// C/C++ source code generated on : Mon Aug 10 17:43:41 2026
+// C/C++ source code generated on : Thu Aug 13 15:28:24 2026
 //
 #include "rtwtypes.h"
 #include "applyGpsPosAndVelCorr_wtI6aFgH.h"
@@ -36,25 +36,25 @@ void applyGpsPosAndVelCorr_wtI6aFgH(real32_T states[20], const real32_T
   real32_T iS;
   real32_T nu;
 
-  // 'errorStateEkf_function2:467' iS = 1/(covP(idx, idx) + measNoiseR(idx, idx)); 
+  // 'errorStateEkf_function2:465' iS = 1/(covP(idx, idx) + measNoiseR(idx, idx)); 
   iS_tmp = (static_cast<int32_T>(idx) - 1) * 19;
   iS = 1.0F / (measNoiseR[((static_cast<int32_T>(idx) - 1) * 15 + static_cast<
     int32_T>(idx)) - 1] + covP[(iS_tmp + static_cast<int32_T>(idx)) - 1]);
 
-  // 'errorStateEkf_function2:468' nu = nedPosAndVel(idx - 3)  - states(idx + 1); 
+  // 'errorStateEkf_function2:466' nu = nedPosAndVel(idx - 3)  - states(idx + 1); 
   nu = nedPosAndVel[static_cast<int32_T>(idx - 3.0) - 1] - states
     [static_cast<int32_T>(idx + 1.0) - 1];
 
-  // 'errorStateEkf_function2:469' NIS = nu*nu*iS;
+  // 'errorStateEkf_function2:467' NIS = nu*nu*iS;
   // ErrorStateHat
-  // 'errorStateEkf_function2:472' errorStateHat = zeros(19, 1, 'single');
+  // 'errorStateEkf_function2:470' errorStateHat = zeros(19, 1, 'single');
   std::memset(&errorStateHat[0], 0, 19U * sizeof(real32_T));
 
-  // 'errorStateEkf_function2:474' if NIS < innovGate
+  // 'errorStateEkf_function2:472' if NIS < innovGate
   if (nu * nu * iS < innovGate) {
-    // 'errorStateEkf_function2:475' K = covP(idxEs, idx).*iS;
-    // 'errorStateEkf_function2:476' errorStateHat(idxEs) = K*nu;
-    // 'errorStateEkf_function2:478' covP(idxEs, idxEs) = covP(idxEs, idxEs) - (K*covP(idx, idxEs)); 
+    // 'errorStateEkf_function2:473' K = covP(idxEs, idx).*iS;
+    // 'errorStateEkf_function2:474' errorStateHat(idxEs) = K*nu;
+    // 'errorStateEkf_function2:476' covP(idxEs, idxEs) = covP(idxEs, idxEs) - (K*covP(idx, idxEs)); 
     for (i = 0; i < 19; i++) {
       idxEs_0 = idxEs[i];
       K_tmp[i] = static_cast<int32_T>(idxEs_0);
@@ -79,7 +79,7 @@ void applyGpsPosAndVelCorr_wtI6aFgH(real32_T states[20], const real32_T
     }
 
     // Update the nominal state
-    // 'errorStateEkf_function2:481' states(idxNs2) = states(idxNs2) + errorStateHat(idxEs2); 
+    // 'errorStateEkf_function2:479' states(idxNs2) = states(idxNs2) + errorStateHat(idxEs2); 
     for (i = 0; i < 16; i++) {
       states_0[i] = states[static_cast<int32_T>(idxNs2[i]) - 1] + errorStateHat[
         static_cast<int32_T>(idxEs2[i]) - 1];
@@ -90,20 +90,20 @@ void applyGpsPosAndVelCorr_wtI6aFgH(real32_T states[20], const real32_T
     }
 
     // Construct quaternion from the rotation vector and reset covP
-    // 'errorStateEkf_function2:484' [nomQuat, covP] = updateQuatAndResetCovP(states(1:4), errorStateHat(1:3), covP); 
+    // 'errorStateEkf_function2:482' [nomQuat, covP] = updateQuatAndResetCovP(states(1:4), errorStateHat(1:3), covP); 
     nomQuat[0] = states[0];
     nomQuat[1] = states[1];
     nomQuat[2] = states[2];
     nomQuat[3] = states[3];
     updateQuatAndResetCovP_o483nOwE(nomQuat, &errorStateHat[0], covP);
 
-    // 'errorStateEkf_function2:485' states(1:4) = nomQuat;
+    // 'errorStateEkf_function2:483' states(1:4) = nomQuat;
     states[0] = nomQuat[0];
     states[1] = nomQuat[1];
     states[2] = nomQuat[2];
     states[3] = nomQuat[3];
 
-    // 'errorStateEkf_function2:487' covP(idxEs, idxEs) = (covP(idxEs, idxEs) + covP(idxEs, idxEs)').*0.5; 
+    // 'errorStateEkf_function2:485' covP(idxEs, idxEs) = (covP(idxEs, idxEs) + covP(idxEs, idxEs)').*0.5; 
     for (i = 0; i < 19; i++) {
       for (iS_tmp = 0; iS_tmp < 19; iS_tmp++) {
         covP_1[iS_tmp + 19 * i] = (covP[((K_tmp[i] - 1) * 19 + K_tmp[iS_tmp]) -

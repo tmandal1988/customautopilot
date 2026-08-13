@@ -11,6 +11,18 @@
 
 #include <cstring>
 
+namespace {
+
+// Simulink represents uint64 values as two 32-bit words for this embedded
+// target. Keep the conversion explicit so the generated timestamp inputs use
+// the same low-word-first layout as the autocode's multiword helpers.
+void SetAutocodeTimestampMs(uint64m_T& destination, uint64_t timestamp_ms) {
+  destination.chunks[0] = static_cast<uint32_T>(timestamp_ms);
+  destination.chunks[1] = static_cast<uint32_T>(timestamp_ms >> 32U);
+}
+
+}  // namespace
+
 StateEstimator::StateEstimator(bool register_task)
     : TaskBase("EkfEst250Hz", 11000, osPriorityAboveNormal,
                register_task) {}
@@ -56,6 +68,8 @@ bool StateEstimator::StepOnce(TickType_t scheduled_start_tick,
       state_estimator_autocode_u_.imuData.bodyRates_radps[idx] =
           imu_data_.gyro_radps[idx];
     }
+    SetAutocodeTimestampMs(state_estimator_autocode_u_.imuData.timestamp_ms,
+                           imu_data_.timestamp_ms);
 
     const float curr_imu_time_s =
         static_cast<float>(imu_data_.timestamp_ms) * 0.001F;
@@ -82,6 +96,9 @@ bool StateEstimator::StepOnce(TickType_t scheduled_start_tick,
           state_estimator_autocode_u_.magData.bodyMagVector_uT[idx] =
               mag_data.mag_ut[idx];
         }
+        SetAutocodeTimestampMs(
+            state_estimator_autocode_u_.magData.timestamp_ms,
+            mag_data.timestamp_ms);
         state_estimator_autocode_u_.magData.isMagDataValid = true;
       }
     } else {
@@ -89,12 +106,16 @@ bool StateEstimator::StepOnce(TickType_t scheduled_start_tick,
         state_estimator_autocode_u_.magData.bodyMagVector_uT[idx] =
             imu_data_.mag_ut[idx];
       }
+      SetAutocodeTimestampMs(state_estimator_autocode_u_.magData.timestamp_ms,
+                             imu_data_.timestamp_ms);
       state_estimator_autocode_u_.magData.isMagDataValid = true;
     }
   }
 
   if (baro_sub_.copy(baro_data_)) {
     state_estimator_autocode_u_.baroData.pressure_pa = baro_data_.press_pa;
+    SetAutocodeTimestampMs(state_estimator_autocode_u_.baroData.timestamp_ms,
+                           baro_data_.timestamp_ms);
     state_estimator_autocode_u_.baroData.isBaroDataValid = true;
   } else {
     state_estimator_autocode_u_.baroData.isBaroDataValid = false;
@@ -107,6 +128,8 @@ bool StateEstimator::StepOnce(TickType_t scheduled_start_tick,
     state_estimator_autocode_u_.gpsData.nedVel_mps[0] = gps_data_.vn_mps;
     state_estimator_autocode_u_.gpsData.nedVel_mps[1] = gps_data_.ve_mps;
     state_estimator_autocode_u_.gpsData.nedVel_mps[2] = gps_data_.vd_mps;
+    SetAutocodeTimestampMs(state_estimator_autocode_u_.gpsData.timestamp_ms,
+                           gps_data_.timestamp_ms);
 
     if (gps_data_.fix_type >= 2) {
       state_estimator_autocode_u_.gpsData.isGpsDataValid = true;
@@ -145,6 +168,8 @@ bool StateEstimator::StepOnce(TickType_t scheduled_start_tick,
         mtf01p_data_.flow_quality;
     state_estimator_autocode_u_.mtf01pData.flowStatus =
         mtf01p_data_.flow_status;
+    SetAutocodeTimestampMs(state_estimator_autocode_u_.mtf01pData.timestamp_ms,
+                           mtf01p_data_.timestamp_ms);
     state_estimator_autocode_u_.mtf01pData.isMtf01pDataValid = true;
   } else {
     state_estimator_autocode_u_.mtf01pData.isMtf01pDataValid = false;

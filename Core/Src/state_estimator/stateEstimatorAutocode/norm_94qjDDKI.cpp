@@ -3,15 +3,15 @@
 //
 // Code generated for Simulink model 'stateEstimatorEskf'.
 //
-// Model version                  : 7.7
+// Model version                  : 7.53
 // Simulink Coder version         : 25.1 (R2025a) 21-Nov-2024
-// C/C++ source code generated on : Mon Aug 10 17:43:41 2026
+// C/C++ source code generated on : Thu Aug 13 15:28:24 2026
 //
 #include "rtwtypes.h"
 #include "norm_94qjDDKI.h"
 #include <cmath>
 
-// Function for MATLAB Function: '<S1>/EKF'
+// Function for MATLAB Function: '<S12>/OutputPredictor'
 real32_T norm_94qjDDKI(const real32_T x[3])
 {
   real32_T absxk;

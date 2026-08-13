@@ -1270,7 +1270,6 @@ void ReadUbloxM9nRb::Run() {
 	// A failed/absent InitGps() above starts this at the current tick too, so
 	// the watchdog below fires on schedule instead of assuming success.
 	TickType_t now = xTaskGetTickCount();
-	last_valid_frame_tick_ = now;
 	next_health_due_ = now + pdMS_TO_TICKS(GPS_STALE_TIMEOUT_MS);
 	ConfigureEventMetrics();
     /* Infinite loop */
@@ -1301,33 +1300,36 @@ void ReadUbloxM9nRb::Run() {
 			rx_backlog_pending_ = HasPendingRxBytes();
 			if (packet_complete && packet_.cls == CLASS_NAV &&
 					packet_.id == ID_PVT && packet_.len >= sizeof(UbloxM9nNavPvt)){
-				last_valid_frame_tick_ = xTaskGetTickCount();
-				next_health_due_ = last_valid_frame_tick_ +
-						pdMS_TO_TICKS(GPS_STALE_TIMEOUT_MS);
 				memcpy(&nav_pvt_data_, packet_.payload, sizeof(UbloxM9nNavPvt));
-				gps_data_.i_tow = nav_pvt_data_.i_tow;
-				gps_data_.valid = nav_pvt_data_.valid;
-				gps_data_.fix_type = nav_pvt_data_.fix_type;
-				gps_data_.flags = nav_pvt_data_.flags;
-				gps_data_.latitude_rad = nav_pvt_data_.lat * 1e-7 * DEG2RAD;
-				gps_data_.longitude_rad = nav_pvt_data_.lon * 1e-7 * DEG2RAD;
-				gps_data_.altitude_m = nav_pvt_data_.height * 1e-3;
-				gps_data_.vn_mps = nav_pvt_data_.vel_n * 1e-3;
-				gps_data_.ve_mps = nav_pvt_data_.vel_e * 1e-3;
-				gps_data_.vd_mps = nav_pvt_data_.vel_d * 1e-3;
-				gps_data_.num_sv = nav_pvt_data_.num_sv;
-				gps_data_.g_speed_mps = nav_pvt_data_.g_speed * 1e-3f;
-				gps_data_.cog_deg = nav_pvt_data_.heading * 1e-5f;
-				gps_data_.hacc_m = nav_pvt_data_.h_acc * 1e-3f;
-				gps_data_.vacc_m = nav_pvt_data_.v_acc * 1e-3f;
-				gps_data_.s_acc_mps = nav_pvt_data_.s_acc * 1e-3f;
-				gps_data_.heading_acc_deg = nav_pvt_data_.heading_acc * 1e-5f;
-				gps_data_.p_dop = nav_pvt_data_.p_dop;
-				gps_data_.head_veh_deg = nav_pvt_data_.head_veh * 1e-5;
-				gps_data_.checksum_valid = true;
+				// iTOW identifies the navigation epoch. Keep this sensor-specific
+				// policy at the producer boundary so no downstream consumer can
+				// mistake a replayed epoch for a fresh measurement.
+				if (nav_pvt_i_tow_filter_.Accept(nav_pvt_data_.i_tow)) {
+					next_health_due_ = xTaskGetTickCount() +
+							pdMS_TO_TICKS(GPS_STALE_TIMEOUT_MS);
+					gps_data_.i_tow = nav_pvt_data_.i_tow;
+					gps_data_.valid = nav_pvt_data_.valid;
+					gps_data_.fix_type = nav_pvt_data_.fix_type;
+					gps_data_.flags = nav_pvt_data_.flags;
+					gps_data_.latitude_rad = nav_pvt_data_.lat * 1e-7 * DEG2RAD;
+					gps_data_.longitude_rad = nav_pvt_data_.lon * 1e-7 * DEG2RAD;
+					gps_data_.altitude_m = nav_pvt_data_.height * 1e-3;
+					gps_data_.vn_mps = nav_pvt_data_.vel_n * 1e-3;
+					gps_data_.ve_mps = nav_pvt_data_.vel_e * 1e-3;
+					gps_data_.vd_mps = nav_pvt_data_.vel_d * 1e-3;
+					gps_data_.num_sv = nav_pvt_data_.num_sv;
+					gps_data_.g_speed_mps = nav_pvt_data_.g_speed * 1e-3f;
+					gps_data_.cog_deg = nav_pvt_data_.heading * 1e-5f;
+					gps_data_.hacc_m = nav_pvt_data_.h_acc * 1e-3f;
+					gps_data_.vacc_m = nav_pvt_data_.v_acc * 1e-3f;
+					gps_data_.s_acc_mps = nav_pvt_data_.s_acc * 1e-3f;
+					gps_data_.heading_acc_deg = nav_pvt_data_.heading_acc * 1e-5f;
+					gps_data_.p_dop = nav_pvt_data_.p_dop;
+					gps_data_.head_veh_deg = nav_pvt_data_.head_veh * 1e-5;
+					gps_data_.checksum_valid = true;
 
-				ubloxm9n_pub.publish(gps_data_);
-				new_nav_pvt_frame_ = false;
+					ubloxm9n_pub.publish(gps_data_);
+				}
 			}
 			EndMetricsCycle();
 #if RTOS_METRICS_ENABLE && RTOS_CONTEXT_SWITCH_METRICS_ENABLE
@@ -1337,7 +1339,7 @@ void ReadUbloxM9nRb::Run() {
 #endif
     	}
 
-    	// No valid NAV-PVT for GPS_STALE_TIMEOUT_MS: either the module was
+		// No fresh NAV-PVT epoch for GPS_STALE_TIMEOUT_MS: either the module was
     	// never successfully initialized (InitGps()'s result at boot is
     	// otherwise silently discarded), or it went away later (unplugged, or
     	// wedged past what UART error recovery alone fixes -- EnableNavPvtMsg()
@@ -1350,15 +1352,14 @@ void ReadUbloxM9nRb::Run() {
 			// The multi-second recovery is intentionally outside the bounded
 			// periodic probe; CYCCNT wraps every 8.95 s at 480 MHz.
 			MarkMetricsScheduleDiscontinuity();
-			DEBUG_PRINT("GPS Module: No valid NAV-PVT for %lu ms, reinitializing\n",
+			DEBUG_PRINT("GPS Module: No fresh NAV-PVT for %lu ms, reinitializing\n",
 					(unsigned long)GPS_STALE_TIMEOUT_MS);
 			const bool reinit_status = InitGps(921600U, 40, 1);
 			(void)reinit_status;
 			// Restart the countdown regardless of outcome: a fresh window to
 			// see whether data resumes, rather than retrying every 25 ms tick
 			// while the link stays down.
-			last_valid_frame_tick_ = xTaskGetTickCount();
-			next_health_due_ = last_valid_frame_tick_ +
+			next_health_due_ = xTaskGetTickCount() +
 					pdMS_TO_TICKS(GPS_STALE_TIMEOUT_MS);
 			continue;
 		}

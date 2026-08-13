@@ -6,9 +6,9 @@
 //
 // Code generated for Simulink model 'stateEstimatorEskfAutocode'.
 //
-// Model version                  : 1.47
+// Model version                  : 7.0
 // Simulink Coder version         : 25.1 (R2025a) 21-Nov-2024
-// C/C++ source code generated on : Mon Aug 10 17:44:34 2026
+// C/C++ source code generated on : Thu Aug 13 16:23:17 2026
 //
 // Target selection: ert.tlc
 // Embedded hardware selection: ARM Compatible->ARM Cortex-M
