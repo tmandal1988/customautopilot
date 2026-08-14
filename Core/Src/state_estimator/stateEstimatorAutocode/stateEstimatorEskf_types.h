@@ -5,7 +5,7 @@
 //
 // Model version                  : 7.53
 // Simulink Coder version         : 25.1 (R2025a) 21-Nov-2024
-// C/C++ source code generated on : Thu Aug 13 15:28:24 2026
+// C/C++ source code generated on : Fri Aug 14 07:31:18 2026
 //
 // Target selection: ert.tlc
 // Embedded hardware selection: ARM Compatible->ARM Cortex-M
@@ -533,10 +533,10 @@ struct struct_e9BQKwOo5Wim01SbgNn0F
 
 #endif
 
-#ifndef DEFINED_TYPEDEF_FOR_struct_vLaQwIJ2Vqz5mLwc4gApSE_
-#define DEFINED_TYPEDEF_FOR_struct_vLaQwIJ2Vqz5mLwc4gApSE_
+#ifndef DEFINED_TYPEDEF_FOR_struct_yFxKZKIsAG5otzDoKHACEG_
+#define DEFINED_TYPEDEF_FOR_struct_yFxKZKIsAG5otzDoKHACEG_
 
-struct struct_vLaQwIJ2Vqz5mLwc4gApSE
+struct struct_yFxKZKIsAG5otzDoKHACEG
 {
   uint8_T numStates;
   uint8_T numErrorStates;
@@ -544,6 +544,11 @@ struct struct_vLaQwIJ2Vqz5mLwc4gApSE
   struct_vlrWXdgCyensSoz7WQOtZH nisParams;
   boolean_T useLidar;
   boolean_T useOpticalFlow;
+  uint64m_T magDelay_ms;
+  uint64m_T gpsDelay_ms;
+  uint64m_T baroDelay_ms;
+  uint64m_T lidarDelay_ms;
+  uint64m_T ofDelay_ms;
   struct_B3klaF95tNPEuo89dbikyD stateFifoParams;
   struct_Hz689b8u1yO88NSxvDmUlD imuFifoParams;
   struct_1gioOrskUltZEWezrVP0GF outputPredictorParams;

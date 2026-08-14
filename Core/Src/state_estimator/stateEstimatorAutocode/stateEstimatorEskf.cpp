@@ -5,7 +5,7 @@
 //
 // Model version                  : 7.53
 // Simulink Coder version         : 25.1 (R2025a) 21-Nov-2024
-// C/C++ source code generated on : Thu Aug 13 15:28:24 2026
+// C/C++ source code generated on : Fri Aug 14 07:31:18 2026
 //
 // Target selection: ert.tlc
 // Embedded hardware selection: ARM Compatible->ARM Cortex-M
@@ -34,12 +34,12 @@
 #include "quatToDcm_smxwJjrc.h"
 #include "stateEstimatorEskf_private.h"
 #include "uMultiWordEq.h"
-#include "uMultiWordLe.h"
+#include "uMultiWordGe.h"
 #include "uMultiWord2MultiWord.h"
 #include "MultiWordSub.h"
-#include "uMultiWordGt.h"
 #include "sMultiWord2uMultiWordSat.h"
-#include "uMultiWordGe.h"
+#include "uMultiWordLe.h"
+#include "uMultiWordGt.h"
 #include "uMultiWordLt.h"
 
 // Named constants for Chart: '<Root>/estimatorStateMachine'
@@ -2858,12 +2858,17 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
   int96m_T tmp_6;
   int96m_T tmp_7;
   int96m_T tmp_8;
+  uint64m_T baroTimeIn_ms;
   uint64m_T dhSensorIn_sensorTimestamp_imuT;
-  uint64m_T dhSensorIn_sensorTimestamp_lida;
   uint64m_T dhSensorIn_sensorTimestamp_magT;
   uint64m_T fusionTime_ms;
+  uint64m_T gpsTimeIn_ms;
+  uint64m_T lidarTimeIn_ms;
+  uint64m_T magTimeIn_ms;
+  uint64m_T ofTimeIn_ms;
   uint64m_T tmp_9;
   uint64m_T tmp_a;
+  uint64m_T tmp_b;
   real_T tmp[19];
   real_T tmp_0[16];
   real_T tmp_1[16];
@@ -2885,7 +2890,7 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
   int32_T i_1;
   int32_T i_2;
   int32_T rtb_VectorConcatenate1_tmp;
-  int32_T tmp_b;
+  int32_T tmp_c;
   real32_T b_covP[361];
   real32_T covP[361];
   real32_T tmp_5[225];
@@ -2959,7 +2964,7 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
 
   static const int8_T f[12]{ 5, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18 };
 
-  real32_T tmp_c[46];
+  real32_T tmp_d[46];
   boolean_T exitg1;
   boolean_T guard1;
   boolean_T guard2;
@@ -4117,9 +4122,8 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
   // DELAYEDHORIZONBUFFERMANAGER manages sensor buffers so the ESKF operates
   // at the delayed IMU horizon.
   // 'delayedHorizonBufferManager_function:7' dhSensorIn = sensorIn;
-  //  Delay estimator state-machine mode by fixed GPS delay.
-  // 'delayedHorizonBufferManager_function:10' [stateModeReady, delayedEstSmMode, ~] = ... 
-  // 'delayedHorizonBufferManager_function:11'     stateFifo(estSmMode, ekfParams.stateFifoParams); 
+  // 'delayedHorizonBufferManager_function:9' [stateModeReady, delayedEstSmMode, ~] = ... 
+  // 'delayedHorizonBufferManager_function:10'     stateFifo(estSmMode, ekfParams.stateFifoParams); 
   //
   //  Fixed-memory estimator-state delay FIFO.
   //
@@ -4345,21 +4349,22 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
     // 'stateFifo:179' countOut = count;
   }
 
-  // 'delayedHorizonBufferManager_function:13' if stateModeReady
+  // 'delayedHorizonBufferManager_function:12' if stateModeReady
   if (stateModeReady) {
-    // 'delayedHorizonBufferManager_function:14' estSmModeOut = delayedEstSmMode; 
+    // 'delayedHorizonBufferManager_function:13' estSmModeOut = delayedEstSmMode; 
     mode = delayedEstSmMode;
   } else {
-    // 'delayedHorizonBufferManager_function:15' else
-    // 'delayedHorizonBufferManager_function:16' estSmModeOut = estSmMode;
+    // 'delayedHorizonBufferManager_function:14' else
+    // 'delayedHorizonBufferManager_function:15' estSmModeOut = estSmMode;
   }
 
-  //  IMU delay FIFO.
-  // 'delayedHorizonBufferManager_function:20' [imuReady, imuTimeOut_ms, imuOut, ~, ~] = ... 
-  // 'delayedHorizonBufferManager_function:21'     imuFifo(sensorIn.sensorValidity.isImuValid, ... 
-  // 'delayedHorizonBufferManager_function:22'             sensorIn.sensorTimestamp.imuTimestamp_ms, ... 
-  // 'delayedHorizonBufferManager_function:23'             [sensorIn.bodyAccels_mps2; sensorIn.bodyRates_radps; ... 
-  // 'delayedHorizonBufferManager_function:24'             sensorIn.dtImuTime_s], ekfParams.imuFifoParams); 
+  // 'delayedHorizonBufferManager_function:18' [imuReady, imuTimeOut_ms, imuOut, ~, ~] = ... 
+  // 'delayedHorizonBufferManager_function:19'     imuFifo(sensorIn.sensorValidity.isImuValid, ... 
+  // 'delayedHorizonBufferManager_function:20'             sensorIn.sensorTimestamp.imuTimestamp_ms, ... 
+  // 'delayedHorizonBufferManager_function:21'             [sensorIn.bodyAccels_mps2; ... 
+  // 'delayedHorizonBufferManager_function:22'              sensorIn.bodyRates_radps; ... 
+  // 'delayedHorizonBufferManager_function:23'              sensorIn.dtImuTime_s], ... 
+  // 'delayedHorizonBufferManager_function:24'             ekfParams.imuFifoParams); 
   //
   //  Fixed-memory IMU delay FIFO for delayed-horizon ESKF propagation.
   //
@@ -4632,28 +4637,118 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
   // 'delayedHorizonBufferManager_function:28' dhSensorIn.bodyAccels_mps2 = imuOut(1:3); 
   // 'delayedHorizonBufferManager_function:29' dhSensorIn.bodyRates_radps = imuOut(4:6); 
   // 'delayedHorizonBufferManager_function:30' dhSensorIn.dtImuTime_s = imuOut(7); 
-  //  The delayed IMU timestamp is the authoritative fusion horizon.
-  //  During IMU FIFO priming, use zero so aiding FIFOs continue buffering but
-  //  do not release normal positive-timestamp measurements.
-  // 'delayedHorizonBufferManager_function:35' if imuReady
+  // 'delayedHorizonBufferManager_function:32' if imuReady
   if (static_cast<boolean_T>(static_cast<int32_T>(stateModeReady) ^ 1)) {
-    // 'delayedHorizonBufferManager_function:37' else
-    // 'delayedHorizonBufferManager_function:38' fusionTime_ms = uint64(0);
+    // 'delayedHorizonBufferManager_function:34' else
+    // 'delayedHorizonBufferManager_function:35' fusionTime_ms = uint64(0);
     fusionTime_ms = dhSensorIn_sensorTimestamp_ma_0;
   } else {
-    // 'delayedHorizonBufferManager_function:36' fusionTime_ms = imuTimeOut_ms;
+    // 'delayedHorizonBufferManager_function:33' fusionTime_ms = imuTimeOut_ms;
   }
 
-  //  Magnetometer FIFO.
-  // 'delayedHorizonBufferManager_function:42' [magReady, magTimeOut_ms, magOut_uT, ~, ~] = ... 
-  // 'delayedHorizonBufferManager_function:43'     magFifo(sensorIn.sensorValidity.isMagValid, ... 
-  // 'delayedHorizonBufferManager_function:44'             sensorIn.sensorTimestamp.magTimestamp_ms, ... 
-  // 'delayedHorizonBufferManager_function:45'             sensorIn.normMagVec_nd, ... 
-  // 'delayedHorizonBufferManager_function:46'             fusionTime_ms, reset, ... 
-  // 'delayedHorizonBufferManager_function:47'             ekfParams.magFifoParams); 
+  // 'delayedHorizonBufferManager_function:38' magDelay_ms   = ekfParams.magDelay_ms; 
+  // 'delayedHorizonBufferManager_function:39' gpsDelay_ms   = ekfParams.gpsDelay_ms; 
+  // 'delayedHorizonBufferManager_function:40' baroDelay_ms  = ekfParams.baroDelay_ms; 
+  // 'delayedHorizonBufferManager_function:41' lidarDelay_ms = ekfParams.lidarDelay_ms; 
+  // 'delayedHorizonBufferManager_function:42' ofDelay_ms    = ekfParams.ofDelay_ms; 
+  // 'delayedHorizonBufferManager_function:44' if sensorIn.sensorTimestamp.magTimestamp_ms >= magDelay_ms 
+  if (uMultiWordGe(&rtu_magData->timestamp_ms.chunks[0U],
+                   &stateEstimatorEskf_ConstP.DelayedHorizonBufferManager_ekf.magDelay_ms.chunks
+                   [0], 2)) {
+    // 'delayedHorizonBufferManager_function:45' magTimeIn_ms = sensorIn.sensorTimestamp.magTimestamp_ms - magDelay_ms; 
+    uMultiWord2MultiWord(&rtu_magData->timestamp_ms.chunks[0U], 2,
+                         &tmp_7.chunks[0U], 3);
+    uMultiWord2MultiWord
+      (&stateEstimatorEskf_ConstP.DelayedHorizonBufferManager_ekf.magDelay_ms.chunks
+       [0], 2, &tmp_8.chunks[0U], 3);
+    MultiWordSub(&tmp_7.chunks[0U], &tmp_8.chunks[0U], &tmp_6.chunks[0U], 3);
+    sMultiWord2uMultiWordSat(&tmp_6.chunks[0U], 3, &magTimeIn_ms.chunks[0U], 2);
+  } else {
+    // 'delayedHorizonBufferManager_function:46' else
+    // 'delayedHorizonBufferManager_function:47' magTimeIn_ms = uint64(0);
+    magTimeIn_ms = dhSensorIn_sensorTimestamp_ma_0;
+  }
+
+  // 'delayedHorizonBufferManager_function:50' if sensorIn.sensorTimestamp.gpsTimestamp_ms >= gpsDelay_ms 
+  if (uMultiWordGe(&rtu_gpsData->timestamp_ms.chunks[0U],
+                   &stateEstimatorEskf_ConstP.DelayedHorizonBufferManager_ekf.gpsDelay_ms.chunks
+                   [0], 2)) {
+    // 'delayedHorizonBufferManager_function:51' gpsTimeIn_ms = sensorIn.sensorTimestamp.gpsTimestamp_ms - gpsDelay_ms; 
+    uMultiWord2MultiWord(&rtu_gpsData->timestamp_ms.chunks[0U], 2,
+                         &tmp_7.chunks[0U], 3);
+    uMultiWord2MultiWord
+      (&stateEstimatorEskf_ConstP.DelayedHorizonBufferManager_ekf.gpsDelay_ms.chunks
+       [0], 2, &tmp_8.chunks[0U], 3);
+    MultiWordSub(&tmp_7.chunks[0U], &tmp_8.chunks[0U], &tmp_6.chunks[0U], 3);
+    sMultiWord2uMultiWordSat(&tmp_6.chunks[0U], 3, &gpsTimeIn_ms.chunks[0U], 2);
+  } else {
+    // 'delayedHorizonBufferManager_function:52' else
+    // 'delayedHorizonBufferManager_function:53' gpsTimeIn_ms = uint64(0);
+    gpsTimeIn_ms = dhSensorIn_sensorTimestamp_ma_0;
+  }
+
+  // 'delayedHorizonBufferManager_function:56' if sensorIn.sensorTimestamp.baroTimestamp_ms >= baroDelay_ms 
+  if (uMultiWordGe(&rtu_baroData->timestamp_ms.chunks[0U],
+                   &stateEstimatorEskf_ConstP.DelayedHorizonBufferManager_ekf.baroDelay_ms.chunks
+                   [0], 2)) {
+    // 'delayedHorizonBufferManager_function:57' baroTimeIn_ms = sensorIn.sensorTimestamp.baroTimestamp_ms - baroDelay_ms; 
+    uMultiWord2MultiWord(&rtu_baroData->timestamp_ms.chunks[0U], 2,
+                         &tmp_7.chunks[0U], 3);
+    uMultiWord2MultiWord
+      (&stateEstimatorEskf_ConstP.DelayedHorizonBufferManager_ekf.baroDelay_ms.chunks
+       [0], 2, &tmp_8.chunks[0U], 3);
+    MultiWordSub(&tmp_7.chunks[0U], &tmp_8.chunks[0U], &tmp_6.chunks[0U], 3);
+    sMultiWord2uMultiWordSat(&tmp_6.chunks[0U], 3, &baroTimeIn_ms.chunks[0U], 2);
+  } else {
+    // 'delayedHorizonBufferManager_function:58' else
+    // 'delayedHorizonBufferManager_function:59' baroTimeIn_ms = uint64(0);
+    baroTimeIn_ms = dhSensorIn_sensorTimestamp_ma_0;
+  }
+
+  // 'delayedHorizonBufferManager_function:62' if sensorIn.sensorTimestamp.lidarTimestamp_ms >= lidarDelay_ms 
+  if (uMultiWordGe(&rtu_lidarData->timestamp_ms.chunks[0U],
+                   &stateEstimatorEskf_ConstP.DelayedHorizonBufferManager_ekf.lidarDelay_ms.chunks
+                   [0], 2)) {
+    // 'delayedHorizonBufferManager_function:63' lidarTimeIn_ms = sensorIn.sensorTimestamp.lidarTimestamp_ms - lidarDelay_ms; 
+    uMultiWord2MultiWord(&rtu_lidarData->timestamp_ms.chunks[0U], 2,
+                         &tmp_7.chunks[0U], 3);
+    uMultiWord2MultiWord
+      (&stateEstimatorEskf_ConstP.DelayedHorizonBufferManager_ekf.lidarDelay_ms.chunks
+       [0], 2, &tmp_8.chunks[0U], 3);
+    MultiWordSub(&tmp_7.chunks[0U], &tmp_8.chunks[0U], &tmp_6.chunks[0U], 3);
+    sMultiWord2uMultiWordSat(&tmp_6.chunks[0U], 3, &lidarTimeIn_ms.chunks[0U], 2);
+  } else {
+    // 'delayedHorizonBufferManager_function:64' else
+    // 'delayedHorizonBufferManager_function:65' lidarTimeIn_ms = uint64(0);
+    lidarTimeIn_ms = dhSensorIn_sensorTimestamp_ma_0;
+  }
+
+  // 'delayedHorizonBufferManager_function:68' if sensorIn.sensorTimestamp.ofTimestamp_ms >= ofDelay_ms 
+  if (uMultiWordGe(&rtu_mtf01pData->timestamp_ms.chunks[0U],
+                   &stateEstimatorEskf_ConstP.DelayedHorizonBufferManager_ekf.ofDelay_ms.chunks
+                   [0], 2)) {
+    // 'delayedHorizonBufferManager_function:69' ofTimeIn_ms = sensorIn.sensorTimestamp.ofTimestamp_ms - ofDelay_ms; 
+    uMultiWord2MultiWord(&rtu_mtf01pData->timestamp_ms.chunks[0U], 2,
+                         &tmp_7.chunks[0U], 3);
+    uMultiWord2MultiWord
+      (&stateEstimatorEskf_ConstP.DelayedHorizonBufferManager_ekf.ofDelay_ms.chunks
+       [0], 2, &tmp_8.chunks[0U], 3);
+    MultiWordSub(&tmp_7.chunks[0U], &tmp_8.chunks[0U], &tmp_6.chunks[0U], 3);
+    sMultiWord2uMultiWordSat(&tmp_6.chunks[0U], 3, &ofTimeIn_ms.chunks[0U], 2);
+  } else {
+    // 'delayedHorizonBufferManager_function:70' else
+    // 'delayedHorizonBufferManager_function:71' ofTimeIn_ms = uint64(0);
+    ofTimeIn_ms = dhSensorIn_sensorTimestamp_ma_0;
+  }
+
+  // 'delayedHorizonBufferManager_function:74' [magReady, magTimeOut_ms, magOut_uT, ~, ~] = ... 
+  // 'delayedHorizonBufferManager_function:75'     magFifo(sensorIn.sensorValidity.isMagValid, ... 
+  // 'delayedHorizonBufferManager_function:76'             magTimeIn_ms, ...
+  // 'delayedHorizonBufferManager_function:77'             sensorIn.normMagVec_nd, ... 
+  // 'delayedHorizonBufferManager_function:78'             fusionTime_ms, reset, ... 
+  // 'delayedHorizonBufferManager_function:79'             ekfParams.magFifoParams); 
   stateEstimatorEskf_magFifo
-    (stateEstimatorEskf_DW.sensorDataOut.sensorValidity.isMagValid,
-     rtu_magData->timestamp_ms,
+    (stateEstimatorEskf_DW.sensorDataOut.sensorValidity.isMagValid, magTimeIn_ms,
      stateEstimatorEskf_DW.sensorDataOut.normMagVec_nd, fusionTime_ms,
      stateEstimatorEskf_DW.resetStates,
      stateEstimatorEskf_ConstP.DelayedHorizonBufferManager_ekf.magFifoParams.capacity,
@@ -4663,17 +4758,16 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
      &dhSensorIn_sensorValidity_isMag, &dhSensorIn_sensorTimestamp_magT, Divide,
      &a__4, &nextIdx);
 
-  // 'delayedHorizonBufferManager_function:49' dhSensorIn.sensorValidity.isMagValid = magReady; 
-  // 'delayedHorizonBufferManager_function:50' dhSensorIn.sensorTimestamp.magTimestamp_ms = magTimeOut_ms; 
-  // 'delayedHorizonBufferManager_function:51' dhSensorIn.normMagVec_nd = magOut_uT; 
-  //  GPS FIFO.
-  // 'delayedHorizonBufferManager_function:54' [gpsReady, gpsTimeOut_ms, posVelOut, ~, ~] = ... 
-  // 'delayedHorizonBufferManager_function:55'     gpsFifo(sensorIn.sensorValidity.isGpsValid, ... 
-  // 'delayedHorizonBufferManager_function:56'             sensorIn.sensorTimestamp.gpsTimestamp_ms, ... 
-  // 'delayedHorizonBufferManager_function:57'             [sensorIn.nedPosAndVel.pos_m; ... 
-  // 'delayedHorizonBufferManager_function:58'              sensorIn.nedPosAndVel.vel_mps], ... 
-  // 'delayedHorizonBufferManager_function:59'             fusionTime_ms, reset, ... 
-  // 'delayedHorizonBufferManager_function:60'             ekfParams.gpsFifoParams); 
+  // 'delayedHorizonBufferManager_function:81' dhSensorIn.sensorValidity.isMagValid = magReady; 
+  // 'delayedHorizonBufferManager_function:82' dhSensorIn.sensorTimestamp.magTimestamp_ms = magTimeOut_ms; 
+  // 'delayedHorizonBufferManager_function:83' dhSensorIn.normMagVec_nd = magOut_uT; 
+  // 'delayedHorizonBufferManager_function:85' [gpsReady, gpsTimeOut_ms, posVelOut, ~, ~] = ... 
+  // 'delayedHorizonBufferManager_function:86'     gpsFifo(sensorIn.sensorValidity.isGpsValid, ... 
+  // 'delayedHorizonBufferManager_function:87'             gpsTimeIn_ms, ...
+  // 'delayedHorizonBufferManager_function:88'             [sensorIn.nedPosAndVel.pos_m; ... 
+  // 'delayedHorizonBufferManager_function:89'              sensorIn.nedPosAndVel.vel_mps], ... 
+  // 'delayedHorizonBufferManager_function:90'             fusionTime_ms, reset, ... 
+  // 'delayedHorizonBufferManager_function:91'             ekfParams.gpsFifoParams); 
   rtb_CastToSingle_0[0] = static_cast<real32_T>(rtb_nedPos_m_idx_0);
   rtb_CastToSingle_0[1] = static_cast<real32_T>(nRef);
   rtb_CastToSingle_0[2] = static_cast<real32_T>(rtb_nedPos_m_idx_2) +
@@ -4682,27 +4776,25 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
   rtb_CastToSingle_0[4] = rtu_gpsData->nedVel_mps[1];
   rtb_CastToSingle_0[5] = rtu_gpsData->nedVel_mps[2];
   stateEstimatorEskf_gpsFifo
-    (stateEstimatorEskf_DW.sensorDataOut.sensorValidity.isGpsValid,
-     rtu_gpsData->timestamp_ms, rtb_CastToSingle_0, fusionTime_ms,
-     stateEstimatorEskf_DW.resetStates,
+    (stateEstimatorEskf_DW.sensorDataOut.sensorValidity.isGpsValid, gpsTimeIn_ms,
+     rtb_CastToSingle_0, fusionTime_ms, stateEstimatorEskf_DW.resetStates,
      stateEstimatorEskf_ConstP.DelayedHorizonBufferManager_ekf.gpsFifoParams.capacity,
      stateEstimatorEskf_ConstP.DelayedHorizonBufferManager_ekf.gpsFifoParams.minInterval_ms,
      stateEstimatorEskf_ConstP.DelayedHorizonBufferManager_ekf.gpsFifoParams.maxAge_ms,
      stateEstimatorEskf_ConstP.DelayedHorizonBufferManager_ekf.gpsFifoParams.resetThreshold_ms,
-     &dhSensorIn_sensorValidity_isGps, &dhSensorIn_sensorTimestamp_magT,
-     rtb_ElementProduct, &a__4, &nextIdx);
+     &dhSensorIn_sensorValidity_isGps, &magTimeIn_ms, rtb_ElementProduct, &a__4,
+     &nextIdx);
 
-  // 'delayedHorizonBufferManager_function:62' dhSensorIn.sensorValidity.isGpsValid = gpsReady; 
-  // 'delayedHorizonBufferManager_function:63' dhSensorIn.sensorTimestamp.gpsTimestamp_ms = gpsTimeOut_ms; 
-  // 'delayedHorizonBufferManager_function:64' dhSensorIn.nedPosAndVel.pos_m = posVelOut(1:3); 
-  // 'delayedHorizonBufferManager_function:65' dhSensorIn.nedPosAndVel.vel_mps = posVelOut(4:6); 
-  //  Barometer FIFO.
-  // 'delayedHorizonBufferManager_function:68' [baroReady, baroTimeOut_ms, baroAltOut_m, ~, ~] = ... 
-  // 'delayedHorizonBufferManager_function:69'     baroFifo(sensorIn.sensorValidity.isBaroValid, ... 
-  // 'delayedHorizonBufferManager_function:70'              sensorIn.sensorTimestamp.baroTimestamp_ms, ... 
-  // 'delayedHorizonBufferManager_function:71'              sensorIn.baroAlt_m, ... 
-  // 'delayedHorizonBufferManager_function:72'              fusionTime_ms, reset, ... 
-  // 'delayedHorizonBufferManager_function:73'              ekfParams.baroFifoParams); 
+  // 'delayedHorizonBufferManager_function:93' dhSensorIn.sensorValidity.isGpsValid = gpsReady; 
+  // 'delayedHorizonBufferManager_function:94' dhSensorIn.sensorTimestamp.gpsTimestamp_ms = gpsTimeOut_ms; 
+  // 'delayedHorizonBufferManager_function:95' dhSensorIn.nedPosAndVel.pos_m = posVelOut(1:3); 
+  // 'delayedHorizonBufferManager_function:96' dhSensorIn.nedPosAndVel.vel_mps = posVelOut(4:6); 
+  // 'delayedHorizonBufferManager_function:98' [baroReady, baroTimeOut_ms, baroAltOut_m, ~, ~] = ... 
+  // 'delayedHorizonBufferManager_function:99'     baroFifo(sensorIn.sensorValidity.isBaroValid, ... 
+  // 'delayedHorizonBufferManager_function:100'              baroTimeIn_ms, ...
+  // 'delayedHorizonBufferManager_function:101'              sensorIn.baroAlt_m, ... 
+  // 'delayedHorizonBufferManager_function:102'              fusionTime_ms, reset, ... 
+  // 'delayedHorizonBufferManager_function:103'              ekfParams.baroFifoParams); 
   //
   //  Barometer fixed-memory FIFO for delayed-horizon ESKF fusion.
   //
@@ -4801,7 +4893,7 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
       //  Barometer timestamps must normally increase monotonically.
       // 'baroFifo:106' if haveLastPushTime && baroTimeIn_ms <= lastPushTime_ms
       if (static_cast<boolean_T>(stateEstimatorEskf_DW.haveLastPushTime_p &
-           uMultiWordLe(&rtu_baroData->timestamp_ms.chunks[0U],
+           uMultiWordLe(&baroTimeIn_ms.chunks[0U],
                         &stateEstimatorEskf_DW.lastPushTime_ms_g.chunks[0U], 2)))
       {
         // 'baroFifo:107' backwardsJump_ms = lastPushTime_ms - baroTimeIn_ms;
@@ -4810,15 +4902,13 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
         // 'baroFifo:111'                 backwardsJump_ms >= timeResetThreshold_ms 
         uMultiWord2MultiWord(&stateEstimatorEskf_DW.lastPushTime_ms_g.chunks[0U],
                              2, &tmp_7.chunks[0U], 3);
-        uMultiWord2MultiWord(&rtu_baroData->timestamp_ms.chunks[0U], 2,
-                             &tmp_8.chunks[0U], 3);
+        uMultiWord2MultiWord(&baroTimeIn_ms.chunks[0U], 2, &tmp_8.chunks[0U], 3);
         MultiWordSub(&tmp_7.chunks[0U], &tmp_8.chunks[0U], &tmp_6.chunks[0U], 3);
-        sMultiWord2uMultiWordSat(&tmp_6.chunks[0U], 3,
-          &dhSensorIn_sensorTimestamp_lida.chunks[0U], 2);
+        sMultiWord2uMultiWordSat(&tmp_6.chunks[0U], 3, &tmp_9.chunks[0U], 2);
         if (static_cast<boolean_T>(uMultiWordGt
              (&stateEstimatorEskf_ConstP.DelayedHorizonBufferManager_ekf.baroFifoParams.resetThreshold_ms.chunks
               [0], &dhSensorIn_sensorTimestamp_ma_0.chunks[0U], 2) &
-             uMultiWordGe(&dhSensorIn_sensorTimestamp_lida.chunks[0U],
+             uMultiWordGe(&tmp_9.chunks[0U],
                           &stateEstimatorEskf_ConstP.DelayedHorizonBufferManager_ekf.baroFifoParams.resetThreshold_ms.chunks
                           [0], 2))) {
           // 'baroFifo:112' head = uint16(1);
@@ -4856,14 +4946,13 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
       //  minObsInterval_ms == 0 disables throttling.
       // 'baroFifo:127' if haveLastPushTime && ...
       // 'baroFifo:128'             (baroTimeIn_ms - lastPushTime_ms) < minObsInterval_ms 
-      uMultiWord2MultiWord(&rtu_baroData->timestamp_ms.chunks[0U], 2,
-                           &tmp_7.chunks[0U], 3);
+      uMultiWord2MultiWord(&baroTimeIn_ms.chunks[0U], 2, &tmp_7.chunks[0U], 3);
       uMultiWord2MultiWord(&stateEstimatorEskf_DW.lastPushTime_ms_g.chunks[0U],
                            2, &tmp_8.chunks[0U], 3);
       MultiWordSub(&tmp_7.chunks[0U], &tmp_8.chunks[0U], &tmp_6.chunks[0U], 3);
-      sMultiWord2uMultiWordSat(&tmp_6.chunks[0U], 3, &tmp_9.chunks[0U], 2);
+      sMultiWord2uMultiWordSat(&tmp_6.chunks[0U], 3, &tmp_a.chunks[0U], 2);
       if (static_cast<boolean_T>(stateEstimatorEskf_DW.haveLastPushTime_p &
-           uMultiWordLt(&tmp_9.chunks[0U],
+           uMultiWordLt(&tmp_a.chunks[0U],
                         &stateEstimatorEskf_ConstP.DelayedHorizonBufferManager_ekf.baroFifoParams.minInterval_ms.chunks
                         [0], 2))) {
       } else {
@@ -4872,7 +4961,7 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
         //  Store barometric altitude and its measurement timestamp.
         // 'baroFifo:136' timeBuf_ms(head) = baroTimeIn_ms;
         stateEstimatorEskf_DW.timeBuf_ms_o[stateEstimatorEskf_DW.head_c - 1] =
-          rtu_baroData->timestamp_ms;
+          baroTimeIn_ms;
 
         // 'baroFifo:137' altitudeBuf_m(head) = altitudeIn_m;
         stateEstimatorEskf_DW.altitudeBuf_m[stateEstimatorEskf_DW.head_c - 1] =
@@ -4931,7 +5020,7 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
 
         //  Update timestamp history only for measurements actually accepted.
         // 'baroFifo:168' lastPushTime_ms = baroTimeIn_ms;
-        stateEstimatorEskf_DW.lastPushTime_ms_g = rtu_baroData->timestamp_ms;
+        stateEstimatorEskf_DW.lastPushTime_ms_g = baroTimeIn_ms;
 
         // 'baroFifo:169' haveLastPushTime = true;
         stateEstimatorEskf_DW.haveLastPushTime_p = true;
@@ -5020,8 +5109,8 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
              1].chunks[0U], 2, &tmp_8.chunks[0U], 3);
           MultiWordSub(&tmp_7.chunks[0U], &tmp_8.chunks[0U], &tmp_6.chunks[0U],
                        3);
-          sMultiWord2uMultiWordSat(&tmp_6.chunks[0U], 3, &tmp_a.chunks[0U], 2);
-          if (uMultiWordGe(&tmp_a.chunks[0U],
+          sMultiWord2uMultiWordSat(&tmp_6.chunks[0U], 3, &tmp_b.chunks[0U], 2);
+          if (uMultiWordGe(&tmp_b.chunks[0U],
                            &stateEstimatorEskf_ConstP.DelayedHorizonBufferManager_ekf.baroFifoParams.maxAge_ms.chunks
                            [0], 2)) {
             // 'baroFifo:221' if tail == capacity
@@ -5101,41 +5190,39 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
     }
   }
 
-  // 'delayedHorizonBufferManager_function:75' dhSensorIn.sensorValidity.isBaroValid = baroReady; 
-  // 'delayedHorizonBufferManager_function:76' dhSensorIn.sensorTimestamp.baroTimestamp_ms = baroTimeOut_ms; 
-  // 'delayedHorizonBufferManager_function:77' dhSensorIn.baroAlt_m = baroAltOut_m; 
-  //  Lidar FIFO.
-  // 'delayedHorizonBufferManager_function:80' [lidarReady, lidarTimeOut_ms, lidarAglOut_m, ~, ~] = ... 
-  // 'delayedHorizonBufferManager_function:81'     lidarFifo(sensorIn.sensorValidity.isLidarValid, ... 
-  // 'delayedHorizonBufferManager_function:82'               sensorIn.sensorTimestamp.lidarTimestamp_ms, ... 
-  // 'delayedHorizonBufferManager_function:83'               sensorIn.lidarAgl_m, ... 
-  // 'delayedHorizonBufferManager_function:84'               fusionTime_ms, reset, ... 
-  // 'delayedHorizonBufferManager_function:85'               ekfParams.lidarFifoParams); 
+  // 'delayedHorizonBufferManager_function:105' dhSensorIn.sensorValidity.isBaroValid = baroReady; 
+  // 'delayedHorizonBufferManager_function:106' dhSensorIn.sensorTimestamp.baroTimestamp_ms = baroTimeOut_ms; 
+  // 'delayedHorizonBufferManager_function:107' dhSensorIn.baroAlt_m = baroAltOut_m; 
+  // 'delayedHorizonBufferManager_function:109' [lidarReady, lidarTimeOut_ms, lidarAglOut_m, ~, ~] = ... 
+  // 'delayedHorizonBufferManager_function:110'     lidarFifo(sensorIn.sensorValidity.isLidarValid, ... 
+  // 'delayedHorizonBufferManager_function:111'               lidarTimeIn_ms, ... 
+  // 'delayedHorizonBufferManager_function:112'               sensorIn.lidarAgl_m, ... 
+  // 'delayedHorizonBufferManager_function:113'               fusionTime_ms, reset, ... 
+  // 'delayedHorizonBufferManager_function:114'               ekfParams.lidarFifoParams); 
   stateEstimatorEskf_lidarFifo(static_cast<boolean_T>(static_cast<boolean_T>
     (rtu_lidarData->isLidarDataValid & rtu_lidarData->isLidarInitialized) &
     static_cast<boolean_T>((rtu_lidarData->range_m >=
     rtu_lidarParams->validRange_m[0]) & (rtu_lidarData->range_m <=
-    rtu_lidarParams->validRange_m[1]))), rtu_lidarData->timestamp_ms,
-    rtb_Product2_c * rtu_lidarData->range_m - (rtu_lidarParams->yMntOff_m * -std::
-    sin(stateEstimatorEskf_DW.UnitDelay1_DSTATE[0]) + rtu_lidarParams->zMntOff_m
-    * rtb_Product2_c), fusionTime_ms, stateEstimatorEskf_DW.resetStates,
+    rtu_lidarParams->validRange_m[1]))), lidarTimeIn_ms, rtb_Product2_c *
+    rtu_lidarData->range_m - (rtu_lidarParams->yMntOff_m * -std::sin
+    (stateEstimatorEskf_DW.UnitDelay1_DSTATE[0]) + rtu_lidarParams->zMntOff_m *
+    rtb_Product2_c), fusionTime_ms, stateEstimatorEskf_DW.resetStates,
     stateEstimatorEskf_ConstP.DelayedHorizonBufferManager_ekf.lidarFifoParams.capacity,
     stateEstimatorEskf_ConstP.DelayedHorizonBufferManager_ekf.lidarFifoParams.minInterval_ms,
     stateEstimatorEskf_ConstP.DelayedHorizonBufferManager_ekf.lidarFifoParams.maxAge_ms,
     stateEstimatorEskf_ConstP.DelayedHorizonBufferManager_ekf.lidarFifoParams.resetThreshold_ms,
-    &dhSensorIn_sensorValidity_isLid, &dhSensorIn_sensorTimestamp_lida,
-    &rtb_Product1_b, &a__4, &nextIdx);
+    &dhSensorIn_sensorValidity_isLid, &gpsTimeIn_ms, &rtb_Product1_b, &a__4,
+    &nextIdx);
 
-  // 'delayedHorizonBufferManager_function:87' dhSensorIn.sensorValidity.isLidarValid = lidarReady; 
-  // 'delayedHorizonBufferManager_function:88' dhSensorIn.sensorTimestamp.lidarTimestamp_ms = lidarTimeOut_ms; 
-  // 'delayedHorizonBufferManager_function:89' dhSensorIn.lidarAgl_m = lidarAglOut_m; 
-  //  Optical-flow FIFO.
-  // 'delayedHorizonBufferManager_function:92' [ofReady, ofTimeOut_ms, ofNeVelOut_mps, ~, ~] = ... 
-  // 'delayedHorizonBufferManager_function:93'     flowFifo(sensorIn.sensorValidity.isOfValid, ... 
-  // 'delayedHorizonBufferManager_function:94'              sensorIn.sensorTimestamp.ofTimestamp_ms, ... 
-  // 'delayedHorizonBufferManager_function:95'              sensorIn.ofNeVel_mps, ... 
-  // 'delayedHorizonBufferManager_function:96'              fusionTime_ms, reset, ... 
-  // 'delayedHorizonBufferManager_function:97'              ekfParams.flowFifoParams); 
+  // 'delayedHorizonBufferManager_function:116' dhSensorIn.sensorValidity.isLidarValid = lidarReady; 
+  // 'delayedHorizonBufferManager_function:117' dhSensorIn.sensorTimestamp.lidarTimestamp_ms = lidarTimeOut_ms; 
+  // 'delayedHorizonBufferManager_function:118' dhSensorIn.lidarAgl_m = lidarAglOut_m; 
+  // 'delayedHorizonBufferManager_function:120' [ofReady, ofTimeOut_ms, ofNeVelOut_mps, ~, ~] = ... 
+  // 'delayedHorizonBufferManager_function:121'     flowFifo(sensorIn.sensorValidity.isOfValid, ... 
+  // 'delayedHorizonBufferManager_function:122'              ofTimeIn_ms, ...
+  // 'delayedHorizonBufferManager_function:123'              sensorIn.ofNeVel_mps, ... 
+  // 'delayedHorizonBufferManager_function:124'              fusionTime_ms, reset, ... 
+  // 'delayedHorizonBufferManager_function:125'              ekfParams.flowFifoParams); 
   stateEstimatorEskf_flowFifo(static_cast<boolean_T>(static_cast<boolean_T>(
     static_cast<boolean_T>(static_cast<boolean_T>(static_cast<boolean_T>(
     static_cast<boolean_T>((rtu_mtf01pData->distPrecision <=
@@ -5143,14 +5230,14 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
     (rtu_mtf01pData->dist_m > rtu_mtf01pParams->distLimit_m[0])) &
     (rtu_mtf01pData->dist_m < rtu_mtf01pParams->distLimit_m[1])) &
     (rtu_mtf01pData->flowStatus == 1)) & rtu_mtf01pData->isMtf01pDataValid) &
-    rtu_stateEstSmParams->useOpticalFlow), rtu_mtf01pData->timestamp_ms,
-    rtb_VectorConcatenate_i, fusionTime_ms, stateEstimatorEskf_DW.resetStates,
+    rtu_stateEstSmParams->useOpticalFlow), ofTimeIn_ms, rtb_VectorConcatenate_i,
+    fusionTime_ms, stateEstimatorEskf_DW.resetStates,
     stateEstimatorEskf_ConstP.DelayedHorizonBufferManager_ekf.flowFifoParams.capacity,
     stateEstimatorEskf_ConstP.DelayedHorizonBufferManager_ekf.flowFifoParams.minInterval_ms,
     stateEstimatorEskf_ConstP.DelayedHorizonBufferManager_ekf.flowFifoParams.maxAge_ms,
     stateEstimatorEskf_ConstP.DelayedHorizonBufferManager_ekf.flowFifoParams.resetThreshold_ms,
-    &dhSensorIn_sensorValidity_isOfV, &dhSensorIn_sensorTimestamp_lida,
-    rtb_VectorConcatenate_k2, &a__4, &nextIdx);
+    &dhSensorIn_sensorValidity_isOfV, &lidarTimeIn_ms, rtb_VectorConcatenate_k2,
+    &a__4, &nextIdx);
 
   // MATLAB Function: '<S1>/EKF' incorporates:
   //   BusAssignment: '<Root>/Bus Assignment'
@@ -5159,9 +5246,9 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
   //   Delay: '<S1>/Delay2'
   //   MATLAB Function: '<S13>/DelayedHorizonBufferManager'
 
-  // 'delayedHorizonBufferManager_function:99' dhSensorIn.sensorValidity.isOfValid = ofReady; 
-  // 'delayedHorizonBufferManager_function:100' dhSensorIn.sensorTimestamp.ofTimestamp_ms = ofTimeOut_ms; 
-  // 'delayedHorizonBufferManager_function:101' dhSensorIn.ofNeVel_mps = ofNeVelOut_mps; 
+  // 'delayedHorizonBufferManager_function:127' dhSensorIn.sensorValidity.isOfValid = ofReady; 
+  // 'delayedHorizonBufferManager_function:128' dhSensorIn.sensorTimestamp.ofTimestamp_ms = ofTimeOut_ms; 
+  // 'delayedHorizonBufferManager_function:129' dhSensorIn.ofNeVel_mps = ofNeVelOut_mps; 
   // MATLAB Function 'EKF/EKF': '<S14>:1'
   // '<S14>:1:5' if isempty(covP) || resetStates
   if (static_cast<boolean_T>(static_cast<boolean_T>(static_cast<int32_T>
@@ -5440,8 +5527,8 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
       computeEskfStateJac_tpF0ZWTA(stateEstimatorEskf_DW.Delay_DSTATE,
         stateEstimatorEskf_DW.Delay2_DSTATE, &imuOut[0], rtb_Product2_c,
         rtb_CastToSingle, gpsLossFlag, dhSensorIn_sensorValidity_isOfV, imuOut[6],
-        tmp_c);
-      updateEskfCovP_Qn4XLGNE(stateEstimatorEskf_DW.covP, tmp_c,
+        tmp_d);
+      updateEskfCovP_Qn4XLGNE(stateEstimatorEskf_DW.covP, tmp_d,
         rtu_processNoiseQ, imuOut[6]);
     } else {
       // 'errorStateEkf_function2:154' else
@@ -5869,11 +5956,11 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
           i_1 = 0;
           for (covP_tmp = 0; covP_tmp < 3; covP_tmp++) {
             rtb_XAxis1 = 0.0F;
-            tmp_b = 0;
+            tmp_c = 0;
             for (i_0 = 0; i_0 < 19; i_0++) {
-              rtb_XAxis1 += H[tmp_b + rtb_VectorConcatenate1_tmp] * tmp1[i_0 +
+              rtb_XAxis1 += H[tmp_c + rtb_VectorConcatenate1_tmp] * tmp1[i_0 +
                 i_1];
-              tmp_b += 3;
+              tmp_c += 3;
             }
 
             rtb_VectorConcatenate_m[i_2 + rtb_VectorConcatenate1_tmp] =

@@ -5,7 +5,7 @@
 //
 //  Model version              : 7.0
 //  Simulink Coder version : 25.1 (R2025a) 21-Nov-2024
-//  C++ source code generated on : Thu Aug 13 16:23:17 2026
+//  C++ source code generated on : Fri Aug 14 07:31:47 2026
 
 #include "rtwtypes.h"
 
@@ -75,6 +75,26 @@ const real32_T rtCP_pooled_55ctUJ7jqF6j[361]{ 1.0E-6F, 0.0F, 0.0F, 0.0F, 0.0F,
 
 extern const real32_T rtCP_pooled_FQUpkqF8e3zU;
 const real32_T rtCP_pooled_FQUpkqF8e3zU{ 9.80665F };
+
+extern const real32_T rtCP_pooled_JLh1DCiSieNR[225];
+const real32_T rtCP_pooled_JLh1DCiSieNR[225]{ 0.1F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F,
+  0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.1F, 0.0F, 0.0F,
+  0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F,
+  0.1F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F,
+  0.0F, 0.0F, 0.0F, 10.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F,
+  0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 10.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F,
+  0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 30.0F, 0.0F, 0.0F, 0.0F,
+  0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.5F,
+  0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F,
+  0.0F, 0.0F, 0.5F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F,
+  0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.5F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F,
+  0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.125F, 0.0F, 0.0F, 0.0F, 0.0F,
+  0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.025F, 0.0F,
+  0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F,
+  0.0F, 10.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F,
+  0.0F, 0.0F, 0.0F, 0.0F, 10.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F,
+  0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 10.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F,
+  0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 5.0F } ;
 
 extern const real32_T rtCP_pooled_N0XDWuexoW9o[3];
 const real32_T rtCP_pooled_N0XDWuexoW9o[3]{ 0.4752F, 0.1096F, 0.873F } ;
