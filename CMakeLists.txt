@@ -22,6 +22,8 @@ option(ENABLE_DSHOT
        "Use DShot motor output instead of analog PWM (requires ESC power cycle)" OFF)
 option(ENABLE_MTF01P_DEBUG_PRINT
        "Print rate-limited MTF01P RX/data diagnostics over DEBUG_PRINT" OFF)
+option(ENABLE_STATE_ESTIMATOR_FAST_DEBUG_LOG
+       "Log state-estimator debug data at the debug-build fast rate instead of the flight rate" OFF)
 
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED ON)
@@ -113,6 +115,11 @@ if(ENABLE_MTF01P_DEBUG_PRINT)
     list(APPEND PROJECT_DEFINES MTF01P_DEBUG_PRINT_ENABLE=1)
 else()
     list(APPEND PROJECT_DEFINES MTF01P_DEBUG_PRINT_ENABLE=0)
+endif()
+if(ENABLE_STATE_ESTIMATOR_FAST_DEBUG_LOG)
+    list(APPEND PROJECT_DEFINES STATE_ESTIMATOR_FAST_DEBUG_LOG_ENABLE=1)
+else()
+    list(APPEND PROJECT_DEFINES STATE_ESTIMATOR_FAST_DEBUG_LOG_ENABLE=0)
 endif()
 
 # --- Auto-discover header directories under Core/Inc and Core/Src -----------

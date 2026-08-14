@@ -15,6 +15,7 @@
 #include "messages/mtf01p_data.h"
 #include "messages/magnetometer_data.h"
 #include "messages/ekf_data.h"
+#include "messages/state_estimator_debug_data.h"
 #include "constants.h"
 #include "sensor_config.h"
 #include "pubsub/subscriber.h"
@@ -52,6 +53,7 @@ private:
     GpsData gps_data_ = {};
     Mtf01pData mtf01p_data_ = {};
     EkfData ekf_data_ = {};
+    StateEstimatorDebugData state_estimator_debug_data_ = {};
 
     float prev_imu_time_s = 0.0;
     int gps_fix_count_ = 0;
@@ -64,6 +66,11 @@ private:
 
     static constexpr uint16_t READ_INTERVAL_MS = 4; // 250Hz
     static constexpr uint32_t kAllowedStartLatenessTicks = 0;
+#if STATE_ESTIMATOR_FAST_DEBUG_LOG_ENABLE
+    static constexpr uint32_t kDebugPublishDecimation = 1U;
+#else
+    static constexpr uint32_t kDebugPublishDecimation = 10U; // 25Hz at 250Hz
+#endif
 
 #if RTOS_METRICS_ENABLE
     uint32_t max_input_prep_cycles_ = 0U;

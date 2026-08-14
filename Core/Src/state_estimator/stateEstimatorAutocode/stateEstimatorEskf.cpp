@@ -3,9 +3,9 @@
 //
 // Code generated for Simulink model 'stateEstimatorEskf'.
 //
-// Model version                  : 7.53
+// Model version                  : 7.58
 // Simulink Coder version         : 25.1 (R2025a) 21-Nov-2024
-// C/C++ source code generated on : Fri Aug 14 07:31:18 2026
+// C/C++ source code generated on : Fri Aug 14 10:38:05 2026
 //
 // Target selection: ert.tlc
 // Embedded hardware selection: ARM Compatible->ARM Cortex-M
@@ -796,8 +796,8 @@ void stateEstimatorEskf::stateEstimatorEskf_magFifo(boolean_T isMagValid, const
   fusionTime_ms, boolean_T reset, uint16_T magFifoParams_capacity, const
   uint64m_T magFifoParams_minInterval_ms, const uint64m_T
   magFifoParams_maxAge_ms, const uint64m_T magFifoParams_resetThreshold_ms,
-  boolean_T *magReady, uint64m_T *magTimeOut_ms, real32_T magOut_uT[3], uint8_T *
-  status, uint16_T *countOut)
+  boolean_T *magReady, uint64m_T *magTimeOut_ms, real32_T magOut_uT[3],
+  enumDhFifoStatus *status, uint16_T *countOut)
 {
   int96m_T tmp_0;
   int96m_T tmp_1;
@@ -809,63 +809,57 @@ void stateEstimatorEskf::stateEstimatorEskf_magFifo(boolean_T isMagValid, const
   };
 
   // 'magFifo:48' MAX_SIZE = 64;
-  // 'magFifo:50' STATUS_OK             = uint8(0);
-  // 'magFifo:51' STATUS_BAD_TIMESTAMP  = uint8(1);
-  // 'magFifo:52' STATUS_OVERWRITE      = uint8(2);
-  // 'magFifo:53' STATUS_TIMEBASE_RESET = uint8(3);
-  // 'magFifo:54' STATUS_STALE_DISCARD  = uint8(4);
-  // 'magFifo:55' STATUS_BAD_CAPACITY   = uint8(5);
   //  Static FIFO storage/state initialization.
-  // 'magFifo:62' if isempty(head)
+  // 'magFifo:55' if isempty(head)
   //  Default outputs.
-  // 'magFifo:73' magReady = false;
+  // 'magFifo:66' magReady = false;
   *magReady = false;
 
-  // 'magFifo:74' magTimeOut_ms = uint64(0);
+  // 'magFifo:67' magTimeOut_ms = uint64(0);
   *magTimeOut_ms = tmp_5;
 
-  // 'magFifo:75' magOut_uT = zeros(3,1,'single');
+  // 'magFifo:68' magOut_uT = zeros(3,1,'single');
   magOut_uT[0] = 0.0F;
   magOut_uT[1] = 0.0F;
   magOut_uT[2] = 0.0F;
 
-  // 'magFifo:76' status = STATUS_OK;
-  *status = 0U;
+  // 'magFifo:69' status = enumDhFifoStatus.OK;
+  *status = enumDhFifoStatus::OK;
 
-  // 'magFifo:77' countOut = count;
+  // 'magFifo:70' countOut = count;
   *countOut = stateEstimatorEskf_DW.count_b;
 
   //  Read-only configuration aliases.
-  // 'magFifo:80' capacity = magFifoParams.capacity;
-  // 'magFifo:81' maxAge_ms = magFifoParams.maxAge_ms;
-  // 'magFifo:82' minObsInterval_ms = magFifoParams.minInterval_ms;
-  // 'magFifo:83' timeResetThreshold_ms = magFifoParams.resetThreshold_ms;
+  // 'magFifo:73' capacity = magFifoParams.capacity;
+  // 'magFifo:74' maxAge_ms = magFifoParams.maxAge_ms;
+  // 'magFifo:75' minObsInterval_ms = magFifoParams.minInterval_ms;
+  // 'magFifo:76' timeResetThreshold_ms = magFifoParams.resetThreshold_ms;
   //  Prevent invalid circular-buffer indexing if configuration is bad.
-  // 'magFifo:86' if capacity < 1 || capacity > MAX_SIZE
+  // 'magFifo:79' if capacity < 1 || capacity > MAX_SIZE
   if (static_cast<boolean_T>((magFifoParams_capacity < 1) |
        (magFifoParams_capacity > 64))) {
-    // 'magFifo:87' status = STATUS_BAD_CAPACITY;
-    *status = 5U;
+    // 'magFifo:80' status = enumDhFifoStatus.BAD_CAPACITY;
+    *status = enumDhFifoStatus::BAD_CAPACITY;
 
     //  Explicit estimator/FIFO reset.
-    // 'magFifo:92' if reset
+    // 'magFifo:85' if reset
   } else if (reset) {
-    // 'magFifo:93' head = uint16(1);
+    // 'magFifo:86' head = uint16(1);
     stateEstimatorEskf_DW.head_m = 1U;
 
-    // 'magFifo:94' tail = uint16(1);
+    // 'magFifo:87' tail = uint16(1);
     stateEstimatorEskf_DW.tail_n = 1U;
 
-    // 'magFifo:95' count = uint16(0);
+    // 'magFifo:88' count = uint16(0);
     stateEstimatorEskf_DW.count_b = 0U;
 
-    // 'magFifo:96' lastPushTime_ms = uint64(0);
+    // 'magFifo:89' lastPushTime_ms = uint64(0);
     stateEstimatorEskf_DW.lastPushTime_ms = tmp_5;
 
-    // 'magFifo:97' haveLastPushTime = false;
+    // 'magFifo:90' haveLastPushTime = false;
     stateEstimatorEskf_DW.haveLastPushTime = false;
 
-    // 'magFifo:98' countOut = count;
+    // 'magFifo:91' countOut = count;
     *countOut = 0U;
   } else {
     int32_T dataBuf_o_tmp;
@@ -877,21 +871,21 @@ void stateEstimatorEskf::stateEstimatorEskf_magFifo(boolean_T isMagValid, const
     //  ------------------------------------------------------------------------- 
     //  PUSH NEW MAGNETOMETER MEASUREMENT
     //  ------------------------------------------------------------------------- 
-    // 'magFifo:105' if isMagValid
+    // 'magFifo:98' if isMagValid
     guard1 = false;
     guard2 = false;
     guard3 = false;
     if (isMagValid) {
       //  Magnetometer timestamps must normally increase monotonically.
-      // 'magFifo:107' if haveLastPushTime && magTimeIn_ms <= lastPushTime_ms
+      // 'magFifo:100' if haveLastPushTime && magTimeIn_ms <= lastPushTime_ms
       if (static_cast<boolean_T>(stateEstimatorEskf_DW.haveLastPushTime &
            uMultiWordLe(&magTimeIn_ms.chunks[0U],
                         &stateEstimatorEskf_DW.lastPushTime_ms.chunks[0U], 2)))
       {
-        // 'magFifo:108' backwardsJump_ms = lastPushTime_ms - magTimeIn_ms;
+        // 'magFifo:101' backwardsJump_ms = lastPushTime_ms - magTimeIn_ms;
         //  Large backward jump indicates a sensor time-base discontinuity.
-        // 'magFifo:111' if timeResetThreshold_ms > 0 && ...
-        // 'magFifo:112'                 backwardsJump_ms >= timeResetThreshold_ms 
+        // 'magFifo:104' if timeResetThreshold_ms > 0 && ...
+        // 'magFifo:105'                 backwardsJump_ms >= timeResetThreshold_ms 
         uMultiWord2MultiWord(&stateEstimatorEskf_DW.lastPushTime_ms.chunks[0U],
                              2, &tmp_1.chunks[0U], 3);
         uMultiWord2MultiWord(&magTimeIn_ms.chunks[0U], 2, &tmp_2.chunks[0U], 3);
@@ -901,29 +895,29 @@ void stateEstimatorEskf::stateEstimatorEskf_magFifo(boolean_T isMagValid, const
              (&magFifoParams_resetThreshold_ms.chunks[0U], &tmp_5.chunks[0U], 2)
              & uMultiWordGe(&tmp.chunks[0U],
                             &magFifoParams_resetThreshold_ms.chunks[0U], 2))) {
-          // 'magFifo:113' head = uint16(1);
+          // 'magFifo:106' head = uint16(1);
           stateEstimatorEskf_DW.head_m = 1U;
 
-          // 'magFifo:114' tail = uint16(1);
+          // 'magFifo:107' tail = uint16(1);
           stateEstimatorEskf_DW.tail_n = 1U;
 
-          // 'magFifo:115' count = uint16(0);
+          // 'magFifo:108' count = uint16(0);
           stateEstimatorEskf_DW.count_b = 0U;
 
-          // 'magFifo:116' lastPushTime_ms = uint64(0);
+          // 'magFifo:109' lastPushTime_ms = uint64(0);
           stateEstimatorEskf_DW.lastPushTime_ms = tmp_5;
 
-          // 'magFifo:117' haveLastPushTime = false;
+          // 'magFifo:110' haveLastPushTime = false;
           stateEstimatorEskf_DW.haveLastPushTime = false;
 
-          // 'magFifo:118' status = STATUS_TIMEBASE_RESET;
-          *status = 3U;
+          // 'magFifo:111' status = enumDhFifoStatus.TIMEBASE_RESET;
+          *status = enumDhFifoStatus::TIMEBASE_RESET;
           guard3 = true;
         } else {
-          // 'magFifo:119' else
+          // 'magFifo:112' else
           //  Duplicate timestamp or small backward jump.
-          // 'magFifo:121' status = STATUS_BAD_TIMESTAMP;
-          *status = 1U;
+          // 'magFifo:114' status = enumDhFifoStatus.BAD_TIMESTAMP;
+          *status = enumDhFifoStatus::BAD_TIMESTAMP;
         }
       } else {
         guard3 = true;
@@ -935,8 +929,8 @@ void stateEstimatorEskf::stateEstimatorEskf_magFifo(boolean_T isMagValid, const
     if (guard3) {
       //  Optional rate throttling.
       //  minObsInterval_ms == 0 disables throttling.
-      // 'magFifo:128' if haveLastPushTime && ...
-      // 'magFifo:129'             (magTimeIn_ms - lastPushTime_ms) < minObsInterval_ms 
+      // 'magFifo:121' if haveLastPushTime && ...
+      // 'magFifo:122'             (magTimeIn_ms - lastPushTime_ms) < minObsInterval_ms 
       uMultiWord2MultiWord(&magTimeIn_ms.chunks[0U], 2, &tmp_1.chunks[0U], 3);
       uMultiWord2MultiWord(&stateEstimatorEskf_DW.lastPushTime_ms.chunks[0U], 2,
                            &tmp_2.chunks[0U], 3);
@@ -947,27 +941,27 @@ void stateEstimatorEskf::stateEstimatorEskf_magFifo(boolean_T isMagValid, const
                         [0U], 2))) {
       } else {
         //  count is constrained to 0 <= count <= capacity.
-        // 'magFifo:134' bufferWasFull = (count == capacity);
+        // 'magFifo:127' bufferWasFull = (count == capacity);
         //  Store complete 3-axis magnetic-field observation.
         //  Each column contains [Bx; By; Bz] in uT.
-        // 'magFifo:138' timeBuf_ms(head) = magTimeIn_ms;
+        // 'magFifo:131' timeBuf_ms(head) = magTimeIn_ms;
         stateEstimatorEskf_DW.timeBuf_ms_c[stateEstimatorEskf_DW.head_m - 1] =
           magTimeIn_ms;
 
-        // 'magFifo:139' dataBuf(:,head) = magIn_uT;
+        // 'magFifo:132' dataBuf(:,head) = magIn_uT;
         dataBuf_o_tmp = (stateEstimatorEskf_DW.head_m - 1) * 3;
         stateEstimatorEskf_DW.dataBuf_o[dataBuf_o_tmp] = magIn_uT[0];
         stateEstimatorEskf_DW.dataBuf_o[dataBuf_o_tmp + 1] = magIn_uT[1];
         stateEstimatorEskf_DW.dataBuf_o[dataBuf_o_tmp + 2] = magIn_uT[2];
 
         //  Advance write location.
-        // 'magFifo:142' if head == capacity
+        // 'magFifo:135' if head == capacity
         if (stateEstimatorEskf_DW.head_m == magFifoParams_capacity) {
-          // 'magFifo:143' head = uint16(1);
+          // 'magFifo:136' head = uint16(1);
           stateEstimatorEskf_DW.head_m = 1U;
         } else {
-          // 'magFifo:144' else
-          // 'magFifo:145' head = head + 1;
+          // 'magFifo:137' else
+          // 'magFifo:138' head = head + 1;
           qY = stateEstimatorEskf_DW.head_m + 1U;
           if (stateEstimatorEskf_DW.head_m + 1U > 65535U) {
             qY = 65535U;
@@ -976,17 +970,17 @@ void stateEstimatorEskf::stateEstimatorEskf_magFifo(boolean_T isMagValid, const
           stateEstimatorEskf_DW.head_m = static_cast<uint16_T>(qY);
         }
 
-        // 'magFifo:148' if bufferWasFull
+        // 'magFifo:141' if bufferWasFull
         if (stateEstimatorEskf_DW.count_b == magFifoParams_capacity) {
           //  New write replaced the oldest measurement.
           //  Advance tail to the new oldest measurement.
-          // 'magFifo:151' if tail == capacity
+          // 'magFifo:144' if tail == capacity
           if (stateEstimatorEskf_DW.tail_n == magFifoParams_capacity) {
-            // 'magFifo:152' tail = uint16(1);
+            // 'magFifo:145' tail = uint16(1);
             stateEstimatorEskf_DW.tail_n = 1U;
           } else {
-            // 'magFifo:153' else
-            // 'magFifo:154' tail = tail + 1;
+            // 'magFifo:146' else
+            // 'magFifo:147' tail = tail + 1;
             qY = stateEstimatorEskf_DW.tail_n + 1U;
             if (stateEstimatorEskf_DW.tail_n + 1U > 65535U) {
               qY = 65535U;
@@ -996,19 +990,19 @@ void stateEstimatorEskf::stateEstimatorEskf_magFifo(boolean_T isMagValid, const
           }
 
           //  Occupancy remains full.
-          // 'magFifo:158' count = capacity;
+          // 'magFifo:151' count = capacity;
           stateEstimatorEskf_DW.count_b = magFifoParams_capacity;
 
           //  Preserve TIMEBASE_RESET if that occurred during this push.
-          // 'magFifo:161' if status == STATUS_OK
-          if (*status == 0) {
-            // 'magFifo:162' status = STATUS_OVERWRITE;
-            *status = 2U;
+          // 'magFifo:154' if status == enumDhFifoStatus.OK
+          if (*status == enumDhFifoStatus::OK) {
+            // 'magFifo:155' status = enumDhFifoStatus.OVERWRITE;
+            *status = enumDhFifoStatus::OVERWRITE;
           }
         } else {
-          // 'magFifo:164' else
+          // 'magFifo:157' else
           //  One new measurement was added without replacing anything.
-          // 'magFifo:166' count = count + 1;
+          // 'magFifo:159' count = count + 1;
           qY = stateEstimatorEskf_DW.count_b + 1U;
           if (stateEstimatorEskf_DW.count_b + 1U > 65535U) {
             qY = 65535U;
@@ -1018,13 +1012,13 @@ void stateEstimatorEskf::stateEstimatorEskf_magFifo(boolean_T isMagValid, const
         }
 
         //  Update timestamp history only for measurements actually accepted.
-        // 'magFifo:170' lastPushTime_ms = magTimeIn_ms;
+        // 'magFifo:163' lastPushTime_ms = magTimeIn_ms;
         stateEstimatorEskf_DW.lastPushTime_ms = magTimeIn_ms;
 
-        // 'magFifo:171' haveLastPushTime = true;
+        // 'magFifo:164' haveLastPushTime = true;
         stateEstimatorEskf_DW.haveLastPushTime = true;
 
-        // 'magFifo:172' countOut = count;
+        // 'magFifo:165' countOut = count;
         *countOut = stateEstimatorEskf_DW.count_b;
         guard2 = true;
       }
@@ -1035,7 +1029,7 @@ void stateEstimatorEskf::stateEstimatorEskf_magFifo(boolean_T isMagValid, const
       //  POP NEWEST MAGNETOMETER MEASUREMENT ELIGIBLE AT FUSION HORIZON
       //  ------------------------------------------------------------------------- 
       //  Empty FIFO.
-      // 'magFifo:180' if count == 0
+      // 'magFifo:173' if count == 0
       if ((stateEstimatorEskf_DW.count_b == 0) || uMultiWordGt
           (&stateEstimatorEskf_DW.timeBuf_ms_c[stateEstimatorEskf_DW.tail_n - 1]
            .chunks[0U], &fusionTime_ms.chunks[0U], 2)) {
@@ -1044,7 +1038,7 @@ void stateEstimatorEskf::stateEstimatorEskf_magFifo(boolean_T isMagValid, const
 
         //  Measurements are chronologically ordered. If the oldest measurement is 
         //  newer than the fusion horizon, no buffered measurement is ready.
-        // 'magFifo:186' if timeBuf_ms(tail) > fusionTime_ms
+        // 'magFifo:179' if timeBuf_ms(tail) > fusionTime_ms
         //  At least one measurement is eligible.
         //
         //  Discard older eligible measurements until tail points at:
@@ -1052,21 +1046,21 @@ void stateEstimatorEskf::stateEstimatorEskf_magFifo(boolean_T isMagValid, const
         //    max{ magTime | magTime <= fusionTime_ms }
         //
         //  Loop execution is statically bounded by MAX_SIZE-1.
-        // 'magFifo:197' for k = 1:(MAX_SIZE-1)
+        // 'magFifo:190' for k = 1:(MAX_SIZE-1)
         dataBuf_o_tmp = 0;
         exitg1 = false;
         while ((!exitg1) && (static_cast<boolean_T>((dataBuf_o_tmp < 63) &
                  (stateEstimatorEskf_DW.count_b != 1)))) {
           uint16_T nextIdx;
 
-          // 'magFifo:198' if count == 1
-          // 'magFifo:202' if tail == capacity
+          // 'magFifo:191' if count == 1
+          // 'magFifo:195' if tail == capacity
           if (stateEstimatorEskf_DW.tail_n == magFifoParams_capacity) {
-            // 'magFifo:203' nextIdx = uint16(1);
+            // 'magFifo:196' nextIdx = uint16(1);
             nextIdx = 1U;
           } else {
-            // 'magFifo:204' else
-            // 'magFifo:205' nextIdx = tail + 1;
+            // 'magFifo:197' else
+            // 'magFifo:198' nextIdx = tail + 1;
             qY = stateEstimatorEskf_DW.tail_n + 1U;
             if (stateEstimatorEskf_DW.tail_n + 1U > 65535U) {
               qY = 65535U;
@@ -1075,16 +1069,16 @@ void stateEstimatorEskf::stateEstimatorEskf_magFifo(boolean_T isMagValid, const
             nextIdx = static_cast<uint16_T>(qY);
           }
 
-          // 'magFifo:208' if timeBuf_ms(nextIdx) > fusionTime_ms
+          // 'magFifo:201' if timeBuf_ms(nextIdx) > fusionTime_ms
           if (uMultiWordGt(&stateEstimatorEskf_DW.timeBuf_ms_c[nextIdx - 1].
                            chunks[0U], &fusionTime_ms.chunks[0U], 2)) {
             exitg1 = true;
           } else {
             //  A newer eligible measurement exists; discard current tail.
-            // 'magFifo:213' tail = nextIdx;
+            // 'magFifo:206' tail = nextIdx;
             stateEstimatorEskf_DW.tail_n = nextIdx;
 
-            // 'magFifo:214' count = count - 1;
+            // 'magFifo:207' count = count - 1;
             qY = stateEstimatorEskf_DW.count_b -
               /*MW:operator MISRA2012:D4.1 CERT-C:INT30-C 'Justifying MISRA C rule violation'*/
               /*MW:OvSatOk*/ 1U;
@@ -1099,10 +1093,10 @@ void stateEstimatorEskf::stateEstimatorEskf_magFifo(boolean_T isMagValid, const
         }
 
         //  Tail now points to the newest eligible magnetometer measurement.
-        // 'magFifo:218' measurementAge_ms = fusionTime_ms - timeBuf_ms(tail);
+        // 'magFifo:211' measurementAge_ms = fusionTime_ms - timeBuf_ms(tail);
         //  Optional maximum-age gate.
         //  maxAge_ms == 0 disables this check.
-        // 'magFifo:222' if maxAge_ms > 0 && measurementAge_ms >= maxAge_ms
+        // 'magFifo:215' if maxAge_ms > 0 && measurementAge_ms >= maxAge_ms
         if (uMultiWordGt(&magFifoParams_maxAge_ms.chunks[0U], &tmp_5.chunks[0U],
                          2)) {
           uMultiWord2MultiWord(&fusionTime_ms.chunks[0U], 2, &tmp_1.chunks[0U],
@@ -1115,13 +1109,13 @@ void stateEstimatorEskf::stateEstimatorEskf_magFifo(boolean_T isMagValid, const
           sMultiWord2uMultiWordSat(&tmp_0.chunks[0U], 3, &tmp_4.chunks[0U], 2);
           if (uMultiWordGe(&tmp_4.chunks[0U], &magFifoParams_maxAge_ms.chunks[0U],
                            2)) {
-            // 'magFifo:223' if tail == capacity
+            // 'magFifo:216' if tail == capacity
             if (stateEstimatorEskf_DW.tail_n == magFifoParams_capacity) {
-              // 'magFifo:224' tail = uint16(1);
+              // 'magFifo:217' tail = uint16(1);
               stateEstimatorEskf_DW.tail_n = 1U;
             } else {
-              // 'magFifo:225' else
-              // 'magFifo:226' tail = tail + 1;
+              // 'magFifo:218' else
+              // 'magFifo:219' tail = tail + 1;
               qY = stateEstimatorEskf_DW.tail_n + 1U;
               if (stateEstimatorEskf_DW.tail_n + 1U > 65535U) {
                 qY = 65535U;
@@ -1130,7 +1124,7 @@ void stateEstimatorEskf::stateEstimatorEskf_magFifo(boolean_T isMagValid, const
               stateEstimatorEskf_DW.tail_n = static_cast<uint16_T>(qY);
             }
 
-            // 'magFifo:229' count = count - 1;
+            // 'magFifo:222' count = count - 1;
             qY = stateEstimatorEskf_DW.count_b -
               /*MW:operator MISRA2012:D4.1 CERT-C:INT30-C 'Justifying MISRA C rule violation'*/
               /*MW:OvSatOk*/ 1U;
@@ -1141,11 +1135,11 @@ void stateEstimatorEskf::stateEstimatorEskf_magFifo(boolean_T isMagValid, const
 
             stateEstimatorEskf_DW.count_b = static_cast<uint16_T>(qY);
 
-            // 'magFifo:230' countOut = count;
+            // 'magFifo:223' countOut = count;
             *countOut = stateEstimatorEskf_DW.count_b;
 
-            // 'magFifo:231' status = STATUS_STALE_DISCARD;
-            *status = 4U;
+            // 'magFifo:224' status = enumDhFifoStatus.STALE_DISCARD;
+            *status = enumDhFifoStatus::STALE_DISCARD;
           } else {
             guard1 = true;
           }
@@ -1157,27 +1151,27 @@ void stateEstimatorEskf::stateEstimatorEskf_magFifo(boolean_T isMagValid, const
 
     if (guard1) {
       //  Return selected magnetic-field measurement.
-      // 'magFifo:236' magTimeOut_ms = timeBuf_ms(tail);
+      // 'magFifo:229' magTimeOut_ms = timeBuf_ms(tail);
       *magTimeOut_ms =
         stateEstimatorEskf_DW.timeBuf_ms_c[stateEstimatorEskf_DW.tail_n - 1];
 
-      // 'magFifo:237' magOut_uT = dataBuf(:,tail);
+      // 'magFifo:230' magOut_uT = dataBuf(:,tail);
       dataBuf_o_tmp = (stateEstimatorEskf_DW.tail_n - 1) * 3;
       magOut_uT[0] = stateEstimatorEskf_DW.dataBuf_o[dataBuf_o_tmp];
       magOut_uT[1] = stateEstimatorEskf_DW.dataBuf_o[dataBuf_o_tmp + 1];
       magOut_uT[2] = stateEstimatorEskf_DW.dataBuf_o[dataBuf_o_tmp + 2];
 
-      // 'magFifo:238' magReady = true;
+      // 'magFifo:231' magReady = true;
       *magReady = true;
 
       //  Consume returned measurement.
-      // 'magFifo:241' if tail == capacity
+      // 'magFifo:234' if tail == capacity
       if (stateEstimatorEskf_DW.tail_n == magFifoParams_capacity) {
-        // 'magFifo:242' tail = uint16(1);
+        // 'magFifo:235' tail = uint16(1);
         stateEstimatorEskf_DW.tail_n = 1U;
       } else {
-        // 'magFifo:243' else
-        // 'magFifo:244' tail = tail + 1;
+        // 'magFifo:236' else
+        // 'magFifo:237' tail = tail + 1;
         qY = stateEstimatorEskf_DW.tail_n + 1U;
         if (stateEstimatorEskf_DW.tail_n + 1U > 65535U) {
           qY = 65535U;
@@ -1186,7 +1180,7 @@ void stateEstimatorEskf::stateEstimatorEskf_magFifo(boolean_T isMagValid, const
         stateEstimatorEskf_DW.tail_n = static_cast<uint16_T>(qY);
       }
 
-      // 'magFifo:247' count = count - 1;
+      // 'magFifo:240' count = count - 1;
       qY = stateEstimatorEskf_DW.count_b -
         /*MW:operator MISRA2012:D4.1 CERT-C:INT30-C 'Justifying MISRA C rule violation'*/
         /*MW:OvSatOk*/ 1U;
@@ -1196,7 +1190,7 @@ void stateEstimatorEskf::stateEstimatorEskf_magFifo(boolean_T isMagValid, const
 
       stateEstimatorEskf_DW.count_b = static_cast<uint16_T>(qY);
 
-      // 'magFifo:248' countOut = count;
+      // 'magFifo:241' countOut = count;
       *countOut = stateEstimatorEskf_DW.count_b;
     }
   }
@@ -1255,8 +1249,8 @@ void stateEstimatorEskf::stateEstimatorEskf_gpsFifo(boolean_T isGpsValid, const
   fusionTime_ms, boolean_T reset, uint16_T gpsFifoParams_capacity, const
   uint64m_T gpsFifoParams_minInterval_ms, const uint64m_T
   gpsFifoParams_maxAge_ms, const uint64m_T gpsFifoParams_resetThreshold_ms,
-  boolean_T *gpsReady, uint64m_T *gpsTimeOut_ms, real32_T posVelOut[6], uint8_T *
-  status, uint16_T *countOut)
+  boolean_T *gpsReady, uint64m_T *gpsTimeOut_ms, real32_T posVelOut[6],
+  enumDhFifoStatus *status, uint16_T *countOut)
 {
   int96m_T tmp_0;
   int96m_T tmp_1;
@@ -1268,22 +1262,16 @@ void stateEstimatorEskf::stateEstimatorEskf_gpsFifo(boolean_T isGpsValid, const
   };
 
   // 'gpsFifo:48' MAX_SIZE = 16;
-  // 'gpsFifo:50' STATUS_OK             = uint8(0);
-  // 'gpsFifo:51' STATUS_BAD_TIMESTAMP  = uint8(1);
-  // 'gpsFifo:52' STATUS_OVERWRITE      = uint8(2);
-  // 'gpsFifo:53' STATUS_TIMEBASE_RESET = uint8(3);
-  // 'gpsFifo:54' STATUS_STALE_DISCARD  = uint8(4);
-  // 'gpsFifo:55' STATUS_BAD_CAPACITY   = uint8(5);
   //  Static FIFO storage/state initialization.
-  // 'gpsFifo:62' if isempty(head)
+  // 'gpsFifo:55' if isempty(head)
   //  Default outputs.
-  // 'gpsFifo:73' gpsReady = false;
+  // 'gpsFifo:66' gpsReady = false;
   *gpsReady = false;
 
-  // 'gpsFifo:74' gpsTimeOut_ms = uint64(0);
+  // 'gpsFifo:67' gpsTimeOut_ms = uint64(0);
   *gpsTimeOut_ms = tmp_5;
 
-  // 'gpsFifo:75' posVelOut = zeros(6,1,'single');
+  // 'gpsFifo:68' posVelOut = zeros(6,1,'single');
   posVelOut[0] = 0.0F;
   posVelOut[1] = 0.0F;
   posVelOut[2] = 0.0F;
@@ -1291,43 +1279,43 @@ void stateEstimatorEskf::stateEstimatorEskf_gpsFifo(boolean_T isGpsValid, const
   posVelOut[4] = 0.0F;
   posVelOut[5] = 0.0F;
 
-  // 'gpsFifo:76' status = STATUS_OK;
-  *status = 0U;
+  // 'gpsFifo:69' status = enumDhFifoStatus.OK;
+  *status = enumDhFifoStatus::OK;
 
-  // 'gpsFifo:77' countOut = count;
+  // 'gpsFifo:70' countOut = count;
   *countOut = stateEstimatorEskf_DW.count_f;
 
   //  Read-only configuration aliases.
-  // 'gpsFifo:80' capacity = gpsFifoParams.capacity;
-  // 'gpsFifo:81' maxAge_ms = gpsFifoParams.maxAge_ms;
-  // 'gpsFifo:82' minObsInterval_ms = gpsFifoParams.minInterval_ms;
-  // 'gpsFifo:83' timeResetThreshold_ms = gpsFifoParams.resetThreshold_ms;
+  // 'gpsFifo:73' capacity = gpsFifoParams.capacity;
+  // 'gpsFifo:74' maxAge_ms = gpsFifoParams.maxAge_ms;
+  // 'gpsFifo:75' minObsInterval_ms = gpsFifoParams.minInterval_ms;
+  // 'gpsFifo:76' timeResetThreshold_ms = gpsFifoParams.resetThreshold_ms;
   //  Prevent invalid circular-buffer indexing if configuration is bad.
-  // 'gpsFifo:86' if capacity < 1 || capacity > MAX_SIZE
+  // 'gpsFifo:79' if capacity < 1 || capacity > MAX_SIZE
   if (static_cast<boolean_T>((gpsFifoParams_capacity < 1) |
        (gpsFifoParams_capacity > 16))) {
-    // 'gpsFifo:87' status = STATUS_BAD_CAPACITY;
-    *status = 5U;
+    // 'gpsFifo:80' status = enumDhFifoStatus.BAD_CAPACITY;
+    *status = enumDhFifoStatus::BAD_CAPACITY;
 
     //  Explicit estimator/FIFO reset.
-    // 'gpsFifo:92' if reset
+    // 'gpsFifo:85' if reset
   } else if (reset) {
-    // 'gpsFifo:93' head = uint16(1);
+    // 'gpsFifo:86' head = uint16(1);
     stateEstimatorEskf_DW.head_k = 1U;
 
-    // 'gpsFifo:94' tail = uint16(1);
+    // 'gpsFifo:87' tail = uint16(1);
     stateEstimatorEskf_DW.tail_o = 1U;
 
-    // 'gpsFifo:95' count = uint16(0);
+    // 'gpsFifo:88' count = uint16(0);
     stateEstimatorEskf_DW.count_f = 0U;
 
-    // 'gpsFifo:96' lastPushTime_ms = uint64(0);
+    // 'gpsFifo:89' lastPushTime_ms = uint64(0);
     stateEstimatorEskf_DW.lastPushTime_ms_h = tmp_5;
 
-    // 'gpsFifo:97' haveLastPushTime = false;
+    // 'gpsFifo:90' haveLastPushTime = false;
     stateEstimatorEskf_DW.haveLastPushTime_h = false;
 
-    // 'gpsFifo:98' countOut = count;
+    // 'gpsFifo:91' countOut = count;
     *countOut = 0U;
   } else {
     int32_T dataBuf_ot_tmp;
@@ -1339,21 +1327,21 @@ void stateEstimatorEskf::stateEstimatorEskf_gpsFifo(boolean_T isGpsValid, const
     //  ------------------------------------------------------------------------- 
     //  PUSH NEW GPS MEASUREMENT
     //  ------------------------------------------------------------------------- 
-    // 'gpsFifo:105' if isGpsValid
+    // 'gpsFifo:98' if isGpsValid
     guard1 = false;
     guard2 = false;
     guard3 = false;
     if (isGpsValid) {
       //  GPS timestamps must normally increase monotonically.
-      // 'gpsFifo:107' if haveLastPushTime && gpsTimeIn_ms <= lastPushTime_ms
+      // 'gpsFifo:100' if haveLastPushTime && gpsTimeIn_ms <= lastPushTime_ms
       if (static_cast<boolean_T>(stateEstimatorEskf_DW.haveLastPushTime_h &
            uMultiWordLe(&gpsTimeIn_ms.chunks[0U],
                         &stateEstimatorEskf_DW.lastPushTime_ms_h.chunks[0U], 2)))
       {
-        // 'gpsFifo:108' backwardsJump_ms = lastPushTime_ms - gpsTimeIn_ms;
+        // 'gpsFifo:101' backwardsJump_ms = lastPushTime_ms - gpsTimeIn_ms;
         //  Large backward jump indicates a GPS time-base discontinuity.
-        // 'gpsFifo:111' if timeResetThreshold_ms > 0 && ...
-        // 'gpsFifo:112'                 backwardsJump_ms >= timeResetThreshold_ms 
+        // 'gpsFifo:104' if timeResetThreshold_ms > 0 && ...
+        // 'gpsFifo:105'                 backwardsJump_ms >= timeResetThreshold_ms 
         uMultiWord2MultiWord(&stateEstimatorEskf_DW.lastPushTime_ms_h.chunks[0U],
                              2, &tmp_1.chunks[0U], 3);
         uMultiWord2MultiWord(&gpsTimeIn_ms.chunks[0U], 2, &tmp_2.chunks[0U], 3);
@@ -1363,29 +1351,29 @@ void stateEstimatorEskf::stateEstimatorEskf_gpsFifo(boolean_T isGpsValid, const
              (&gpsFifoParams_resetThreshold_ms.chunks[0U], &tmp_5.chunks[0U], 2)
              & uMultiWordGe(&tmp.chunks[0U],
                             &gpsFifoParams_resetThreshold_ms.chunks[0U], 2))) {
-          // 'gpsFifo:113' head = uint16(1);
+          // 'gpsFifo:106' head = uint16(1);
           stateEstimatorEskf_DW.head_k = 1U;
 
-          // 'gpsFifo:114' tail = uint16(1);
+          // 'gpsFifo:107' tail = uint16(1);
           stateEstimatorEskf_DW.tail_o = 1U;
 
-          // 'gpsFifo:115' count = uint16(0);
+          // 'gpsFifo:108' count = uint16(0);
           stateEstimatorEskf_DW.count_f = 0U;
 
-          // 'gpsFifo:116' lastPushTime_ms = uint64(0);
+          // 'gpsFifo:109' lastPushTime_ms = uint64(0);
           stateEstimatorEskf_DW.lastPushTime_ms_h = tmp_5;
 
-          // 'gpsFifo:117' haveLastPushTime = false;
+          // 'gpsFifo:110' haveLastPushTime = false;
           stateEstimatorEskf_DW.haveLastPushTime_h = false;
 
-          // 'gpsFifo:118' status = STATUS_TIMEBASE_RESET;
-          *status = 3U;
+          // 'gpsFifo:111' status = enumDhFifoStatus.TIMEBASE_RESET;
+          *status = enumDhFifoStatus::TIMEBASE_RESET;
           guard3 = true;
         } else {
-          // 'gpsFifo:119' else
+          // 'gpsFifo:112' else
           //  Duplicate timestamp or small backward jump.
-          // 'gpsFifo:121' status = STATUS_BAD_TIMESTAMP;
-          *status = 1U;
+          // 'gpsFifo:114' status = enumDhFifoStatus.BAD_TIMESTAMP;
+          *status = enumDhFifoStatus::BAD_TIMESTAMP;
         }
       } else {
         guard3 = true;
@@ -1397,8 +1385,8 @@ void stateEstimatorEskf::stateEstimatorEskf_gpsFifo(boolean_T isGpsValid, const
     if (guard3) {
       //  Optional rate throttling.
       //  minObsInterval_ms == 0 disables throttling.
-      // 'gpsFifo:128' if haveLastPushTime && ...
-      // 'gpsFifo:129'             (gpsTimeIn_ms - lastPushTime_ms) < minObsInterval_ms 
+      // 'gpsFifo:121' if haveLastPushTime && ...
+      // 'gpsFifo:122'             (gpsTimeIn_ms - lastPushTime_ms) < minObsInterval_ms 
       uMultiWord2MultiWord(&gpsTimeIn_ms.chunks[0U], 2, &tmp_1.chunks[0U], 3);
       uMultiWord2MultiWord(&stateEstimatorEskf_DW.lastPushTime_ms_h.chunks[0U],
                            2, &tmp_2.chunks[0U], 3);
@@ -1409,13 +1397,13 @@ void stateEstimatorEskf::stateEstimatorEskf_gpsFifo(boolean_T isGpsValid, const
                         [0U], 2))) {
       } else {
         //  count is constrained to 0 <= count <= capacity.
-        // 'gpsFifo:134' bufferWasFull = (count == capacity);
+        // 'gpsFifo:127' bufferWasFull = (count == capacity);
         //  Store complete GPS observation at current write location.
-        // 'gpsFifo:137' timeBuf_ms(head) = gpsTimeIn_ms;
+        // 'gpsFifo:130' timeBuf_ms(head) = gpsTimeIn_ms;
         stateEstimatorEskf_DW.timeBuf_ms_k[stateEstimatorEskf_DW.head_k - 1] =
           gpsTimeIn_ms;
 
-        // 'gpsFifo:138' dataBuf(:,head) = posVelIn;
+        // 'gpsFifo:131' dataBuf(:,head) = posVelIn;
         dataBuf_ot_tmp = (stateEstimatorEskf_DW.head_k - 1) * 6;
         stateEstimatorEskf_DW.dataBuf_ot[dataBuf_ot_tmp] = posVelIn[0];
         stateEstimatorEskf_DW.dataBuf_ot[dataBuf_ot_tmp + 1] = posVelIn[1];
@@ -1425,13 +1413,13 @@ void stateEstimatorEskf::stateEstimatorEskf_gpsFifo(boolean_T isGpsValid, const
         stateEstimatorEskf_DW.dataBuf_ot[dataBuf_ot_tmp + 5] = posVelIn[5];
 
         //  Advance write location.
-        // 'gpsFifo:141' if head == capacity
+        // 'gpsFifo:134' if head == capacity
         if (stateEstimatorEskf_DW.head_k == gpsFifoParams_capacity) {
-          // 'gpsFifo:142' head = uint16(1);
+          // 'gpsFifo:135' head = uint16(1);
           stateEstimatorEskf_DW.head_k = 1U;
         } else {
-          // 'gpsFifo:143' else
-          // 'gpsFifo:144' head = head + 1;
+          // 'gpsFifo:136' else
+          // 'gpsFifo:137' head = head + 1;
           qY = stateEstimatorEskf_DW.head_k + 1U;
           if (stateEstimatorEskf_DW.head_k + 1U > 65535U) {
             qY = 65535U;
@@ -1440,17 +1428,17 @@ void stateEstimatorEskf::stateEstimatorEskf_gpsFifo(boolean_T isGpsValid, const
           stateEstimatorEskf_DW.head_k = static_cast<uint16_T>(qY);
         }
 
-        // 'gpsFifo:147' if bufferWasFull
+        // 'gpsFifo:140' if bufferWasFull
         if (stateEstimatorEskf_DW.count_f == gpsFifoParams_capacity) {
           //  New write replaced the oldest measurement.
           //  Advance tail to the new oldest measurement.
-          // 'gpsFifo:150' if tail == capacity
+          // 'gpsFifo:143' if tail == capacity
           if (stateEstimatorEskf_DW.tail_o == gpsFifoParams_capacity) {
-            // 'gpsFifo:151' tail = uint16(1);
+            // 'gpsFifo:144' tail = uint16(1);
             stateEstimatorEskf_DW.tail_o = 1U;
           } else {
-            // 'gpsFifo:152' else
-            // 'gpsFifo:153' tail = tail + 1;
+            // 'gpsFifo:145' else
+            // 'gpsFifo:146' tail = tail + 1;
             qY = stateEstimatorEskf_DW.tail_o + 1U;
             if (stateEstimatorEskf_DW.tail_o + 1U > 65535U) {
               qY = 65535U;
@@ -1460,19 +1448,19 @@ void stateEstimatorEskf::stateEstimatorEskf_gpsFifo(boolean_T isGpsValid, const
           }
 
           //  Occupancy remains full.
-          // 'gpsFifo:157' count = capacity;
+          // 'gpsFifo:150' count = capacity;
           stateEstimatorEskf_DW.count_f = gpsFifoParams_capacity;
 
           //  Preserve TIMEBASE_RESET if that occurred during this push.
-          // 'gpsFifo:160' if status == STATUS_OK
-          if (*status == 0) {
-            // 'gpsFifo:161' status = STATUS_OVERWRITE;
-            *status = 2U;
+          // 'gpsFifo:153' if status == enumDhFifoStatus.OK
+          if (*status == enumDhFifoStatus::OK) {
+            // 'gpsFifo:154' status = enumDhFifoStatus.OVERWRITE;
+            *status = enumDhFifoStatus::OVERWRITE;
           }
         } else {
-          // 'gpsFifo:163' else
+          // 'gpsFifo:156' else
           //  One new measurement was added without replacing anything.
-          // 'gpsFifo:165' count = count + 1;
+          // 'gpsFifo:158' count = count + 1;
           qY = stateEstimatorEskf_DW.count_f + 1U;
           if (stateEstimatorEskf_DW.count_f + 1U > 65535U) {
             qY = 65535U;
@@ -1482,13 +1470,13 @@ void stateEstimatorEskf::stateEstimatorEskf_gpsFifo(boolean_T isGpsValid, const
         }
 
         //  Update timestamp history only for measurements actually accepted.
-        // 'gpsFifo:169' lastPushTime_ms = gpsTimeIn_ms;
+        // 'gpsFifo:162' lastPushTime_ms = gpsTimeIn_ms;
         stateEstimatorEskf_DW.lastPushTime_ms_h = gpsTimeIn_ms;
 
-        // 'gpsFifo:170' haveLastPushTime = true;
+        // 'gpsFifo:163' haveLastPushTime = true;
         stateEstimatorEskf_DW.haveLastPushTime_h = true;
 
-        // 'gpsFifo:171' countOut = count;
+        // 'gpsFifo:164' countOut = count;
         *countOut = stateEstimatorEskf_DW.count_f;
         guard2 = true;
       }
@@ -1499,7 +1487,7 @@ void stateEstimatorEskf::stateEstimatorEskf_gpsFifo(boolean_T isGpsValid, const
       //  POP NEWEST GPS MEASUREMENT ELIGIBLE AT THE FUSION HORIZON
       //  ------------------------------------------------------------------------- 
       //  Empty FIFO.
-      // 'gpsFifo:179' if count == 0
+      // 'gpsFifo:172' if count == 0
       if ((stateEstimatorEskf_DW.count_f == 0) || uMultiWordGt
           (&stateEstimatorEskf_DW.timeBuf_ms_k[stateEstimatorEskf_DW.tail_o - 1]
            .chunks[0U], &fusionTime_ms.chunks[0U], 2)) {
@@ -1508,7 +1496,7 @@ void stateEstimatorEskf::stateEstimatorEskf_gpsFifo(boolean_T isGpsValid, const
 
         //  Because measurements are chronologically ordered, if the oldest
         //  measurement is newer than the fusion horizon, nothing is ready.
-        // 'gpsFifo:185' if timeBuf_ms(tail) > fusionTime_ms
+        // 'gpsFifo:178' if timeBuf_ms(tail) > fusionTime_ms
         //  At least one measurement is eligible.
         //
         //  Discard older eligible measurements until tail points at:
@@ -1516,21 +1504,21 @@ void stateEstimatorEskf::stateEstimatorEskf_gpsFifo(boolean_T isGpsValid, const
         //    max{ gpsTime | gpsTime <= fusionTime_ms }
         //
         //  Loop execution is statically bounded by MAX_SIZE-1.
-        // 'gpsFifo:196' for k = 1:(MAX_SIZE-1)
+        // 'gpsFifo:189' for k = 1:(MAX_SIZE-1)
         dataBuf_ot_tmp = 0;
         exitg1 = false;
         while ((!exitg1) && (static_cast<boolean_T>((dataBuf_ot_tmp < 15) &
                  (stateEstimatorEskf_DW.count_f != 1)))) {
           uint16_T nextIdx;
 
-          // 'gpsFifo:197' if count == 1
-          // 'gpsFifo:201' if tail == capacity
+          // 'gpsFifo:190' if count == 1
+          // 'gpsFifo:194' if tail == capacity
           if (stateEstimatorEskf_DW.tail_o == gpsFifoParams_capacity) {
-            // 'gpsFifo:202' nextIdx = uint16(1);
+            // 'gpsFifo:195' nextIdx = uint16(1);
             nextIdx = 1U;
           } else {
-            // 'gpsFifo:203' else
-            // 'gpsFifo:204' nextIdx = tail + 1;
+            // 'gpsFifo:196' else
+            // 'gpsFifo:197' nextIdx = tail + 1;
             qY = stateEstimatorEskf_DW.tail_o + 1U;
             if (stateEstimatorEskf_DW.tail_o + 1U > 65535U) {
               qY = 65535U;
@@ -1539,16 +1527,16 @@ void stateEstimatorEskf::stateEstimatorEskf_gpsFifo(boolean_T isGpsValid, const
             nextIdx = static_cast<uint16_T>(qY);
           }
 
-          // 'gpsFifo:207' if timeBuf_ms(nextIdx) > fusionTime_ms
+          // 'gpsFifo:200' if timeBuf_ms(nextIdx) > fusionTime_ms
           if (uMultiWordGt(&stateEstimatorEskf_DW.timeBuf_ms_k[nextIdx - 1].
                            chunks[0U], &fusionTime_ms.chunks[0U], 2)) {
             exitg1 = true;
           } else {
             //  A newer eligible sample exists; discard current tail.
-            // 'gpsFifo:212' tail = nextIdx;
+            // 'gpsFifo:205' tail = nextIdx;
             stateEstimatorEskf_DW.tail_o = nextIdx;
 
-            // 'gpsFifo:213' count = count - 1;
+            // 'gpsFifo:206' count = count - 1;
             qY = stateEstimatorEskf_DW.count_f -
               /*MW:operator MISRA2012:D4.1 CERT-C:INT30-C 'Justifying MISRA C rule violation'*/
               /*MW:OvSatOk*/ 1U;
@@ -1563,10 +1551,10 @@ void stateEstimatorEskf::stateEstimatorEskf_gpsFifo(boolean_T isGpsValid, const
         }
 
         //  Tail now points to the newest eligible GPS measurement.
-        // 'gpsFifo:217' measurementAge_ms = fusionTime_ms - timeBuf_ms(tail);
+        // 'gpsFifo:210' measurementAge_ms = fusionTime_ms - timeBuf_ms(tail);
         //  Optional maximum-age gate.
         //  maxAge_ms == 0 disables this check.
-        // 'gpsFifo:221' if maxAge_ms > 0 && measurementAge_ms >= maxAge_ms
+        // 'gpsFifo:214' if maxAge_ms > 0 && measurementAge_ms >= maxAge_ms
         if (uMultiWordGt(&gpsFifoParams_maxAge_ms.chunks[0U], &tmp_5.chunks[0U],
                          2)) {
           uMultiWord2MultiWord(&fusionTime_ms.chunks[0U], 2, &tmp_1.chunks[0U],
@@ -1579,13 +1567,13 @@ void stateEstimatorEskf::stateEstimatorEskf_gpsFifo(boolean_T isGpsValid, const
           sMultiWord2uMultiWordSat(&tmp_0.chunks[0U], 3, &tmp_4.chunks[0U], 2);
           if (uMultiWordGe(&tmp_4.chunks[0U], &gpsFifoParams_maxAge_ms.chunks[0U],
                            2)) {
-            // 'gpsFifo:222' if tail == capacity
+            // 'gpsFifo:215' if tail == capacity
             if (stateEstimatorEskf_DW.tail_o == gpsFifoParams_capacity) {
-              // 'gpsFifo:223' tail = uint16(1);
+              // 'gpsFifo:216' tail = uint16(1);
               stateEstimatorEskf_DW.tail_o = 1U;
             } else {
-              // 'gpsFifo:224' else
-              // 'gpsFifo:225' tail = tail + 1;
+              // 'gpsFifo:217' else
+              // 'gpsFifo:218' tail = tail + 1;
               qY = stateEstimatorEskf_DW.tail_o + 1U;
               if (stateEstimatorEskf_DW.tail_o + 1U > 65535U) {
                 qY = 65535U;
@@ -1594,7 +1582,7 @@ void stateEstimatorEskf::stateEstimatorEskf_gpsFifo(boolean_T isGpsValid, const
               stateEstimatorEskf_DW.tail_o = static_cast<uint16_T>(qY);
             }
 
-            // 'gpsFifo:228' count = count - 1;
+            // 'gpsFifo:221' count = count - 1;
             qY = stateEstimatorEskf_DW.count_f -
               /*MW:operator MISRA2012:D4.1 CERT-C:INT30-C 'Justifying MISRA C rule violation'*/
               /*MW:OvSatOk*/ 1U;
@@ -1605,11 +1593,11 @@ void stateEstimatorEskf::stateEstimatorEskf_gpsFifo(boolean_T isGpsValid, const
 
             stateEstimatorEskf_DW.count_f = static_cast<uint16_T>(qY);
 
-            // 'gpsFifo:229' countOut = count;
+            // 'gpsFifo:222' countOut = count;
             *countOut = stateEstimatorEskf_DW.count_f;
 
-            // 'gpsFifo:230' status = STATUS_STALE_DISCARD;
-            *status = 4U;
+            // 'gpsFifo:223' status = enumDhFifoStatus.STALE_DISCARD;
+            *status = enumDhFifoStatus::STALE_DISCARD;
           } else {
             guard1 = true;
           }
@@ -1621,11 +1609,11 @@ void stateEstimatorEskf::stateEstimatorEskf_gpsFifo(boolean_T isGpsValid, const
 
     if (guard1) {
       //  Return selected GPS measurement.
-      // 'gpsFifo:235' gpsTimeOut_ms = timeBuf_ms(tail);
+      // 'gpsFifo:228' gpsTimeOut_ms = timeBuf_ms(tail);
       *gpsTimeOut_ms =
         stateEstimatorEskf_DW.timeBuf_ms_k[stateEstimatorEskf_DW.tail_o - 1];
 
-      // 'gpsFifo:236' posVelOut = dataBuf(:,tail);
+      // 'gpsFifo:229' posVelOut = dataBuf(:,tail);
       dataBuf_ot_tmp = (stateEstimatorEskf_DW.tail_o - 1) * 6;
       posVelOut[0] = stateEstimatorEskf_DW.dataBuf_ot[dataBuf_ot_tmp];
       posVelOut[1] = stateEstimatorEskf_DW.dataBuf_ot[dataBuf_ot_tmp + 1];
@@ -1634,17 +1622,17 @@ void stateEstimatorEskf::stateEstimatorEskf_gpsFifo(boolean_T isGpsValid, const
       posVelOut[4] = stateEstimatorEskf_DW.dataBuf_ot[dataBuf_ot_tmp + 4];
       posVelOut[5] = stateEstimatorEskf_DW.dataBuf_ot[dataBuf_ot_tmp + 5];
 
-      // 'gpsFifo:237' gpsReady = true;
+      // 'gpsFifo:230' gpsReady = true;
       *gpsReady = true;
 
       //  Consume returned measurement.
-      // 'gpsFifo:240' if tail == capacity
+      // 'gpsFifo:233' if tail == capacity
       if (stateEstimatorEskf_DW.tail_o == gpsFifoParams_capacity) {
-        // 'gpsFifo:241' tail = uint16(1);
+        // 'gpsFifo:234' tail = uint16(1);
         stateEstimatorEskf_DW.tail_o = 1U;
       } else {
-        // 'gpsFifo:242' else
-        // 'gpsFifo:243' tail = tail + 1;
+        // 'gpsFifo:235' else
+        // 'gpsFifo:236' tail = tail + 1;
         qY = stateEstimatorEskf_DW.tail_o + 1U;
         if (stateEstimatorEskf_DW.tail_o + 1U > 65535U) {
           qY = 65535U;
@@ -1653,7 +1641,7 @@ void stateEstimatorEskf::stateEstimatorEskf_gpsFifo(boolean_T isGpsValid, const
         stateEstimatorEskf_DW.tail_o = static_cast<uint16_T>(qY);
       }
 
-      // 'gpsFifo:246' count = count - 1;
+      // 'gpsFifo:239' count = count - 1;
       qY = stateEstimatorEskf_DW.count_f -
         /*MW:operator MISRA2012:D4.1 CERT-C:INT30-C 'Justifying MISRA C rule violation'*/
         /*MW:OvSatOk*/ 1U;
@@ -1663,7 +1651,7 @@ void stateEstimatorEskf::stateEstimatorEskf_gpsFifo(boolean_T isGpsValid, const
 
       stateEstimatorEskf_DW.count_f = static_cast<uint16_T>(qY);
 
-      // 'gpsFifo:247' countOut = count;
+      // 'gpsFifo:240' countOut = count;
       *countOut = stateEstimatorEskf_DW.count_f;
     }
   }
@@ -1721,8 +1709,8 @@ void stateEstimatorEskf::stateEstimatorEskf_lidarFifo(boolean_T isLidarValid,
   fusionTime_ms, boolean_T reset, uint16_T lidarFifoParams_capacity, const
   uint64m_T lidarFifoParams_minInterval_ms, const uint64m_T
   lidarFifoParams_maxAge_ms, const uint64m_T lidarFifoParams_resetThreshold_,
-  boolean_T *lidarReady, uint64m_T *lidarTimeOut_ms, real32_T *aglOut_m, uint8_T
-  *status, uint16_T *countOut)
+  boolean_T *lidarReady, uint64m_T *lidarTimeOut_ms, real32_T *aglOut_m,
+  enumDhFifoStatus *status, uint16_T *countOut)
 {
   int96m_T tmp_0;
   int96m_T tmp_1;
@@ -1734,61 +1722,55 @@ void stateEstimatorEskf::stateEstimatorEskf_lidarFifo(boolean_T isLidarValid,
   };
 
   // 'lidarFifo:47' MAX_SIZE = 32;
-  // 'lidarFifo:49' STATUS_OK             = uint8(0);
-  // 'lidarFifo:50' STATUS_BAD_TIMESTAMP  = uint8(1);
-  // 'lidarFifo:51' STATUS_OVERWRITE      = uint8(2);
-  // 'lidarFifo:52' STATUS_TIMEBASE_RESET = uint8(3);
-  // 'lidarFifo:53' STATUS_STALE_DISCARD  = uint8(4);
-  // 'lidarFifo:54' STATUS_BAD_CAPACITY   = uint8(5);
   //  Static FIFO storage/state initialization.
-  // 'lidarFifo:61' if isempty(head)
+  // 'lidarFifo:54' if isempty(head)
   //  Default outputs.
-  // 'lidarFifo:72' lidarReady = false;
+  // 'lidarFifo:65' lidarReady = false;
   *lidarReady = false;
 
-  // 'lidarFifo:73' lidarTimeOut_ms = uint64(0);
+  // 'lidarFifo:66' lidarTimeOut_ms = uint64(0);
   *lidarTimeOut_ms = tmp_5;
 
-  // 'lidarFifo:74' aglOut_m = single(0);
+  // 'lidarFifo:67' aglOut_m = single(0);
   *aglOut_m = 0.0F;
 
-  // 'lidarFifo:75' status = STATUS_OK;
-  *status = 0U;
+  // 'lidarFifo:68' status = enumDhFifoStatus.OK;
+  *status = enumDhFifoStatus::OK;
 
-  // 'lidarFifo:76' countOut = count;
+  // 'lidarFifo:69' countOut = count;
   *countOut = stateEstimatorEskf_DW.count_n;
 
   //  Read-only configuration aliases.
-  // 'lidarFifo:79' capacity = lidarFifoParams.capacity;
-  // 'lidarFifo:80' maxAge_ms = lidarFifoParams.maxAge_ms;
-  // 'lidarFifo:81' minObsInterval_ms = lidarFifoParams.minInterval_ms;
-  // 'lidarFifo:82' timeResetThreshold_ms = lidarFifoParams.resetThreshold_ms;
+  // 'lidarFifo:72' capacity = lidarFifoParams.capacity;
+  // 'lidarFifo:73' maxAge_ms = lidarFifoParams.maxAge_ms;
+  // 'lidarFifo:74' minObsInterval_ms = lidarFifoParams.minInterval_ms;
+  // 'lidarFifo:75' timeResetThreshold_ms = lidarFifoParams.resetThreshold_ms;
   //  Prevent invalid circular-buffer indexing if configuration is bad.
-  // 'lidarFifo:85' if capacity < 1 || capacity > MAX_SIZE
+  // 'lidarFifo:78' if capacity < 1 || capacity > MAX_SIZE
   if (static_cast<boolean_T>((lidarFifoParams_capacity < 1) |
        (lidarFifoParams_capacity > 32))) {
-    // 'lidarFifo:86' status = STATUS_BAD_CAPACITY;
-    *status = 5U;
+    // 'lidarFifo:79' status = enumDhFifoStatus.BAD_CAPACITY;
+    *status = enumDhFifoStatus::BAD_CAPACITY;
 
     //  Explicit estimator/FIFO reset.
-    // 'lidarFifo:91' if reset
+    // 'lidarFifo:84' if reset
   } else if (reset) {
-    // 'lidarFifo:92' head = uint16(1);
+    // 'lidarFifo:85' head = uint16(1);
     stateEstimatorEskf_DW.head_b = 1U;
 
-    // 'lidarFifo:93' tail = uint16(1);
+    // 'lidarFifo:86' tail = uint16(1);
     stateEstimatorEskf_DW.tail_c = 1U;
 
-    // 'lidarFifo:94' count = uint16(0);
+    // 'lidarFifo:87' count = uint16(0);
     stateEstimatorEskf_DW.count_n = 0U;
 
-    // 'lidarFifo:95' lastPushTime_ms = uint64(0);
+    // 'lidarFifo:88' lastPushTime_ms = uint64(0);
     stateEstimatorEskf_DW.lastPushTime_ms_gh = tmp_5;
 
-    // 'lidarFifo:96' haveLastPushTime = false;
+    // 'lidarFifo:89' haveLastPushTime = false;
     stateEstimatorEskf_DW.haveLastPushTime_l = false;
 
-    // 'lidarFifo:97' countOut = count;
+    // 'lidarFifo:90' countOut = count;
     *countOut = 0U;
   } else {
     uint32_T qY;
@@ -1799,21 +1781,21 @@ void stateEstimatorEskf::stateEstimatorEskf_lidarFifo(boolean_T isLidarValid,
     //  ------------------------------------------------------------------------- 
     //  PUSH NEW LIDAR MEASUREMENT
     //  ------------------------------------------------------------------------- 
-    // 'lidarFifo:104' if isLidarValid
+    // 'lidarFifo:97' if isLidarValid
     guard1 = false;
     guard2 = false;
     guard3 = false;
     if (isLidarValid) {
       //  LiDAR timestamps must normally increase monotonically.
-      // 'lidarFifo:106' if haveLastPushTime && lidarTimeIn_ms <= lastPushTime_ms 
+      // 'lidarFifo:99' if haveLastPushTime && lidarTimeIn_ms <= lastPushTime_ms 
       if (static_cast<boolean_T>(stateEstimatorEskf_DW.haveLastPushTime_l &
            uMultiWordLe(&lidarTimeIn_ms.chunks[0U],
                         &stateEstimatorEskf_DW.lastPushTime_ms_gh.chunks[0U], 2)))
       {
-        // 'lidarFifo:107' backwardsJump_ms = lastPushTime_ms - lidarTimeIn_ms;
+        // 'lidarFifo:100' backwardsJump_ms = lastPushTime_ms - lidarTimeIn_ms;
         //  Large backward jump indicates a sensor time-base discontinuity.
-        // 'lidarFifo:110' if timeResetThreshold_ms > 0 && ...
-        // 'lidarFifo:111'                 backwardsJump_ms >= timeResetThreshold_ms 
+        // 'lidarFifo:103' if timeResetThreshold_ms > 0 && ...
+        // 'lidarFifo:104'                 backwardsJump_ms >= timeResetThreshold_ms 
         uMultiWord2MultiWord(&stateEstimatorEskf_DW.lastPushTime_ms_gh.chunks[0U],
                              2, &tmp_1.chunks[0U], 3);
         uMultiWord2MultiWord(&lidarTimeIn_ms.chunks[0U], 2, &tmp_2.chunks[0U], 3);
@@ -1823,29 +1805,29 @@ void stateEstimatorEskf::stateEstimatorEskf_lidarFifo(boolean_T isLidarValid,
              (&lidarFifoParams_resetThreshold_.chunks[0U], &tmp_5.chunks[0U], 2)
              & uMultiWordGe(&tmp.chunks[0U],
                             &lidarFifoParams_resetThreshold_.chunks[0U], 2))) {
-          // 'lidarFifo:112' head = uint16(1);
+          // 'lidarFifo:105' head = uint16(1);
           stateEstimatorEskf_DW.head_b = 1U;
 
-          // 'lidarFifo:113' tail = uint16(1);
+          // 'lidarFifo:106' tail = uint16(1);
           stateEstimatorEskf_DW.tail_c = 1U;
 
-          // 'lidarFifo:114' count = uint16(0);
+          // 'lidarFifo:107' count = uint16(0);
           stateEstimatorEskf_DW.count_n = 0U;
 
-          // 'lidarFifo:115' lastPushTime_ms = uint64(0);
+          // 'lidarFifo:108' lastPushTime_ms = uint64(0);
           stateEstimatorEskf_DW.lastPushTime_ms_gh = tmp_5;
 
-          // 'lidarFifo:116' haveLastPushTime = false;
+          // 'lidarFifo:109' haveLastPushTime = false;
           stateEstimatorEskf_DW.haveLastPushTime_l = false;
 
-          // 'lidarFifo:117' status = STATUS_TIMEBASE_RESET;
-          *status = 3U;
+          // 'lidarFifo:110' status = enumDhFifoStatus.TIMEBASE_RESET;
+          *status = enumDhFifoStatus::TIMEBASE_RESET;
           guard3 = true;
         } else {
-          // 'lidarFifo:118' else
+          // 'lidarFifo:111' else
           //  Duplicate timestamp or small backward jump.
-          // 'lidarFifo:120' status = STATUS_BAD_TIMESTAMP;
-          *status = 1U;
+          // 'lidarFifo:113' status = enumDhFifoStatus.BAD_TIMESTAMP;
+          *status = enumDhFifoStatus::BAD_TIMESTAMP;
         }
       } else {
         guard3 = true;
@@ -1857,8 +1839,8 @@ void stateEstimatorEskf::stateEstimatorEskf_lidarFifo(boolean_T isLidarValid,
     if (guard3) {
       //  Optional rate throttling.
       //  minObsInterval_ms == 0 disables throttling.
-      // 'lidarFifo:127' if haveLastPushTime && ...
-      // 'lidarFifo:128'             (lidarTimeIn_ms - lastPushTime_ms) < minObsInterval_ms 
+      // 'lidarFifo:120' if haveLastPushTime && ...
+      // 'lidarFifo:121'             (lidarTimeIn_ms - lastPushTime_ms) < minObsInterval_ms 
       uMultiWord2MultiWord(&lidarTimeIn_ms.chunks[0U], 2, &tmp_1.chunks[0U], 3);
       uMultiWord2MultiWord(&stateEstimatorEskf_DW.lastPushTime_ms_gh.chunks[0U],
                            2, &tmp_2.chunks[0U], 3);
@@ -1869,24 +1851,24 @@ void stateEstimatorEskf::stateEstimatorEskf_lidarFifo(boolean_T isLidarValid,
                         &lidarFifoParams_minInterval_ms.chunks[0U], 2))) {
       } else {
         //  count is constrained to 0 <= count <= capacity.
-        // 'lidarFifo:133' bufferWasFull = (count == capacity);
+        // 'lidarFifo:126' bufferWasFull = (count == capacity);
         //  Store AGL measurement and timestamp.
-        // 'lidarFifo:136' timeBuf_ms(head) = lidarTimeIn_ms;
+        // 'lidarFifo:129' timeBuf_ms(head) = lidarTimeIn_ms;
         stateEstimatorEskf_DW.timeBuf_ms_l[stateEstimatorEskf_DW.head_b - 1] =
           lidarTimeIn_ms;
 
-        // 'lidarFifo:137' aglBuf_m(head) = aglIn_m;
+        // 'lidarFifo:130' aglBuf_m(head) = aglIn_m;
         stateEstimatorEskf_DW.aglBuf_m[stateEstimatorEskf_DW.head_b - 1] =
           aglIn_m;
 
         //  Advance write location.
-        // 'lidarFifo:140' if head == capacity
+        // 'lidarFifo:133' if head == capacity
         if (stateEstimatorEskf_DW.head_b == lidarFifoParams_capacity) {
-          // 'lidarFifo:141' head = uint16(1);
+          // 'lidarFifo:134' head = uint16(1);
           stateEstimatorEskf_DW.head_b = 1U;
         } else {
-          // 'lidarFifo:142' else
-          // 'lidarFifo:143' head = head + 1;
+          // 'lidarFifo:135' else
+          // 'lidarFifo:136' head = head + 1;
           qY = stateEstimatorEskf_DW.head_b + 1U;
           if (stateEstimatorEskf_DW.head_b + 1U > 65535U) {
             qY = 65535U;
@@ -1895,17 +1877,17 @@ void stateEstimatorEskf::stateEstimatorEskf_lidarFifo(boolean_T isLidarValid,
           stateEstimatorEskf_DW.head_b = static_cast<uint16_T>(qY);
         }
 
-        // 'lidarFifo:146' if bufferWasFull
+        // 'lidarFifo:139' if bufferWasFull
         if (stateEstimatorEskf_DW.count_n == lidarFifoParams_capacity) {
           //  New write replaced the oldest measurement.
           //  Advance tail to the new oldest measurement.
-          // 'lidarFifo:149' if tail == capacity
+          // 'lidarFifo:142' if tail == capacity
           if (stateEstimatorEskf_DW.tail_c == lidarFifoParams_capacity) {
-            // 'lidarFifo:150' tail = uint16(1);
+            // 'lidarFifo:143' tail = uint16(1);
             stateEstimatorEskf_DW.tail_c = 1U;
           } else {
-            // 'lidarFifo:151' else
-            // 'lidarFifo:152' tail = tail + 1;
+            // 'lidarFifo:144' else
+            // 'lidarFifo:145' tail = tail + 1;
             qY = stateEstimatorEskf_DW.tail_c + 1U;
             if (stateEstimatorEskf_DW.tail_c + 1U > 65535U) {
               qY = 65535U;
@@ -1915,19 +1897,19 @@ void stateEstimatorEskf::stateEstimatorEskf_lidarFifo(boolean_T isLidarValid,
           }
 
           //  Occupancy remains full.
-          // 'lidarFifo:156' count = capacity;
+          // 'lidarFifo:149' count = capacity;
           stateEstimatorEskf_DW.count_n = lidarFifoParams_capacity;
 
           //  Preserve TIMEBASE_RESET if that occurred during this push.
-          // 'lidarFifo:159' if status == STATUS_OK
-          if (*status == 0) {
-            // 'lidarFifo:160' status = STATUS_OVERWRITE;
-            *status = 2U;
+          // 'lidarFifo:152' if status == enumDhFifoStatus.OK
+          if (*status == enumDhFifoStatus::OK) {
+            // 'lidarFifo:153' status = enumDhFifoStatus.OVERWRITE;
+            *status = enumDhFifoStatus::OVERWRITE;
           }
         } else {
-          // 'lidarFifo:162' else
+          // 'lidarFifo:155' else
           //  One new measurement was added without replacing anything.
-          // 'lidarFifo:164' count = count + 1;
+          // 'lidarFifo:157' count = count + 1;
           qY = stateEstimatorEskf_DW.count_n + 1U;
           if (stateEstimatorEskf_DW.count_n + 1U > 65535U) {
             qY = 65535U;
@@ -1937,13 +1919,13 @@ void stateEstimatorEskf::stateEstimatorEskf_lidarFifo(boolean_T isLidarValid,
         }
 
         //  Update timestamp history only for measurements actually accepted.
-        // 'lidarFifo:168' lastPushTime_ms = lidarTimeIn_ms;
+        // 'lidarFifo:161' lastPushTime_ms = lidarTimeIn_ms;
         stateEstimatorEskf_DW.lastPushTime_ms_gh = lidarTimeIn_ms;
 
-        // 'lidarFifo:169' haveLastPushTime = true;
+        // 'lidarFifo:162' haveLastPushTime = true;
         stateEstimatorEskf_DW.haveLastPushTime_l = true;
 
-        // 'lidarFifo:170' countOut = count;
+        // 'lidarFifo:163' countOut = count;
         *countOut = stateEstimatorEskf_DW.count_n;
         guard2 = true;
       }
@@ -1954,7 +1936,7 @@ void stateEstimatorEskf::stateEstimatorEskf_lidarFifo(boolean_T isLidarValid,
       //  POP NEWEST LIDAR MEASUREMENT ELIGIBLE AT FUSION HORIZON
       //  ------------------------------------------------------------------------- 
       //  Empty FIFO.
-      // 'lidarFifo:178' if count == 0
+      // 'lidarFifo:171' if count == 0
       if ((stateEstimatorEskf_DW.count_n == 0) || uMultiWordGt
           (&stateEstimatorEskf_DW.timeBuf_ms_l[stateEstimatorEskf_DW.tail_c - 1]
            .chunks[0U], &fusionTime_ms.chunks[0U], 2)) {
@@ -1964,7 +1946,7 @@ void stateEstimatorEskf::stateEstimatorEskf_lidarFifo(boolean_T isLidarValid,
 
         //  Measurements are chronologically ordered. If the oldest measurement is 
         //  newer than the fusion horizon, no buffered measurement is ready.
-        // 'lidarFifo:184' if timeBuf_ms(tail) > fusionTime_ms
+        // 'lidarFifo:177' if timeBuf_ms(tail) > fusionTime_ms
         //  At least one measurement is eligible.
         //
         //  Discard older eligible measurements until tail points at:
@@ -1972,21 +1954,21 @@ void stateEstimatorEskf::stateEstimatorEskf_lidarFifo(boolean_T isLidarValid,
         //    max{ lidarTime | lidarTime <= fusionTime_ms }
         //
         //  Loop execution is statically bounded by MAX_SIZE-1.
-        // 'lidarFifo:195' for k = 1:(MAX_SIZE-1)
+        // 'lidarFifo:188' for k = 1:(MAX_SIZE-1)
         k = 0;
         exitg1 = false;
         while ((!exitg1) && (static_cast<boolean_T>((k < 31) &
                  (stateEstimatorEskf_DW.count_n != 1)))) {
           uint16_T nextIdx;
 
-          // 'lidarFifo:196' if count == 1
-          // 'lidarFifo:200' if tail == capacity
+          // 'lidarFifo:189' if count == 1
+          // 'lidarFifo:193' if tail == capacity
           if (stateEstimatorEskf_DW.tail_c == lidarFifoParams_capacity) {
-            // 'lidarFifo:201' nextIdx = uint16(1);
+            // 'lidarFifo:194' nextIdx = uint16(1);
             nextIdx = 1U;
           } else {
-            // 'lidarFifo:202' else
-            // 'lidarFifo:203' nextIdx = tail + 1;
+            // 'lidarFifo:195' else
+            // 'lidarFifo:196' nextIdx = tail + 1;
             qY = stateEstimatorEskf_DW.tail_c + 1U;
             if (stateEstimatorEskf_DW.tail_c + 1U > 65535U) {
               qY = 65535U;
@@ -1995,16 +1977,16 @@ void stateEstimatorEskf::stateEstimatorEskf_lidarFifo(boolean_T isLidarValid,
             nextIdx = static_cast<uint16_T>(qY);
           }
 
-          // 'lidarFifo:206' if timeBuf_ms(nextIdx) > fusionTime_ms
+          // 'lidarFifo:199' if timeBuf_ms(nextIdx) > fusionTime_ms
           if (uMultiWordGt(&stateEstimatorEskf_DW.timeBuf_ms_l[nextIdx - 1].
                            chunks[0U], &fusionTime_ms.chunks[0U], 2)) {
             exitg1 = true;
           } else {
             //  A newer eligible measurement exists; discard current tail.
-            // 'lidarFifo:211' tail = nextIdx;
+            // 'lidarFifo:204' tail = nextIdx;
             stateEstimatorEskf_DW.tail_c = nextIdx;
 
-            // 'lidarFifo:212' count = count - 1;
+            // 'lidarFifo:205' count = count - 1;
             qY = stateEstimatorEskf_DW.count_n -
               /*MW:operator MISRA2012:D4.1 CERT-C:INT30-C 'Justifying MISRA C rule violation'*/
               /*MW:OvSatOk*/ 1U;
@@ -2019,10 +2001,10 @@ void stateEstimatorEskf::stateEstimatorEskf_lidarFifo(boolean_T isLidarValid,
         }
 
         //  Tail now points to the newest eligible LiDAR measurement.
-        // 'lidarFifo:216' measurementAge_ms = fusionTime_ms - timeBuf_ms(tail); 
+        // 'lidarFifo:209' measurementAge_ms = fusionTime_ms - timeBuf_ms(tail); 
         //  Optional maximum-age gate.
         //  maxAge_ms == 0 disables this check.
-        // 'lidarFifo:220' if maxAge_ms > 0 && measurementAge_ms >= maxAge_ms
+        // 'lidarFifo:213' if maxAge_ms > 0 && measurementAge_ms >= maxAge_ms
         if (uMultiWordGt(&lidarFifoParams_maxAge_ms.chunks[0U], &tmp_5.chunks[0U],
                          2)) {
           uMultiWord2MultiWord(&fusionTime_ms.chunks[0U], 2, &tmp_1.chunks[0U],
@@ -2035,13 +2017,13 @@ void stateEstimatorEskf::stateEstimatorEskf_lidarFifo(boolean_T isLidarValid,
           sMultiWord2uMultiWordSat(&tmp_0.chunks[0U], 3, &tmp_4.chunks[0U], 2);
           if (uMultiWordGe(&tmp_4.chunks[0U], &lidarFifoParams_maxAge_ms.chunks
                            [0U], 2)) {
-            // 'lidarFifo:221' if tail == capacity
+            // 'lidarFifo:214' if tail == capacity
             if (stateEstimatorEskf_DW.tail_c == lidarFifoParams_capacity) {
-              // 'lidarFifo:222' tail = uint16(1);
+              // 'lidarFifo:215' tail = uint16(1);
               stateEstimatorEskf_DW.tail_c = 1U;
             } else {
-              // 'lidarFifo:223' else
-              // 'lidarFifo:224' tail = tail + 1;
+              // 'lidarFifo:216' else
+              // 'lidarFifo:217' tail = tail + 1;
               qY = stateEstimatorEskf_DW.tail_c + 1U;
               if (stateEstimatorEskf_DW.tail_c + 1U > 65535U) {
                 qY = 65535U;
@@ -2050,7 +2032,7 @@ void stateEstimatorEskf::stateEstimatorEskf_lidarFifo(boolean_T isLidarValid,
               stateEstimatorEskf_DW.tail_c = static_cast<uint16_T>(qY);
             }
 
-            // 'lidarFifo:227' count = count - 1;
+            // 'lidarFifo:220' count = count - 1;
             qY = stateEstimatorEskf_DW.count_n -
               /*MW:operator MISRA2012:D4.1 CERT-C:INT30-C 'Justifying MISRA C rule violation'*/
               /*MW:OvSatOk*/ 1U;
@@ -2061,11 +2043,11 @@ void stateEstimatorEskf::stateEstimatorEskf_lidarFifo(boolean_T isLidarValid,
 
             stateEstimatorEskf_DW.count_n = static_cast<uint16_T>(qY);
 
-            // 'lidarFifo:228' countOut = count;
+            // 'lidarFifo:221' countOut = count;
             *countOut = stateEstimatorEskf_DW.count_n;
 
-            // 'lidarFifo:229' status = STATUS_STALE_DISCARD;
-            *status = 4U;
+            // 'lidarFifo:222' status = enumDhFifoStatus.STALE_DISCARD;
+            *status = enumDhFifoStatus::STALE_DISCARD;
           } else {
             guard1 = true;
           }
@@ -2077,25 +2059,25 @@ void stateEstimatorEskf::stateEstimatorEskf_lidarFifo(boolean_T isLidarValid,
 
     if (guard1) {
       //  Return selected AGL measurement.
-      // 'lidarFifo:234' lidarTimeOut_ms = timeBuf_ms(tail);
+      // 'lidarFifo:227' lidarTimeOut_ms = timeBuf_ms(tail);
       *lidarTimeOut_ms =
         stateEstimatorEskf_DW.timeBuf_ms_l[stateEstimatorEskf_DW.tail_c - 1];
 
-      // 'lidarFifo:235' aglOut_m = aglBuf_m(tail);
+      // 'lidarFifo:228' aglOut_m = aglBuf_m(tail);
       *aglOut_m = stateEstimatorEskf_DW.aglBuf_m[stateEstimatorEskf_DW.tail_c -
         1];
 
-      // 'lidarFifo:236' lidarReady = true;
+      // 'lidarFifo:229' lidarReady = true;
       *lidarReady = true;
 
       //  Consume returned measurement.
-      // 'lidarFifo:239' if tail == capacity
+      // 'lidarFifo:232' if tail == capacity
       if (stateEstimatorEskf_DW.tail_c == lidarFifoParams_capacity) {
-        // 'lidarFifo:240' tail = uint16(1);
+        // 'lidarFifo:233' tail = uint16(1);
         stateEstimatorEskf_DW.tail_c = 1U;
       } else {
-        // 'lidarFifo:241' else
-        // 'lidarFifo:242' tail = tail + 1;
+        // 'lidarFifo:234' else
+        // 'lidarFifo:235' tail = tail + 1;
         qY = stateEstimatorEskf_DW.tail_c + 1U;
         if (stateEstimatorEskf_DW.tail_c + 1U > 65535U) {
           qY = 65535U;
@@ -2104,7 +2086,7 @@ void stateEstimatorEskf::stateEstimatorEskf_lidarFifo(boolean_T isLidarValid,
         stateEstimatorEskf_DW.tail_c = static_cast<uint16_T>(qY);
       }
 
-      // 'lidarFifo:245' count = count - 1;
+      // 'lidarFifo:238' count = count - 1;
       qY = stateEstimatorEskf_DW.count_n -
         /*MW:operator MISRA2012:D4.1 CERT-C:INT30-C 'Justifying MISRA C rule violation'*/
         /*MW:OvSatOk*/ 1U;
@@ -2114,7 +2096,7 @@ void stateEstimatorEskf::stateEstimatorEskf_lidarFifo(boolean_T isLidarValid,
 
       stateEstimatorEskf_DW.count_n = static_cast<uint16_T>(qY);
 
-      // 'lidarFifo:246' countOut = count;
+      // 'lidarFifo:239' countOut = count;
       *countOut = stateEstimatorEskf_DW.count_n;
     }
   }
@@ -2173,8 +2155,8 @@ void stateEstimatorEskf::stateEstimatorEskf_flowFifo(boolean_T isFlowValid,
   fusionTime_ms, boolean_T reset, uint16_T flowFifoParams_capacity, const
   uint64m_T flowFifoParams_minInterval_ms, const uint64m_T
   flowFifoParams_maxAge_ms, const uint64m_T flowFifoParams_resetThreshold_m,
-  boolean_T *flowReady, uint64m_T *flowTimeOut_ms, real32_T velNEOut[2], uint8_T
-  *status, uint16_T *countOut)
+  boolean_T *flowReady, uint64m_T *flowTimeOut_ms, real32_T velNEOut[2],
+  enumDhFifoStatus *status, uint16_T *countOut)
 {
   int96m_T tmp_0;
   int96m_T tmp_1;
@@ -2186,62 +2168,56 @@ void stateEstimatorEskf::stateEstimatorEskf_flowFifo(boolean_T isFlowValid,
   };
 
   // 'flowFifo:48' MAX_SIZE = 24;
-  // 'flowFifo:50' STATUS_OK             = uint8(0);
-  // 'flowFifo:51' STATUS_BAD_TIMESTAMP  = uint8(1);
-  // 'flowFifo:52' STATUS_OVERWRITE      = uint8(2);
-  // 'flowFifo:53' STATUS_TIMEBASE_RESET = uint8(3);
-  // 'flowFifo:54' STATUS_STALE_DISCARD  = uint8(4);
-  // 'flowFifo:55' STATUS_BAD_CAPACITY   = uint8(5);
   //  Static FIFO storage/state initialization.
-  // 'flowFifo:62' if isempty(head)
+  // 'flowFifo:55' if isempty(head)
   //  Default outputs.
-  // 'flowFifo:73' flowReady = false;
+  // 'flowFifo:66' flowReady = false;
   *flowReady = false;
 
-  // 'flowFifo:74' flowTimeOut_ms = uint64(0);
+  // 'flowFifo:67' flowTimeOut_ms = uint64(0);
   *flowTimeOut_ms = tmp_5;
 
-  // 'flowFifo:75' velNEOut = zeros(2,1,'single');
+  // 'flowFifo:68' velNEOut = zeros(2,1,'single');
   velNEOut[0] = 0.0F;
   velNEOut[1] = 0.0F;
 
-  // 'flowFifo:76' status = STATUS_OK;
-  *status = 0U;
+  // 'flowFifo:69' status = enumDhFifoStatus.OK;
+  *status = enumDhFifoStatus::OK;
 
-  // 'flowFifo:77' countOut = count;
+  // 'flowFifo:70' countOut = count;
   *countOut = stateEstimatorEskf_DW.count_i;
 
   //  Read-only configuration aliases.
-  // 'flowFifo:80' capacity = flowFifoParams.capacity;
-  // 'flowFifo:81' maxAge_ms = flowFifoParams.maxAge_ms;
-  // 'flowFifo:82' minObsInterval_ms = flowFifoParams.minInterval_ms;
-  // 'flowFifo:83' timeResetThreshold_ms = flowFifoParams.resetThreshold_ms;
+  // 'flowFifo:73' capacity = flowFifoParams.capacity;
+  // 'flowFifo:74' maxAge_ms = flowFifoParams.maxAge_ms;
+  // 'flowFifo:75' minObsInterval_ms = flowFifoParams.minInterval_ms;
+  // 'flowFifo:76' timeResetThreshold_ms = flowFifoParams.resetThreshold_ms;
   //  Prevent invalid circular-buffer indexing if configuration is bad.
-  // 'flowFifo:86' if capacity < 1 || capacity > MAX_SIZE
+  // 'flowFifo:79' if capacity < 1 || capacity > MAX_SIZE
   if (static_cast<boolean_T>((flowFifoParams_capacity < 1) |
        (flowFifoParams_capacity > 24))) {
-    // 'flowFifo:87' status = STATUS_BAD_CAPACITY;
-    *status = 5U;
+    // 'flowFifo:80' status = enumDhFifoStatus.BAD_CAPACITY;
+    *status = enumDhFifoStatus::BAD_CAPACITY;
 
     //  Explicit estimator/FIFO reset.
-    // 'flowFifo:92' if reset
+    // 'flowFifo:85' if reset
   } else if (reset) {
-    // 'flowFifo:93' head = uint16(1);
+    // 'flowFifo:86' head = uint16(1);
     stateEstimatorEskf_DW.head_i = 1U;
 
-    // 'flowFifo:94' tail = uint16(1);
+    // 'flowFifo:87' tail = uint16(1);
     stateEstimatorEskf_DW.tail_l = 1U;
 
-    // 'flowFifo:95' count = uint16(0);
+    // 'flowFifo:88' count = uint16(0);
     stateEstimatorEskf_DW.count_i = 0U;
 
-    // 'flowFifo:96' lastPushTime_ms = uint64(0);
+    // 'flowFifo:89' lastPushTime_ms = uint64(0);
     stateEstimatorEskf_DW.lastPushTime_ms_d = tmp_5;
 
-    // 'flowFifo:97' haveLastPushTime = false;
+    // 'flowFifo:90' haveLastPushTime = false;
     stateEstimatorEskf_DW.haveLastPushTime_n = false;
 
-    // 'flowFifo:98' countOut = count;
+    // 'flowFifo:91' countOut = count;
     *countOut = 0U;
   } else {
     int32_T dataBuf_i_tmp;
@@ -2253,21 +2229,21 @@ void stateEstimatorEskf::stateEstimatorEskf_flowFifo(boolean_T isFlowValid,
     //  ------------------------------------------------------------------------- 
     //  PUSH NEW OPTICAL-FLOW MEASUREMENT
     //  ------------------------------------------------------------------------- 
-    // 'flowFifo:105' if isFlowValid
+    // 'flowFifo:98' if isFlowValid
     guard1 = false;
     guard2 = false;
     guard3 = false;
     if (isFlowValid) {
       //  Optical-flow timestamps must normally increase monotonically.
-      // 'flowFifo:107' if haveLastPushTime && flowTimeIn_ms <= lastPushTime_ms
+      // 'flowFifo:100' if haveLastPushTime && flowTimeIn_ms <= lastPushTime_ms
       if (static_cast<boolean_T>(stateEstimatorEskf_DW.haveLastPushTime_n &
            uMultiWordLe(&flowTimeIn_ms.chunks[0U],
                         &stateEstimatorEskf_DW.lastPushTime_ms_d.chunks[0U], 2)))
       {
-        // 'flowFifo:108' backwardsJump_ms = lastPushTime_ms - flowTimeIn_ms;
+        // 'flowFifo:101' backwardsJump_ms = lastPushTime_ms - flowTimeIn_ms;
         //  Large backward jump indicates a sensor time-base discontinuity.
-        // 'flowFifo:111' if timeResetThreshold_ms > 0 && ...
-        // 'flowFifo:112'                 backwardsJump_ms >= timeResetThreshold_ms 
+        // 'flowFifo:104' if timeResetThreshold_ms > 0 && ...
+        // 'flowFifo:105'                 backwardsJump_ms >= timeResetThreshold_ms 
         uMultiWord2MultiWord(&stateEstimatorEskf_DW.lastPushTime_ms_d.chunks[0U],
                              2, &tmp_1.chunks[0U], 3);
         uMultiWord2MultiWord(&flowTimeIn_ms.chunks[0U], 2, &tmp_2.chunks[0U], 3);
@@ -2277,29 +2253,29 @@ void stateEstimatorEskf::stateEstimatorEskf_flowFifo(boolean_T isFlowValid,
              (&flowFifoParams_resetThreshold_m.chunks[0U], &tmp_5.chunks[0U], 2)
              & uMultiWordGe(&tmp.chunks[0U],
                             &flowFifoParams_resetThreshold_m.chunks[0U], 2))) {
-          // 'flowFifo:113' head = uint16(1);
+          // 'flowFifo:106' head = uint16(1);
           stateEstimatorEskf_DW.head_i = 1U;
 
-          // 'flowFifo:114' tail = uint16(1);
+          // 'flowFifo:107' tail = uint16(1);
           stateEstimatorEskf_DW.tail_l = 1U;
 
-          // 'flowFifo:115' count = uint16(0);
+          // 'flowFifo:108' count = uint16(0);
           stateEstimatorEskf_DW.count_i = 0U;
 
-          // 'flowFifo:116' lastPushTime_ms = uint64(0);
+          // 'flowFifo:109' lastPushTime_ms = uint64(0);
           stateEstimatorEskf_DW.lastPushTime_ms_d = tmp_5;
 
-          // 'flowFifo:117' haveLastPushTime = false;
+          // 'flowFifo:110' haveLastPushTime = false;
           stateEstimatorEskf_DW.haveLastPushTime_n = false;
 
-          // 'flowFifo:118' status = STATUS_TIMEBASE_RESET;
-          *status = 3U;
+          // 'flowFifo:111' status = enumDhFifoStatus.TIMEBASE_RESET;
+          *status = enumDhFifoStatus::TIMEBASE_RESET;
           guard3 = true;
         } else {
-          // 'flowFifo:119' else
+          // 'flowFifo:112' else
           //  Duplicate timestamp or small backward jump.
-          // 'flowFifo:121' status = STATUS_BAD_TIMESTAMP;
-          *status = 1U;
+          // 'flowFifo:114' status = enumDhFifoStatus.BAD_TIMESTAMP;
+          *status = enumDhFifoStatus::BAD_TIMESTAMP;
         }
       } else {
         guard3 = true;
@@ -2311,8 +2287,8 @@ void stateEstimatorEskf::stateEstimatorEskf_flowFifo(boolean_T isFlowValid,
     if (guard3) {
       //  Optional rate throttling.
       //  minObsInterval_ms == 0 disables throttling.
-      // 'flowFifo:128' if haveLastPushTime && ...
-      // 'flowFifo:129'             (flowTimeIn_ms - lastPushTime_ms) < minObsInterval_ms 
+      // 'flowFifo:121' if haveLastPushTime && ...
+      // 'flowFifo:122'             (flowTimeIn_ms - lastPushTime_ms) < minObsInterval_ms 
       uMultiWord2MultiWord(&flowTimeIn_ms.chunks[0U], 2, &tmp_1.chunks[0U], 3);
       uMultiWord2MultiWord(&stateEstimatorEskf_DW.lastPushTime_ms_d.chunks[0U],
                            2, &tmp_2.chunks[0U], 3);
@@ -2323,26 +2299,26 @@ void stateEstimatorEskf::stateEstimatorEskf_flowFifo(boolean_T isFlowValid,
                         &flowFifoParams_minInterval_ms.chunks[0U], 2))) {
       } else {
         //  count is constrained to 0 <= count <= capacity.
-        // 'flowFifo:134' bufferWasFull = (count == capacity);
+        // 'flowFifo:127' bufferWasFull = (count == capacity);
         //  Store complete optical-flow observation at current write location.
         //  Each column contains [vN; vE].
-        // 'flowFifo:138' timeBuf_ms(head) = flowTimeIn_ms;
+        // 'flowFifo:131' timeBuf_ms(head) = flowTimeIn_ms;
         stateEstimatorEskf_DW.timeBuf_ms_e[stateEstimatorEskf_DW.head_i - 1] =
           flowTimeIn_ms;
 
-        // 'flowFifo:139' dataBuf(:,head) = velNEIn;
+        // 'flowFifo:132' dataBuf(:,head) = velNEIn;
         dataBuf_i_tmp = (stateEstimatorEskf_DW.head_i - 1) << 1;
         stateEstimatorEskf_DW.dataBuf_i[dataBuf_i_tmp] = velNEIn[0];
         stateEstimatorEskf_DW.dataBuf_i[dataBuf_i_tmp + 1] = velNEIn[1];
 
         //  Advance write location.
-        // 'flowFifo:142' if head == capacity
+        // 'flowFifo:135' if head == capacity
         if (stateEstimatorEskf_DW.head_i == flowFifoParams_capacity) {
-          // 'flowFifo:143' head = uint16(1);
+          // 'flowFifo:136' head = uint16(1);
           stateEstimatorEskf_DW.head_i = 1U;
         } else {
-          // 'flowFifo:144' else
-          // 'flowFifo:145' head = head + 1;
+          // 'flowFifo:137' else
+          // 'flowFifo:138' head = head + 1;
           qY = stateEstimatorEskf_DW.head_i + 1U;
           if (stateEstimatorEskf_DW.head_i + 1U > 65535U) {
             qY = 65535U;
@@ -2351,17 +2327,17 @@ void stateEstimatorEskf::stateEstimatorEskf_flowFifo(boolean_T isFlowValid,
           stateEstimatorEskf_DW.head_i = static_cast<uint16_T>(qY);
         }
 
-        // 'flowFifo:148' if bufferWasFull
+        // 'flowFifo:141' if bufferWasFull
         if (stateEstimatorEskf_DW.count_i == flowFifoParams_capacity) {
           //  New write replaced the oldest measurement.
           //  Advance tail to the new oldest measurement.
-          // 'flowFifo:151' if tail == capacity
+          // 'flowFifo:144' if tail == capacity
           if (stateEstimatorEskf_DW.tail_l == flowFifoParams_capacity) {
-            // 'flowFifo:152' tail = uint16(1);
+            // 'flowFifo:145' tail = uint16(1);
             stateEstimatorEskf_DW.tail_l = 1U;
           } else {
-            // 'flowFifo:153' else
-            // 'flowFifo:154' tail = tail + 1;
+            // 'flowFifo:146' else
+            // 'flowFifo:147' tail = tail + 1;
             qY = stateEstimatorEskf_DW.tail_l + 1U;
             if (stateEstimatorEskf_DW.tail_l + 1U > 65535U) {
               qY = 65535U;
@@ -2371,19 +2347,19 @@ void stateEstimatorEskf::stateEstimatorEskf_flowFifo(boolean_T isFlowValid,
           }
 
           //  Occupancy remains full.
-          // 'flowFifo:158' count = capacity;
+          // 'flowFifo:151' count = capacity;
           stateEstimatorEskf_DW.count_i = flowFifoParams_capacity;
 
           //  Preserve TIMEBASE_RESET if that occurred during this push.
-          // 'flowFifo:161' if status == STATUS_OK
-          if (*status == 0) {
-            // 'flowFifo:162' status = STATUS_OVERWRITE;
-            *status = 2U;
+          // 'flowFifo:154' if status == enumDhFifoStatus.OK
+          if (*status == enumDhFifoStatus::OK) {
+            // 'flowFifo:155' status = enumDhFifoStatus.OVERWRITE;
+            *status = enumDhFifoStatus::OVERWRITE;
           }
         } else {
-          // 'flowFifo:164' else
+          // 'flowFifo:157' else
           //  One new measurement was added without replacing anything.
-          // 'flowFifo:166' count = count + 1;
+          // 'flowFifo:159' count = count + 1;
           qY = stateEstimatorEskf_DW.count_i + 1U;
           if (stateEstimatorEskf_DW.count_i + 1U > 65535U) {
             qY = 65535U;
@@ -2393,13 +2369,13 @@ void stateEstimatorEskf::stateEstimatorEskf_flowFifo(boolean_T isFlowValid,
         }
 
         //  Update timestamp history only for measurements actually accepted.
-        // 'flowFifo:170' lastPushTime_ms = flowTimeIn_ms;
+        // 'flowFifo:163' lastPushTime_ms = flowTimeIn_ms;
         stateEstimatorEskf_DW.lastPushTime_ms_d = flowTimeIn_ms;
 
-        // 'flowFifo:171' haveLastPushTime = true;
+        // 'flowFifo:164' haveLastPushTime = true;
         stateEstimatorEskf_DW.haveLastPushTime_n = true;
 
-        // 'flowFifo:172' countOut = count;
+        // 'flowFifo:165' countOut = count;
         *countOut = stateEstimatorEskf_DW.count_i;
         guard2 = true;
       }
@@ -2410,7 +2386,7 @@ void stateEstimatorEskf::stateEstimatorEskf_flowFifo(boolean_T isFlowValid,
       //  POP NEWEST OPTICAL-FLOW MEASUREMENT ELIGIBLE AT FUSION HORIZON
       //  ------------------------------------------------------------------------- 
       //  Empty FIFO.
-      // 'flowFifo:180' if count == 0
+      // 'flowFifo:173' if count == 0
       if ((stateEstimatorEskf_DW.count_i == 0) || uMultiWordGt
           (&stateEstimatorEskf_DW.timeBuf_ms_e[stateEstimatorEskf_DW.tail_l - 1]
            .chunks[0U], &fusionTime_ms.chunks[0U], 2)) {
@@ -2419,7 +2395,7 @@ void stateEstimatorEskf::stateEstimatorEskf_flowFifo(boolean_T isFlowValid,
 
         //  Because measurements are chronologically ordered, if the oldest
         //  measurement is newer than the fusion horizon, nothing is ready.
-        // 'flowFifo:186' if timeBuf_ms(tail) > fusionTime_ms
+        // 'flowFifo:179' if timeBuf_ms(tail) > fusionTime_ms
         //  At least one measurement is eligible.
         //
         //  Discard older eligible measurements until tail points at:
@@ -2427,21 +2403,21 @@ void stateEstimatorEskf::stateEstimatorEskf_flowFifo(boolean_T isFlowValid,
         //    max{ flowTime | flowTime <= fusionTime_ms }
         //
         //  Loop execution is statically bounded by MAX_SIZE-1.
-        // 'flowFifo:197' for k = 1:(MAX_SIZE-1)
+        // 'flowFifo:190' for k = 1:(MAX_SIZE-1)
         dataBuf_i_tmp = 0;
         exitg1 = false;
         while ((!exitg1) && (static_cast<boolean_T>((dataBuf_i_tmp < 23) &
                  (stateEstimatorEskf_DW.count_i != 1)))) {
           uint16_T nextIdx;
 
-          // 'flowFifo:198' if count == 1
-          // 'flowFifo:202' if tail == capacity
+          // 'flowFifo:191' if count == 1
+          // 'flowFifo:195' if tail == capacity
           if (stateEstimatorEskf_DW.tail_l == flowFifoParams_capacity) {
-            // 'flowFifo:203' nextIdx = uint16(1);
+            // 'flowFifo:196' nextIdx = uint16(1);
             nextIdx = 1U;
           } else {
-            // 'flowFifo:204' else
-            // 'flowFifo:205' nextIdx = tail + 1;
+            // 'flowFifo:197' else
+            // 'flowFifo:198' nextIdx = tail + 1;
             qY = stateEstimatorEskf_DW.tail_l + 1U;
             if (stateEstimatorEskf_DW.tail_l + 1U > 65535U) {
               qY = 65535U;
@@ -2450,16 +2426,16 @@ void stateEstimatorEskf::stateEstimatorEskf_flowFifo(boolean_T isFlowValid,
             nextIdx = static_cast<uint16_T>(qY);
           }
 
-          // 'flowFifo:208' if timeBuf_ms(nextIdx) > fusionTime_ms
+          // 'flowFifo:201' if timeBuf_ms(nextIdx) > fusionTime_ms
           if (uMultiWordGt(&stateEstimatorEskf_DW.timeBuf_ms_e[nextIdx - 1].
                            chunks[0U], &fusionTime_ms.chunks[0U], 2)) {
             exitg1 = true;
           } else {
             //  A newer eligible sample exists; discard current tail.
-            // 'flowFifo:213' tail = nextIdx;
+            // 'flowFifo:206' tail = nextIdx;
             stateEstimatorEskf_DW.tail_l = nextIdx;
 
-            // 'flowFifo:214' count = count - 1;
+            // 'flowFifo:207' count = count - 1;
             qY = stateEstimatorEskf_DW.count_i -
               /*MW:operator MISRA2012:D4.1 CERT-C:INT30-C 'Justifying MISRA C rule violation'*/
               /*MW:OvSatOk*/ 1U;
@@ -2474,10 +2450,10 @@ void stateEstimatorEskf::stateEstimatorEskf_flowFifo(boolean_T isFlowValid,
         }
 
         //  Tail now points to the newest eligible optical-flow measurement.
-        // 'flowFifo:218' measurementAge_ms = fusionTime_ms - timeBuf_ms(tail);
+        // 'flowFifo:211' measurementAge_ms = fusionTime_ms - timeBuf_ms(tail);
         //  Optional maximum-age gate.
         //  maxAge_ms == 0 disables this check.
-        // 'flowFifo:222' if maxAge_ms > 0 && measurementAge_ms >= maxAge_ms
+        // 'flowFifo:215' if maxAge_ms > 0 && measurementAge_ms >= maxAge_ms
         if (uMultiWordGt(&flowFifoParams_maxAge_ms.chunks[0U], &tmp_5.chunks[0U],
                          2)) {
           uMultiWord2MultiWord(&fusionTime_ms.chunks[0U], 2, &tmp_1.chunks[0U],
@@ -2490,13 +2466,13 @@ void stateEstimatorEskf::stateEstimatorEskf_flowFifo(boolean_T isFlowValid,
           sMultiWord2uMultiWordSat(&tmp_0.chunks[0U], 3, &tmp_4.chunks[0U], 2);
           if (uMultiWordGe(&tmp_4.chunks[0U], &flowFifoParams_maxAge_ms.chunks
                            [0U], 2)) {
-            // 'flowFifo:223' if tail == capacity
+            // 'flowFifo:216' if tail == capacity
             if (stateEstimatorEskf_DW.tail_l == flowFifoParams_capacity) {
-              // 'flowFifo:224' tail = uint16(1);
+              // 'flowFifo:217' tail = uint16(1);
               stateEstimatorEskf_DW.tail_l = 1U;
             } else {
-              // 'flowFifo:225' else
-              // 'flowFifo:226' tail = tail + 1;
+              // 'flowFifo:218' else
+              // 'flowFifo:219' tail = tail + 1;
               qY = stateEstimatorEskf_DW.tail_l + 1U;
               if (stateEstimatorEskf_DW.tail_l + 1U > 65535U) {
                 qY = 65535U;
@@ -2505,7 +2481,7 @@ void stateEstimatorEskf::stateEstimatorEskf_flowFifo(boolean_T isFlowValid,
               stateEstimatorEskf_DW.tail_l = static_cast<uint16_T>(qY);
             }
 
-            // 'flowFifo:229' count = count - 1;
+            // 'flowFifo:222' count = count - 1;
             qY = stateEstimatorEskf_DW.count_i -
               /*MW:operator MISRA2012:D4.1 CERT-C:INT30-C 'Justifying MISRA C rule violation'*/
               /*MW:OvSatOk*/ 1U;
@@ -2516,11 +2492,11 @@ void stateEstimatorEskf::stateEstimatorEskf_flowFifo(boolean_T isFlowValid,
 
             stateEstimatorEskf_DW.count_i = static_cast<uint16_T>(qY);
 
-            // 'flowFifo:230' countOut = count;
+            // 'flowFifo:223' countOut = count;
             *countOut = stateEstimatorEskf_DW.count_i;
 
-            // 'flowFifo:231' status = STATUS_STALE_DISCARD;
-            *status = 4U;
+            // 'flowFifo:224' status = enumDhFifoStatus.STALE_DISCARD;
+            *status = enumDhFifoStatus::STALE_DISCARD;
           } else {
             guard1 = true;
           }
@@ -2532,26 +2508,26 @@ void stateEstimatorEskf::stateEstimatorEskf_flowFifo(boolean_T isFlowValid,
 
     if (guard1) {
       //  Return selected optical-flow measurement.
-      // 'flowFifo:236' flowTimeOut_ms = timeBuf_ms(tail);
+      // 'flowFifo:229' flowTimeOut_ms = timeBuf_ms(tail);
       *flowTimeOut_ms =
         stateEstimatorEskf_DW.timeBuf_ms_e[stateEstimatorEskf_DW.tail_l - 1];
 
-      // 'flowFifo:237' velNEOut = dataBuf(:,tail);
+      // 'flowFifo:230' velNEOut = dataBuf(:,tail);
       dataBuf_i_tmp = (stateEstimatorEskf_DW.tail_l - 1) << 1;
       velNEOut[0] = stateEstimatorEskf_DW.dataBuf_i[dataBuf_i_tmp];
       velNEOut[1] = stateEstimatorEskf_DW.dataBuf_i[dataBuf_i_tmp + 1];
 
-      // 'flowFifo:238' flowReady = true;
+      // 'flowFifo:231' flowReady = true;
       *flowReady = true;
 
       //  Consume returned measurement.
-      // 'flowFifo:241' if tail == capacity
+      // 'flowFifo:234' if tail == capacity
       if (stateEstimatorEskf_DW.tail_l == flowFifoParams_capacity) {
-        // 'flowFifo:242' tail = uint16(1);
+        // 'flowFifo:235' tail = uint16(1);
         stateEstimatorEskf_DW.tail_l = 1U;
       } else {
-        // 'flowFifo:243' else
-        // 'flowFifo:244' tail = tail + 1;
+        // 'flowFifo:236' else
+        // 'flowFifo:237' tail = tail + 1;
         qY = stateEstimatorEskf_DW.tail_l + 1U;
         if (stateEstimatorEskf_DW.tail_l + 1U > 65535U) {
           qY = 65535U;
@@ -2560,7 +2536,7 @@ void stateEstimatorEskf::stateEstimatorEskf_flowFifo(boolean_T isFlowValid,
         stateEstimatorEskf_DW.tail_l = static_cast<uint16_T>(qY);
       }
 
-      // 'flowFifo:247' count = count - 1;
+      // 'flowFifo:240' count = count - 1;
       qY = stateEstimatorEskf_DW.count_i -
         /*MW:operator MISRA2012:D4.1 CERT-C:INT30-C 'Justifying MISRA C rule violation'*/
         /*MW:OvSatOk*/ 1U;
@@ -2570,14 +2546,14 @@ void stateEstimatorEskf::stateEstimatorEskf_flowFifo(boolean_T isFlowValid,
 
       stateEstimatorEskf_DW.count_i = static_cast<uint16_T>(qY);
 
-      // 'flowFifo:248' countOut = count;
+      // 'flowFifo:241' countOut = count;
       *countOut = stateEstimatorEskf_DW.count_i;
     }
   }
 }
 
 // System initialize for referenced model: 'stateEstimatorEskf'
-void stateEstimatorEskf::init(busStateEstimatorDebug *rty_stateEstimatorDebug)
+void stateEstimatorEskf::init(void)
 {
   int32_T i;
   int32_T k;
@@ -2662,12 +2638,6 @@ void stateEstimatorEskf::init(busStateEstimatorDebug *rty_stateEstimatorDebug)
   stateEstimatorEskf_DW.sensorDataOut.sensorTimestamp.lidarTimestamp_ms = tmp_0;
   stateEstimatorEskf_DW.sensorDataOut.sensorTimestamp.ofTimestamp_ms = tmp_0;
 
-  // SystemInitialize for BusCreator: '<Root>/Bus Creator' incorporates:
-  //   Chart: '<Root>/estimatorStateMachine'
-
-  rty_stateEstimatorDebug->stateEstInitPct = 0.0F;
-  rty_stateEstimatorDebug->smMode = enumStateEstimateMode::NONE;
-
   // SystemInitialize for MATLAB Function: '<S13>/DelayedHorizonBufferManager'
   // 'stateFifo:109' modeBuf = repmat(enumStateEstimateMode.NONE,1,MAX_SIZE);
   // 'stateFifo:111' head = uint16(1);
@@ -2680,127 +2650,127 @@ void stateEstimatorEskf::init(busStateEstimatorDebug *rty_stateEstimatorDebug)
   //  Oldest valid mode
   // 'stateFifo:113' count = uint16(0);
   //  Number of valid stored modes
-  // 'imuFifo:88' timeBuf_ms = zeros(1,MAX_SIZE,'uint64');
-  // 'imuFifo:89' dataBuf = zeros(7,MAX_SIZE,'single');
-  // 'imuFifo:91' head = uint16(1);
+  // 'imuFifo:84' timeBuf_ms = zeros(1,MAX_SIZE,'uint64');
+  // 'imuFifo:85' dataBuf = zeros(7,MAX_SIZE,'single');
+  // 'imuFifo:87' head = uint16(1);
   stateEstimatorEskf_DW.head_e = 1U;
 
   //  Next write location
-  // 'imuFifo:92' tail = uint16(1);
+  // 'imuFifo:88' tail = uint16(1);
   stateEstimatorEskf_DW.tail_g = 1U;
 
   //  Oldest valid IMU sample
-  // 'imuFifo:93' count = uint16(0);
+  // 'imuFifo:89' count = uint16(0);
   //  Number of valid samples
-  // 'magFifo:63' timeBuf_ms = zeros(1,MAX_SIZE,'uint64');
+  // 'magFifo:56' timeBuf_ms = zeros(1,MAX_SIZE,'uint64');
   for (i = 0; i < 64; i++) {
     stateEstimatorEskf_DW.timeBuf_ms[i] = tmp_0;
     stateEstimatorEskf_DW.timeBuf_ms_c[i] = tmp_0;
   }
 
-  // 'magFifo:64' dataBuf = zeros(3,MAX_SIZE,'single');
-  // 'magFifo:65' head = uint16(1);
+  // 'magFifo:57' dataBuf = zeros(3,MAX_SIZE,'single');
+  // 'magFifo:58' head = uint16(1);
   stateEstimatorEskf_DW.head_m = 1U;
 
   //  Next write location
-  // 'magFifo:66' tail = uint16(1);
+  // 'magFifo:59' tail = uint16(1);
   stateEstimatorEskf_DW.tail_n = 1U;
 
   //  Oldest valid measurement
-  // 'magFifo:67' count = uint16(0);
+  // 'magFifo:60' count = uint16(0);
   //  Number of valid measurements
-  // 'magFifo:68' lastPushTime_ms = uint64(0);
+  // 'magFifo:61' lastPushTime_ms = uint64(0);
   stateEstimatorEskf_DW.lastPushTime_ms = tmp_0;
 
   //  Last accepted magnetometer timestamp
-  // 'magFifo:69' haveLastPushTime = false;
-  // 'gpsFifo:63' timeBuf_ms = zeros(1,MAX_SIZE,'uint64');
+  // 'magFifo:62' haveLastPushTime = false;
+  // 'gpsFifo:56' timeBuf_ms = zeros(1,MAX_SIZE,'uint64');
   for (i = 0; i < 16; i++) {
     stateEstimatorEskf_DW.timeBuf_ms_k[i] = tmp_0;
   }
 
-  // 'gpsFifo:64' dataBuf = zeros(6,MAX_SIZE,'single');
-  // 'gpsFifo:65' head = uint16(1);
+  // 'gpsFifo:57' dataBuf = zeros(6,MAX_SIZE,'single');
+  // 'gpsFifo:58' head = uint16(1);
   stateEstimatorEskf_DW.head_k = 1U;
 
   //  Next write location
-  // 'gpsFifo:66' tail = uint16(1);
+  // 'gpsFifo:59' tail = uint16(1);
   stateEstimatorEskf_DW.tail_o = 1U;
 
   //  Oldest valid measurement
-  // 'gpsFifo:67' count = uint16(0);
+  // 'gpsFifo:60' count = uint16(0);
   //  Number of valid measurements
-  // 'gpsFifo:68' lastPushTime_ms = uint64(0);
+  // 'gpsFifo:61' lastPushTime_ms = uint64(0);
   stateEstimatorEskf_DW.lastPushTime_ms_h = tmp_0;
 
   //  Last accepted GPS timestamp
-  // 'gpsFifo:69' haveLastPushTime = false;
-  // 'baroFifo:62' timeBuf_ms = zeros(1,MAX_SIZE,'uint64');
-  // 'baroFifo:63' altitudeBuf_m = zeros(1,MAX_SIZE,'single');
+  // 'gpsFifo:62' haveLastPushTime = false;
+  // 'baroFifo:55' timeBuf_ms = zeros(1,MAX_SIZE,'uint64');
+  // 'baroFifo:56' altitudeBuf_m = zeros(1,MAX_SIZE,'single');
   for (i = 0; i < 24; i++) {
     stateEstimatorEskf_DW.timeBuf_ms_o[i] = tmp_0;
   }
 
-  // 'baroFifo:64' head = uint16(1);
+  // 'baroFifo:57' head = uint16(1);
   stateEstimatorEskf_DW.head_c = 1U;
 
   //  Next write location
-  // 'baroFifo:65' tail = uint16(1);
+  // 'baroFifo:58' tail = uint16(1);
   stateEstimatorEskf_DW.tail_i = 1U;
 
   //  Oldest valid measurement
-  // 'baroFifo:66' count = uint16(0);
+  // 'baroFifo:59' count = uint16(0);
   //  Number of valid measurements
-  // 'baroFifo:67' lastPushTime_ms = uint64(0);
+  // 'baroFifo:60' lastPushTime_ms = uint64(0);
   stateEstimatorEskf_DW.lastPushTime_ms_g = tmp_0;
 
   //  Last accepted barometer timestamp
-  // 'baroFifo:68' haveLastPushTime = false;
-  // 'lidarFifo:62' timeBuf_ms = zeros(1,MAX_SIZE,'uint64');
-  // 'lidarFifo:63' aglBuf_m = zeros(1,MAX_SIZE,'single');
+  // 'baroFifo:61' haveLastPushTime = false;
+  // 'lidarFifo:55' timeBuf_ms = zeros(1,MAX_SIZE,'uint64');
+  // 'lidarFifo:56' aglBuf_m = zeros(1,MAX_SIZE,'single');
   for (i = 0; i < 32; i++) {
     stateEstimatorEskf_DW.timeBuf_ms_l[i] = tmp_0;
   }
 
-  // 'lidarFifo:64' head = uint16(1);
+  // 'lidarFifo:57' head = uint16(1);
   stateEstimatorEskf_DW.head_b = 1U;
 
   //  Next write location
-  // 'lidarFifo:65' tail = uint16(1);
+  // 'lidarFifo:58' tail = uint16(1);
   stateEstimatorEskf_DW.tail_c = 1U;
 
   //  Oldest valid measurement
-  // 'lidarFifo:66' count = uint16(0);
+  // 'lidarFifo:59' count = uint16(0);
   //  Number of valid measurements
-  // 'lidarFifo:67' lastPushTime_ms = uint64(0);
+  // 'lidarFifo:60' lastPushTime_ms = uint64(0);
   stateEstimatorEskf_DW.lastPushTime_ms_gh = tmp_0;
 
   //  Last accepted LiDAR timestamp
-  // 'lidarFifo:68' haveLastPushTime = false;
-  // 'flowFifo:63' timeBuf_ms = zeros(1,MAX_SIZE,'uint64');
+  // 'lidarFifo:61' haveLastPushTime = false;
+  // 'flowFifo:56' timeBuf_ms = zeros(1,MAX_SIZE,'uint64');
   for (i = 0; i < 24; i++) {
     stateEstimatorEskf_DW.timeBuf_ms_e[i] = tmp_0;
   }
 
-  // 'flowFifo:64' dataBuf = zeros(2,MAX_SIZE,'single');
-  // 'flowFifo:65' head = uint16(1);
+  // 'flowFifo:57' dataBuf = zeros(2,MAX_SIZE,'single');
+  // 'flowFifo:58' head = uint16(1);
   stateEstimatorEskf_DW.head_i = 1U;
 
   //  Next write location
-  // 'flowFifo:66' tail = uint16(1);
+  // 'flowFifo:59' tail = uint16(1);
   stateEstimatorEskf_DW.tail_l = 1U;
 
   //  Oldest valid measurement
-  // 'flowFifo:67' count = uint16(0);
+  // 'flowFifo:60' count = uint16(0);
   //  Number of valid measurements
-  // 'flowFifo:68' lastPushTime_ms = uint64(0);
+  // 'flowFifo:61' lastPushTime_ms = uint64(0);
   stateEstimatorEskf_DW.lastPushTime_ms_d = tmp_0;
 
   // End of SystemInitialize for MATLAB Function: '<S13>/DelayedHorizonBufferManager' 
 
   // SystemInitialize for MATLAB Function: '<S1>/EKF'
   //  Last accepted flow timestamp
-  // 'flowFifo:69' haveLastPushTime = false;
+  // 'flowFifo:62' haveLastPushTime = false;
   // 'errorStateEkf_function2:66' I3 = eye(3, 'single');
   stateEstimatorEskf_DW.I3[1] = 0.0F;
   stateEstimatorEskf_DW.I3[2] = 0.0F;
@@ -2900,6 +2870,7 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
   real32_T tmp1[57];
   real32_T K[45];
   real32_T tmp1_0[45];
+  real32_T rtb_ekfDebugOut_dhStates[23];
   real32_T rtb_states[20];
   real32_T b_errorStateHat[19];
   real32_T d_K[19];
@@ -2907,8 +2878,8 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
   real32_T K_0[15];
   real32_T tmp_2[15];
   real32_T rtb_states_0[12];
-  real32_T rtb_VectorConcatenate_m[9];
-  real32_T imuOut[7];
+  real32_T H_0[9];
+  real32_T rtb_VectorConcatenate[7];
   real32_T nedPosAndVel[6];
   real32_T rtb_CastToSingle_0[6];
   real32_T rtb_ElementProduct[6];
@@ -2917,10 +2888,11 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
   real32_T tmp_3[4];
   real32_T Divide[3];
   real32_T Product[3];
-  real32_T imuOut_0[3];
   real32_T rtb_CastToSingle[3];
+  real32_T rtb_VectorConcatenate_0[3];
   real32_T rtb_VectorConcatenate_i[2];
   real32_T rtb_VectorConcatenate_k2[2];
+  real32_T q1q3;
   real32_T q2q3;
   real32_T rtb_Merge_idx_0;
   real32_T rtb_Merge_idx_0_tmp;
@@ -2936,14 +2908,12 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
   real32_T rtb_XAxis;
   real32_T rtb_XAxis1;
   real32_T rtb_XAxis2;
-  real32_T rtb_dcmBodyToNed_idx_2;
-  real32_T rtb_dcmBodyToNed_idx_5;
-  real32_T rtb_dcmBodyToNed_idx_7;
+  real32_T rtb_dcmBodyToNed_idx_4;
   real32_T rtb_dcmBodyToNed_idx_8;
+  real32_T tmp5;
   uint32_T qY;
   uint16_T nextIdx;
   int8_T c;
-  uint8_T a__4;
   boolean_T dhSensorIn_sensorValidity_isBar;
   boolean_T dhSensorIn_sensorValidity_isGps;
   boolean_T dhSensorIn_sensorValidity_isLid;
@@ -2951,8 +2921,13 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
   boolean_T dhSensorIn_sensorValidity_isOfV;
   boolean_T gpsLossFlag;
   boolean_T rtb_Compare;
+  boolean_T rtb_ekfDebugOut_isAidingUsed__0;
+  boolean_T rtb_ekfDebugOut_isAidingUsed__1;
+  boolean_T rtb_ekfDebugOut_isAidingUsed__2;
+  boolean_T rtb_ekfDebugOut_isAidingUsed_is;
   boolean_T stateModeReady;
-  enumStateEstimateMode delayedEstSmMode;
+  enumDhFifoStatus status;
+  enumStateEstimateMode estSmModeOut;
   enumStateEstimateMode mode;
   static const uint64m_T dhSensorIn_sensorTimestamp_ma_0{ { 0U, 0U }// chunks
   };
@@ -4047,52 +4022,6 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
     stateEstimatorEskf_DW.DiscreteTransferFcn_tmp_b + rtb_XAxis2 *
     stateEstimatorEskf_DW.DiscreteTransferFcn_states_n;
 
-  // BusCreator: '<Root>/Bus Creator'
-  // This function generates a validity flag based to inform EKF when to not
-  // use optical flow data
-  // MATLAB Function 'opticalFlowToNeVel/getMtf01pValidity': '<S69>:1'
-  // '<S69>:1:4' mtf01pValidityFlag = true;
-  // Update flag based distance health
-  // '<S69>:1:7' mtf01pValidityFlag = mtf01pValidityFlag & (mtf01pData.distPrecision <= mtf01pParams.distPrecisionThr) & ... 
-  // '<S69>:1:8'     (mtf01pData.distStatus == 1) & (mtf01pData.dist_m > mtf01pParams.distLimit_m(1)) & (mtf01pData.dist_m < mtf01pParams.distLimit_m(2)); 
-  // Update flag based on flow health
-  // '<S69>:1:11' mtf01pValidityFlag = mtf01pValidityFlag & (mtf01pData.flowStatus == 1); 
-  rty_stateEstimatorDebug->stateEstInitPct =
-    stateEstimatorEskf_DW.stateEstInitPct;
-  rty_stateEstimatorDebug->smMode = mode;
-
-  // Delay: '<S1>/Delay'
-  stateEstimatorEskf_DW.icLoad = stateEstimatorEskf_DW.resetStates |
-    stateEstimatorEskf_DW.icLoad;
-  if (stateEstimatorEskf_DW.icLoad) {
-    std::memcpy(&stateEstimatorEskf_DW.Delay_DSTATE[0],
-                &stateEstimatorEskf_DW.initialStates[0], 20U * sizeof(real32_T));
-  }
-
-  // Delay: '<S1>/Delay2'
-  stateEstimatorEskf_DW.icLoad_g = stateEstimatorEskf_DW.resetStates |
-    stateEstimatorEskf_DW.icLoad_g;
-  if (stateEstimatorEskf_DW.icLoad_g) {
-    stateEstimatorEskf_DW.Delay2_DSTATE[0] =
-      stateEstimatorEskf_DW.initialDcmBodyToNed[0];
-    stateEstimatorEskf_DW.Delay2_DSTATE[1] =
-      stateEstimatorEskf_DW.initialDcmBodyToNed[1];
-    stateEstimatorEskf_DW.Delay2_DSTATE[2] =
-      stateEstimatorEskf_DW.initialDcmBodyToNed[2];
-    stateEstimatorEskf_DW.Delay2_DSTATE[3] =
-      stateEstimatorEskf_DW.initialDcmBodyToNed[3];
-    stateEstimatorEskf_DW.Delay2_DSTATE[4] =
-      stateEstimatorEskf_DW.initialDcmBodyToNed[4];
-    stateEstimatorEskf_DW.Delay2_DSTATE[5] =
-      stateEstimatorEskf_DW.initialDcmBodyToNed[5];
-    stateEstimatorEskf_DW.Delay2_DSTATE[6] =
-      stateEstimatorEskf_DW.initialDcmBodyToNed[6];
-    stateEstimatorEskf_DW.Delay2_DSTATE[7] =
-      stateEstimatorEskf_DW.initialDcmBodyToNed[7];
-    stateEstimatorEskf_DW.Delay2_DSTATE[8] =
-      stateEstimatorEskf_DW.initialDcmBodyToNed[8];
-  }
-
   // MATLAB Function: '<S13>/DelayedHorizonBufferManager' incorporates:
   //   BusAssignment: '<Root>/Bus Assignment'
   //   BusCreator: '<Root>/Bus Creator1'
@@ -4117,13 +4046,23 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
   //   UnitDelay: '<Root>/Unit Delay1'
   //   UnitDelay: '<S7>/Unit Delay'
 
+  // This function generates a validity flag based to inform EKF when to not
+  // use optical flow data
+  // MATLAB Function 'opticalFlowToNeVel/getMtf01pValidity': '<S69>:1'
+  // '<S69>:1:4' mtf01pValidityFlag = true;
+  // Update flag based distance health
+  // '<S69>:1:7' mtf01pValidityFlag = mtf01pValidityFlag & (mtf01pData.distPrecision <= mtf01pParams.distPrecisionThr) & ... 
+  // '<S69>:1:8'     (mtf01pData.distStatus == 1) & (mtf01pData.dist_m > mtf01pParams.distLimit_m(1)) & (mtf01pData.dist_m < mtf01pParams.distLimit_m(2)); 
+  // Update flag based on flow health
+  // '<S69>:1:11' mtf01pValidityFlag = mtf01pValidityFlag & (mtf01pData.flowStatus == 1); 
   // MATLAB Function 'EKF/DelayedHorizonPassthrough/DelayedHorizonBufferManager': '<S17>:1' 
-  // '<S17>:1:2' [dhSensorIn, estSmModeOut] = delayedHorizonBufferManager_function(sensorIn, estSmMode, reset, ekfParams); 
+  // '<S17>:1:2' [dhSensorIn, estSmModeOut, dhBufferDebug] = delayedHorizonBufferManager_function(sensorIn, estSmMode, reset, ekfParams); 
   // DELAYEDHORIZONBUFFERMANAGER manages sensor buffers so the ESKF operates
   // at the delayed IMU horizon.
   // 'delayedHorizonBufferManager_function:7' dhSensorIn = sensorIn;
-  // 'delayedHorizonBufferManager_function:9' [stateModeReady, delayedEstSmMode, ~] = ... 
-  // 'delayedHorizonBufferManager_function:10'     stateFifo(estSmMode, ekfParams.stateFifoParams); 
+  // 'delayedHorizonBufferManager_function:8' dhBufferDebug = struct;
+  // 'delayedHorizonBufferManager_function:10' [stateModeReady, delayedEstSmMode, count] = ... 
+  // 'delayedHorizonBufferManager_function:11'     stateFifo(estSmMode, ekfParams.stateFifoParams); 
   //
   //  Fixed-memory estimator-state delay FIFO.
   //
@@ -4229,7 +4168,7 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
   //  Hold current mode on the output until delayed history becomes available.
   //  modeReady indicates whether delayedMode should actually be used.
   // 'stateFifo:121' delayedMode = currentMode;
-  delayedEstSmMode = mode;
+  estSmModeOut = mode;
 
   // 'stateFifo:123' countOut = count;
   //  Read-only configuration alias.
@@ -4306,14 +4245,17 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
   //        count = 1 ... 50  -> no delayed output
   //        count = 51        -> first delayed output
   // 'stateFifo:178' if count <= delaySamples
-  if (stateEstimatorEskf_DW.count > 50) {
+  if (stateEstimatorEskf_DW.count <= 50) {
+    // 'stateFifo:179' countOut = count;
+    stateEstimatorEskf_DW.dhBufferDebug.statusFifoDebugData.count =
+      stateEstimatorEskf_DW.count;
+  } else {
     //  ------------------------------------------------------------------------- 
     //  POP GPS-DELAYED ESTIMATOR MODE
     //  ------------------------------------------------------------------------- 
     //  Tail is the estimator mode corresponding to the GPS-delayed epoch.
     // 'stateFifo:188' delayedMode = modeBuf(tail);
-    delayedEstSmMode = stateEstimatorEskf_DW.modeBuf[stateEstimatorEskf_DW.tail
-      - 1];
+    estSmModeOut = stateEstimatorEskf_DW.modeBuf[stateEstimatorEskf_DW.tail - 1];
 
     // 'stateFifo:189' modeReady = true;
     stateModeReady = true;
@@ -4345,26 +4287,31 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
     stateEstimatorEskf_DW.count = static_cast<uint16_T>(qY);
 
     // 'stateFifo:199' countOut = count;
-  } else {
-    // 'stateFifo:179' countOut = count;
+    stateEstimatorEskf_DW.dhBufferDebug.statusFifoDebugData.count =
+      stateEstimatorEskf_DW.count;
   }
 
-  // 'delayedHorizonBufferManager_function:12' if stateModeReady
-  if (stateModeReady) {
-    // 'delayedHorizonBufferManager_function:13' estSmModeOut = delayedEstSmMode; 
-    mode = delayedEstSmMode;
+  // 'delayedHorizonBufferManager_function:13' dhBufferDebug.statusFifoDebugData.status = enumDhFifoStatus.OK; 
+  stateEstimatorEskf_DW.dhBufferDebug.statusFifoDebugData.status =
+    enumDhFifoStatus::OK;
+
+  // 'delayedHorizonBufferManager_function:14' dhBufferDebug.statusFifoDebugData.count = count; 
+  // 'delayedHorizonBufferManager_function:16' if stateModeReady
+  if (static_cast<boolean_T>(static_cast<int32_T>(stateModeReady) ^ 1)) {
+    // 'delayedHorizonBufferManager_function:18' else
+    // 'delayedHorizonBufferManager_function:19' estSmModeOut = estSmMode;
+    estSmModeOut = mode;
   } else {
-    // 'delayedHorizonBufferManager_function:14' else
-    // 'delayedHorizonBufferManager_function:15' estSmModeOut = estSmMode;
+    // 'delayedHorizonBufferManager_function:17' estSmModeOut = delayedEstSmMode; 
   }
 
-  // 'delayedHorizonBufferManager_function:18' [imuReady, imuTimeOut_ms, imuOut, ~, ~] = ... 
-  // 'delayedHorizonBufferManager_function:19'     imuFifo(sensorIn.sensorValidity.isImuValid, ... 
-  // 'delayedHorizonBufferManager_function:20'             sensorIn.sensorTimestamp.imuTimestamp_ms, ... 
-  // 'delayedHorizonBufferManager_function:21'             [sensorIn.bodyAccels_mps2; ... 
-  // 'delayedHorizonBufferManager_function:22'              sensorIn.bodyRates_radps; ... 
-  // 'delayedHorizonBufferManager_function:23'              sensorIn.dtImuTime_s], ... 
-  // 'delayedHorizonBufferManager_function:24'             ekfParams.imuFifoParams); 
+  // 'delayedHorizonBufferManager_function:22' [imuReady, imuTimeOut_ms, imuOut, status, count] = ... 
+  // 'delayedHorizonBufferManager_function:23'     imuFifo(sensorIn.sensorValidity.isImuValid, ... 
+  // 'delayedHorizonBufferManager_function:24'             sensorIn.sensorTimestamp.imuTimestamp_ms, ... 
+  // 'delayedHorizonBufferManager_function:25'             [sensorIn.bodyAccels_mps2; ... 
+  // 'delayedHorizonBufferManager_function:26'              sensorIn.bodyRates_radps; ... 
+  // 'delayedHorizonBufferManager_function:27'              sensorIn.dtImuTime_s], ... 
+  // 'delayedHorizonBufferManager_function:28'             ekfParams.imuFifoParams); 
   //
   //  Fixed-memory IMU delay FIFO for delayed-horizon ESKF propagation.
   //
@@ -4438,32 +4385,35 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
   //    With correct sizing and normal estimator execution this should never
   //    occur before the oldest sample has already been consumed.
   // 'imuFifo:77' MAX_SIZE = 64;
-  // 'imuFifo:79' STATUS_OK           = uint8(0);
-  // 'imuFifo:80' STATUS_OVERWRITE    = uint8(1);
-  // 'imuFifo:81' STATUS_BAD_CONFIG   = uint8(2);
   //  Static FIFO allocation/state initialization.
-  // 'imuFifo:87' if isempty(head)
+  // 'imuFifo:83' if isempty(head)
   //  Default outputs.
-  // 'imuFifo:97' imuReady = false;
+  // 'imuFifo:93' imuReady = false;
   stateModeReady = false;
 
-  // 'imuFifo:98' imuTimeOut_ms = uint64(0);
+  // 'imuFifo:94' imuTimeOut_ms = uint64(0);
   fusionTime_ms = dhSensorIn_sensorTimestamp_ma_0;
 
-  // 'imuFifo:99' imuOut = zeros(7,1,'single');
-  imuOut[0] = 0.0F;
-  imuOut[1] = 0.0F;
-  imuOut[2] = 0.0F;
-  imuOut[3] = 0.0F;
-  imuOut[4] = 0.0F;
-  imuOut[5] = 0.0F;
-  imuOut[6] = 0.0F;
+  // 'imuFifo:95' imuOut = zeros(7,1,'single');
+  rtb_VectorConcatenate[0] = 0.0F;
+  rtb_VectorConcatenate[1] = 0.0F;
+  rtb_VectorConcatenate[2] = 0.0F;
+  rtb_VectorConcatenate[3] = 0.0F;
+  rtb_VectorConcatenate[4] = 0.0F;
+  rtb_VectorConcatenate[5] = 0.0F;
+  rtb_VectorConcatenate[6] = 0.0F;
 
-  // 'imuFifo:100' status = STATUS_OK;
-  // 'imuFifo:101' countOut = count;
+  // 'imuFifo:96' status = enumDhFifoStatus.OK;
+  stateEstimatorEskf_DW.dhBufferDebug.imuFifoDebugData.status = enumDhFifoStatus::
+    OK;
+
+  // 'imuFifo:97' countOut = count;
+  stateEstimatorEskf_DW.dhBufferDebug.imuFifoDebugData.count =
+    stateEstimatorEskf_DW.count_g;
+
   //  Read-only configuration aliases.
-  // 'imuFifo:104' imuPeriod_ms = imuFifoParams.imuPeriod_ms;
-  // 'imuFifo:105' delaySamples = imuFifoParams.delaySamples;
+  // 'imuFifo:100' imuPeriod_ms = imuFifoParams.imuPeriod_ms;
+  // 'imuFifo:101' delaySamples = imuFifoParams.delaySamples;
   //  imuPeriod_ms is supplied as a system configuration parameter. It is not
   //  required by the FIFO indexing itself, but retaining it here keeps the
   //  configured temporal horizon explicit:
@@ -4472,24 +4422,27 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
   //
   //  A delay of N intervals requires storage for N+1 timestamped samples
   //  before the oldest sample can first be released.
-  // 'imuFifo:115' if imuPeriod_ms == 0 || delaySamples >= MAX_SIZE
-  if (static_cast<boolean_T>(static_cast<boolean_T>(static_cast<int32_T>
-        (uMultiWordEq
-         (&stateEstimatorEskf_ConstP.DelayedHorizonBufferManager_ekf.imuFifoParams.imuPeriod_ms.chunks
-          [0], &dhSensorIn_sensorTimestamp_ma_0.chunks[0U], 2)) ^ 1) &
-       rtu_imuData->isImuDataValid)) {
+  // 'imuFifo:111' if imuPeriod_ms == 0 || delaySamples >= MAX_SIZE
+  if (uMultiWordEq
+      (&stateEstimatorEskf_ConstP.DelayedHorizonBufferManager_ekf.imuFifoParams.imuPeriod_ms.chunks
+       [0], &dhSensorIn_sensorTimestamp_ma_0.chunks[0U], 2)) {
+    // 'imuFifo:112' status = enumDhFifoStatus.BAD_CONFIG;
+    stateEstimatorEskf_DW.dhBufferDebug.imuFifoDebugData.status =
+      enumDhFifoStatus::BAD_CONFIG;
+
     //  No new IMU measurement this estimator step.
-    // 'imuFifo:121' if ~isImuValid
+    // 'imuFifo:117' if ~isImuValid
+  } else if (rtu_imuData->isImuDataValid) {
     //  ------------------------------------------------------------------------- 
     //  PUSH CURRENT-TIME IMU MEASUREMENT
     //  ------------------------------------------------------------------------- 
-    // 'imuFifo:129' bufferWasFull = (count == MAX_SIZE);
+    // 'imuFifo:125' bufferWasFull = (count == MAX_SIZE);
     //  Store complete IMU observation at current write location.
-    // 'imuFifo:132' timeBuf_ms(head) = imuTimeIn_ms;
+    // 'imuFifo:128' timeBuf_ms(head) = imuTimeIn_ms;
     stateEstimatorEskf_DW.timeBuf_ms[stateEstimatorEskf_DW.head_e - 1] =
       rtu_imuData->timestamp_ms;
 
-    // 'imuFifo:133' dataBuf(:,head) = imuIn;
+    // 'imuFifo:129' dataBuf(:,head) = imuIn;
     rtb_VectorConcatenate1_tmp = (stateEstimatorEskf_DW.head_e - 1) * 7;
     stateEstimatorEskf_DW.dataBuf[rtb_VectorConcatenate1_tmp] =
       stateEstimatorEskf_DW.sensorDataOut.bodyAccels_mps2[0];
@@ -4507,13 +4460,13 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
       rtu_imuData->dtImuTime_s;
 
     //  Advance write pointer.
-    // 'imuFifo:136' if head == MAX_SIZE
+    // 'imuFifo:132' if head == MAX_SIZE
     if (stateEstimatorEskf_DW.head_e == 64) {
-      // 'imuFifo:137' head = uint16(1);
+      // 'imuFifo:133' head = uint16(1);
       stateEstimatorEskf_DW.head_e = 1U;
     } else {
-      // 'imuFifo:138' else
-      // 'imuFifo:139' head = head + 1;
+      // 'imuFifo:134' else
+      // 'imuFifo:135' head = head + 1;
       qY = stateEstimatorEskf_DW.head_e + 1U;
       if (stateEstimatorEskf_DW.head_e + 1U > 65535U) {
         qY = 65535U;
@@ -4522,19 +4475,19 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
       stateEstimatorEskf_DW.head_e = static_cast<uint16_T>(qY);
     }
 
-    // 'imuFifo:142' if bufferWasFull
+    // 'imuFifo:138' if bufferWasFull
     if (stateEstimatorEskf_DW.count_g == 64) {
       //  New sample replaced the oldest stored IMU sample.
       //
       //  Under correctly sized steady-state operation this should not occur
       //  before the oldest sample has already been consumed.
-      // 'imuFifo:147' if tail == MAX_SIZE
+      // 'imuFifo:143' if tail == MAX_SIZE
       if (stateEstimatorEskf_DW.tail_g == 64) {
-        // 'imuFifo:148' tail = uint16(1);
+        // 'imuFifo:144' tail = uint16(1);
         stateEstimatorEskf_DW.tail_g = 1U;
       } else {
-        // 'imuFifo:149' else
-        // 'imuFifo:150' tail = tail + 1;
+        // 'imuFifo:145' else
+        // 'imuFifo:146' tail = tail + 1;
         qY = stateEstimatorEskf_DW.tail_g + 1U;
         if (stateEstimatorEskf_DW.tail_g + 1U > 65535U) {
           qY = 65535U;
@@ -4543,11 +4496,13 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
         stateEstimatorEskf_DW.tail_g = static_cast<uint16_T>(qY);
       }
 
-      // 'imuFifo:153' count = uint16(MAX_SIZE);
-      // 'imuFifo:154' status = STATUS_OVERWRITE;
+      // 'imuFifo:149' count = uint16(MAX_SIZE);
+      // 'imuFifo:150' status = enumDhFifoStatus.OVERWRITE;
+      stateEstimatorEskf_DW.dhBufferDebug.imuFifoDebugData.status =
+        enumDhFifoStatus::OVERWRITE;
     } else {
-      // 'imuFifo:155' else
-      // 'imuFifo:156' count = count + 1;
+      // 'imuFifo:151' else
+      // 'imuFifo:152' count = count + 1;
       qY = stateEstimatorEskf_DW.count_g + 1U;
       if (stateEstimatorEskf_DW.count_g + 1U > 65535U) {
         qY = 65535U;
@@ -4573,37 +4528,48 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
     //    0, 4, 8, ..., 196, 200 ms
     //
     //  There are 50 intervals between 0 ms and 200 ms.
-    // 'imuFifo:177' if count <= delaySamples
-    if (stateEstimatorEskf_DW.count_g > 50) {
+    // 'imuFifo:173' if count <= delaySamples
+    if (stateEstimatorEskf_DW.count_g <= 50) {
+      // 'imuFifo:174' countOut = count;
+      stateEstimatorEskf_DW.dhBufferDebug.imuFifoDebugData.count =
+        stateEstimatorEskf_DW.count_g;
+    } else {
       //  ------------------------------------------------------------------------- 
       //  POP OLDEST DELAYED IMU MEASUREMENT
       //  ------------------------------------------------------------------------- 
       //  Tail points to the oldest valid IMU measurement.
-      // 'imuFifo:187' imuTimeOut_ms = timeBuf_ms(tail);
+      // 'imuFifo:183' imuTimeOut_ms = timeBuf_ms(tail);
       fusionTime_ms =
         stateEstimatorEskf_DW.timeBuf_ms[stateEstimatorEskf_DW.tail_g - 1];
 
-      // 'imuFifo:188' imuOut = dataBuf(:,tail);
+      // 'imuFifo:184' imuOut = dataBuf(:,tail);
       rtb_VectorConcatenate1_tmp = (stateEstimatorEskf_DW.tail_g - 1) * 7;
-      imuOut[0] = stateEstimatorEskf_DW.dataBuf[rtb_VectorConcatenate1_tmp];
-      imuOut[1] = stateEstimatorEskf_DW.dataBuf[rtb_VectorConcatenate1_tmp + 1];
-      imuOut[2] = stateEstimatorEskf_DW.dataBuf[rtb_VectorConcatenate1_tmp + 2];
-      imuOut[3] = stateEstimatorEskf_DW.dataBuf[rtb_VectorConcatenate1_tmp + 3];
-      imuOut[4] = stateEstimatorEskf_DW.dataBuf[rtb_VectorConcatenate1_tmp + 4];
-      imuOut[5] = stateEstimatorEskf_DW.dataBuf[rtb_VectorConcatenate1_tmp + 5];
-      imuOut[6] = stateEstimatorEskf_DW.dataBuf[rtb_VectorConcatenate1_tmp + 6];
+      rtb_VectorConcatenate[0] =
+        stateEstimatorEskf_DW.dataBuf[rtb_VectorConcatenate1_tmp];
+      rtb_VectorConcatenate[1] =
+        stateEstimatorEskf_DW.dataBuf[rtb_VectorConcatenate1_tmp + 1];
+      rtb_VectorConcatenate[2] =
+        stateEstimatorEskf_DW.dataBuf[rtb_VectorConcatenate1_tmp + 2];
+      rtb_VectorConcatenate[3] =
+        stateEstimatorEskf_DW.dataBuf[rtb_VectorConcatenate1_tmp + 3];
+      rtb_VectorConcatenate[4] =
+        stateEstimatorEskf_DW.dataBuf[rtb_VectorConcatenate1_tmp + 4];
+      rtb_VectorConcatenate[5] =
+        stateEstimatorEskf_DW.dataBuf[rtb_VectorConcatenate1_tmp + 5];
+      rtb_VectorConcatenate[6] =
+        stateEstimatorEskf_DW.dataBuf[rtb_VectorConcatenate1_tmp + 6];
 
-      // 'imuFifo:189' imuReady = true;
+      // 'imuFifo:185' imuReady = true;
       stateModeReady = true;
 
       //  Consume returned measurement.
-      // 'imuFifo:192' if tail == MAX_SIZE
+      // 'imuFifo:188' if tail == MAX_SIZE
       if (stateEstimatorEskf_DW.tail_g == 64) {
-        // 'imuFifo:193' tail = uint16(1);
+        // 'imuFifo:189' tail = uint16(1);
         stateEstimatorEskf_DW.tail_g = 1U;
       } else {
-        // 'imuFifo:194' else
-        // 'imuFifo:195' tail = tail + 1;
+        // 'imuFifo:190' else
+        // 'imuFifo:191' tail = tail + 1;
         qY = stateEstimatorEskf_DW.tail_g + 1U;
         if (stateEstimatorEskf_DW.tail_g + 1U > 65535U) {
           qY = 65535U;
@@ -4612,7 +4578,7 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
         stateEstimatorEskf_DW.tail_g = static_cast<uint16_T>(qY);
       }
 
-      // 'imuFifo:198' count = count - 1;
+      // 'imuFifo:194' count = count - 1;
       qY = stateEstimatorEskf_DW.count_g -
         /*MW:operator MISRA2012:D4.1 CERT-C:INT30-C 'Justifying MISRA C rule violation'*/
         /*MW:OvSatOk*/ 1U;
@@ -4622,40 +4588,40 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
 
       stateEstimatorEskf_DW.count_g = static_cast<uint16_T>(qY);
 
-      // 'imuFifo:199' countOut = count;
-    } else {
-      // 'imuFifo:178' countOut = count;
+      // 'imuFifo:195' countOut = count;
+      stateEstimatorEskf_DW.dhBufferDebug.imuFifoDebugData.count =
+        stateEstimatorEskf_DW.count_g;
     }
-  } else {
-    // 'imuFifo:116' status = STATUS_BAD_CONFIG;
   }
 
   dhSensorIn_sensorTimestamp_imuT = fusionTime_ms;
 
-  // 'delayedHorizonBufferManager_function:26' dhSensorIn.sensorValidity.isImuValid = imuReady; 
-  // 'delayedHorizonBufferManager_function:27' dhSensorIn.sensorTimestamp.imuTimestamp_ms = imuTimeOut_ms; 
-  // 'delayedHorizonBufferManager_function:28' dhSensorIn.bodyAccels_mps2 = imuOut(1:3); 
-  // 'delayedHorizonBufferManager_function:29' dhSensorIn.bodyRates_radps = imuOut(4:6); 
-  // 'delayedHorizonBufferManager_function:30' dhSensorIn.dtImuTime_s = imuOut(7); 
-  // 'delayedHorizonBufferManager_function:32' if imuReady
+  // 'delayedHorizonBufferManager_function:30' dhBufferDebug.imuFifoDebugData.status = status; 
+  // 'delayedHorizonBufferManager_function:31' dhBufferDebug.imuFifoDebugData.count = count; 
+  // 'delayedHorizonBufferManager_function:33' dhSensorIn.sensorValidity.isImuValid = imuReady; 
+  // 'delayedHorizonBufferManager_function:34' dhSensorIn.sensorTimestamp.imuTimestamp_ms = imuTimeOut_ms; 
+  // 'delayedHorizonBufferManager_function:35' dhSensorIn.bodyAccels_mps2 = imuOut(1:3); 
+  // 'delayedHorizonBufferManager_function:36' dhSensorIn.bodyRates_radps = imuOut(4:6); 
+  // 'delayedHorizonBufferManager_function:37' dhSensorIn.dtImuTime_s = imuOut(7); 
+  // 'delayedHorizonBufferManager_function:39' if imuReady
   if (static_cast<boolean_T>(static_cast<int32_T>(stateModeReady) ^ 1)) {
-    // 'delayedHorizonBufferManager_function:34' else
-    // 'delayedHorizonBufferManager_function:35' fusionTime_ms = uint64(0);
+    // 'delayedHorizonBufferManager_function:41' else
+    // 'delayedHorizonBufferManager_function:42' fusionTime_ms = uint64(0);
     fusionTime_ms = dhSensorIn_sensorTimestamp_ma_0;
   } else {
-    // 'delayedHorizonBufferManager_function:33' fusionTime_ms = imuTimeOut_ms;
+    // 'delayedHorizonBufferManager_function:40' fusionTime_ms = imuTimeOut_ms;
   }
 
-  // 'delayedHorizonBufferManager_function:38' magDelay_ms   = ekfParams.magDelay_ms; 
-  // 'delayedHorizonBufferManager_function:39' gpsDelay_ms   = ekfParams.gpsDelay_ms; 
-  // 'delayedHorizonBufferManager_function:40' baroDelay_ms  = ekfParams.baroDelay_ms; 
-  // 'delayedHorizonBufferManager_function:41' lidarDelay_ms = ekfParams.lidarDelay_ms; 
-  // 'delayedHorizonBufferManager_function:42' ofDelay_ms    = ekfParams.ofDelay_ms; 
-  // 'delayedHorizonBufferManager_function:44' if sensorIn.sensorTimestamp.magTimestamp_ms >= magDelay_ms 
+  // 'delayedHorizonBufferManager_function:45' magDelay_ms   = ekfParams.magDelay_ms; 
+  // 'delayedHorizonBufferManager_function:46' gpsDelay_ms   = ekfParams.gpsDelay_ms; 
+  // 'delayedHorizonBufferManager_function:47' baroDelay_ms  = ekfParams.baroDelay_ms; 
+  // 'delayedHorizonBufferManager_function:48' lidarDelay_ms = ekfParams.lidarDelay_ms; 
+  // 'delayedHorizonBufferManager_function:49' ofDelay_ms    = ekfParams.ofDelay_ms; 
+  // 'delayedHorizonBufferManager_function:51' if sensorIn.sensorTimestamp.magTimestamp_ms >= magDelay_ms 
   if (uMultiWordGe(&rtu_magData->timestamp_ms.chunks[0U],
                    &stateEstimatorEskf_ConstP.DelayedHorizonBufferManager_ekf.magDelay_ms.chunks
                    [0], 2)) {
-    // 'delayedHorizonBufferManager_function:45' magTimeIn_ms = sensorIn.sensorTimestamp.magTimestamp_ms - magDelay_ms; 
+    // 'delayedHorizonBufferManager_function:52' magTimeIn_ms = sensorIn.sensorTimestamp.magTimestamp_ms - magDelay_ms; 
     uMultiWord2MultiWord(&rtu_magData->timestamp_ms.chunks[0U], 2,
                          &tmp_7.chunks[0U], 3);
     uMultiWord2MultiWord
@@ -4664,16 +4630,16 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
     MultiWordSub(&tmp_7.chunks[0U], &tmp_8.chunks[0U], &tmp_6.chunks[0U], 3);
     sMultiWord2uMultiWordSat(&tmp_6.chunks[0U], 3, &magTimeIn_ms.chunks[0U], 2);
   } else {
-    // 'delayedHorizonBufferManager_function:46' else
-    // 'delayedHorizonBufferManager_function:47' magTimeIn_ms = uint64(0);
+    // 'delayedHorizonBufferManager_function:53' else
+    // 'delayedHorizonBufferManager_function:54' magTimeIn_ms = uint64(0);
     magTimeIn_ms = dhSensorIn_sensorTimestamp_ma_0;
   }
 
-  // 'delayedHorizonBufferManager_function:50' if sensorIn.sensorTimestamp.gpsTimestamp_ms >= gpsDelay_ms 
+  // 'delayedHorizonBufferManager_function:57' if sensorIn.sensorTimestamp.gpsTimestamp_ms >= gpsDelay_ms 
   if (uMultiWordGe(&rtu_gpsData->timestamp_ms.chunks[0U],
                    &stateEstimatorEskf_ConstP.DelayedHorizonBufferManager_ekf.gpsDelay_ms.chunks
                    [0], 2)) {
-    // 'delayedHorizonBufferManager_function:51' gpsTimeIn_ms = sensorIn.sensorTimestamp.gpsTimestamp_ms - gpsDelay_ms; 
+    // 'delayedHorizonBufferManager_function:58' gpsTimeIn_ms = sensorIn.sensorTimestamp.gpsTimestamp_ms - gpsDelay_ms; 
     uMultiWord2MultiWord(&rtu_gpsData->timestamp_ms.chunks[0U], 2,
                          &tmp_7.chunks[0U], 3);
     uMultiWord2MultiWord
@@ -4682,16 +4648,16 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
     MultiWordSub(&tmp_7.chunks[0U], &tmp_8.chunks[0U], &tmp_6.chunks[0U], 3);
     sMultiWord2uMultiWordSat(&tmp_6.chunks[0U], 3, &gpsTimeIn_ms.chunks[0U], 2);
   } else {
-    // 'delayedHorizonBufferManager_function:52' else
-    // 'delayedHorizonBufferManager_function:53' gpsTimeIn_ms = uint64(0);
+    // 'delayedHorizonBufferManager_function:59' else
+    // 'delayedHorizonBufferManager_function:60' gpsTimeIn_ms = uint64(0);
     gpsTimeIn_ms = dhSensorIn_sensorTimestamp_ma_0;
   }
 
-  // 'delayedHorizonBufferManager_function:56' if sensorIn.sensorTimestamp.baroTimestamp_ms >= baroDelay_ms 
+  // 'delayedHorizonBufferManager_function:63' if sensorIn.sensorTimestamp.baroTimestamp_ms >= baroDelay_ms 
   if (uMultiWordGe(&rtu_baroData->timestamp_ms.chunks[0U],
                    &stateEstimatorEskf_ConstP.DelayedHorizonBufferManager_ekf.baroDelay_ms.chunks
                    [0], 2)) {
-    // 'delayedHorizonBufferManager_function:57' baroTimeIn_ms = sensorIn.sensorTimestamp.baroTimestamp_ms - baroDelay_ms; 
+    // 'delayedHorizonBufferManager_function:64' baroTimeIn_ms = sensorIn.sensorTimestamp.baroTimestamp_ms - baroDelay_ms; 
     uMultiWord2MultiWord(&rtu_baroData->timestamp_ms.chunks[0U], 2,
                          &tmp_7.chunks[0U], 3);
     uMultiWord2MultiWord
@@ -4700,16 +4666,16 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
     MultiWordSub(&tmp_7.chunks[0U], &tmp_8.chunks[0U], &tmp_6.chunks[0U], 3);
     sMultiWord2uMultiWordSat(&tmp_6.chunks[0U], 3, &baroTimeIn_ms.chunks[0U], 2);
   } else {
-    // 'delayedHorizonBufferManager_function:58' else
-    // 'delayedHorizonBufferManager_function:59' baroTimeIn_ms = uint64(0);
+    // 'delayedHorizonBufferManager_function:65' else
+    // 'delayedHorizonBufferManager_function:66' baroTimeIn_ms = uint64(0);
     baroTimeIn_ms = dhSensorIn_sensorTimestamp_ma_0;
   }
 
-  // 'delayedHorizonBufferManager_function:62' if sensorIn.sensorTimestamp.lidarTimestamp_ms >= lidarDelay_ms 
+  // 'delayedHorizonBufferManager_function:69' if sensorIn.sensorTimestamp.lidarTimestamp_ms >= lidarDelay_ms 
   if (uMultiWordGe(&rtu_lidarData->timestamp_ms.chunks[0U],
                    &stateEstimatorEskf_ConstP.DelayedHorizonBufferManager_ekf.lidarDelay_ms.chunks
                    [0], 2)) {
-    // 'delayedHorizonBufferManager_function:63' lidarTimeIn_ms = sensorIn.sensorTimestamp.lidarTimestamp_ms - lidarDelay_ms; 
+    // 'delayedHorizonBufferManager_function:70' lidarTimeIn_ms = sensorIn.sensorTimestamp.lidarTimestamp_ms - lidarDelay_ms; 
     uMultiWord2MultiWord(&rtu_lidarData->timestamp_ms.chunks[0U], 2,
                          &tmp_7.chunks[0U], 3);
     uMultiWord2MultiWord
@@ -4718,16 +4684,16 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
     MultiWordSub(&tmp_7.chunks[0U], &tmp_8.chunks[0U], &tmp_6.chunks[0U], 3);
     sMultiWord2uMultiWordSat(&tmp_6.chunks[0U], 3, &lidarTimeIn_ms.chunks[0U], 2);
   } else {
-    // 'delayedHorizonBufferManager_function:64' else
-    // 'delayedHorizonBufferManager_function:65' lidarTimeIn_ms = uint64(0);
+    // 'delayedHorizonBufferManager_function:71' else
+    // 'delayedHorizonBufferManager_function:72' lidarTimeIn_ms = uint64(0);
     lidarTimeIn_ms = dhSensorIn_sensorTimestamp_ma_0;
   }
 
-  // 'delayedHorizonBufferManager_function:68' if sensorIn.sensorTimestamp.ofTimestamp_ms >= ofDelay_ms 
+  // 'delayedHorizonBufferManager_function:75' if sensorIn.sensorTimestamp.ofTimestamp_ms >= ofDelay_ms 
   if (uMultiWordGe(&rtu_mtf01pData->timestamp_ms.chunks[0U],
                    &stateEstimatorEskf_ConstP.DelayedHorizonBufferManager_ekf.ofDelay_ms.chunks
                    [0], 2)) {
-    // 'delayedHorizonBufferManager_function:69' ofTimeIn_ms = sensorIn.sensorTimestamp.ofTimestamp_ms - ofDelay_ms; 
+    // 'delayedHorizonBufferManager_function:76' ofTimeIn_ms = sensorIn.sensorTimestamp.ofTimestamp_ms - ofDelay_ms; 
     uMultiWord2MultiWord(&rtu_mtf01pData->timestamp_ms.chunks[0U], 2,
                          &tmp_7.chunks[0U], 3);
     uMultiWord2MultiWord
@@ -4736,17 +4702,17 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
     MultiWordSub(&tmp_7.chunks[0U], &tmp_8.chunks[0U], &tmp_6.chunks[0U], 3);
     sMultiWord2uMultiWordSat(&tmp_6.chunks[0U], 3, &ofTimeIn_ms.chunks[0U], 2);
   } else {
-    // 'delayedHorizonBufferManager_function:70' else
-    // 'delayedHorizonBufferManager_function:71' ofTimeIn_ms = uint64(0);
+    // 'delayedHorizonBufferManager_function:77' else
+    // 'delayedHorizonBufferManager_function:78' ofTimeIn_ms = uint64(0);
     ofTimeIn_ms = dhSensorIn_sensorTimestamp_ma_0;
   }
 
-  // 'delayedHorizonBufferManager_function:74' [magReady, magTimeOut_ms, magOut_uT, ~, ~] = ... 
-  // 'delayedHorizonBufferManager_function:75'     magFifo(sensorIn.sensorValidity.isMagValid, ... 
-  // 'delayedHorizonBufferManager_function:76'             magTimeIn_ms, ...
-  // 'delayedHorizonBufferManager_function:77'             sensorIn.normMagVec_nd, ... 
-  // 'delayedHorizonBufferManager_function:78'             fusionTime_ms, reset, ... 
-  // 'delayedHorizonBufferManager_function:79'             ekfParams.magFifoParams); 
+  // 'delayedHorizonBufferManager_function:81' [magReady, magTimeOut_ms, magOut_uT, status, count] = ... 
+  // 'delayedHorizonBufferManager_function:82'     magFifo(sensorIn.sensorValidity.isMagValid, ... 
+  // 'delayedHorizonBufferManager_function:83'             magTimeIn_ms, ...
+  // 'delayedHorizonBufferManager_function:84'             sensorIn.normMagVec_nd, ... 
+  // 'delayedHorizonBufferManager_function:85'             fusionTime_ms, reset, ... 
+  // 'delayedHorizonBufferManager_function:86'             ekfParams.magFifoParams); 
   stateEstimatorEskf_magFifo
     (stateEstimatorEskf_DW.sensorDataOut.sensorValidity.isMagValid, magTimeIn_ms,
      stateEstimatorEskf_DW.sensorDataOut.normMagVec_nd, fusionTime_ms,
@@ -4756,18 +4722,21 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
      stateEstimatorEskf_ConstP.DelayedHorizonBufferManager_ekf.magFifoParams.maxAge_ms,
      stateEstimatorEskf_ConstP.DelayedHorizonBufferManager_ekf.magFifoParams.resetThreshold_ms,
      &dhSensorIn_sensorValidity_isMag, &dhSensorIn_sensorTimestamp_magT, Divide,
-     &a__4, &nextIdx);
+     &stateEstimatorEskf_DW.dhBufferDebug.magFifoDebugData.status,
+     &stateEstimatorEskf_DW.dhBufferDebug.magFifoDebugData.count);
 
-  // 'delayedHorizonBufferManager_function:81' dhSensorIn.sensorValidity.isMagValid = magReady; 
-  // 'delayedHorizonBufferManager_function:82' dhSensorIn.sensorTimestamp.magTimestamp_ms = magTimeOut_ms; 
-  // 'delayedHorizonBufferManager_function:83' dhSensorIn.normMagVec_nd = magOut_uT; 
-  // 'delayedHorizonBufferManager_function:85' [gpsReady, gpsTimeOut_ms, posVelOut, ~, ~] = ... 
-  // 'delayedHorizonBufferManager_function:86'     gpsFifo(sensorIn.sensorValidity.isGpsValid, ... 
-  // 'delayedHorizonBufferManager_function:87'             gpsTimeIn_ms, ...
-  // 'delayedHorizonBufferManager_function:88'             [sensorIn.nedPosAndVel.pos_m; ... 
-  // 'delayedHorizonBufferManager_function:89'              sensorIn.nedPosAndVel.vel_mps], ... 
-  // 'delayedHorizonBufferManager_function:90'             fusionTime_ms, reset, ... 
-  // 'delayedHorizonBufferManager_function:91'             ekfParams.gpsFifoParams); 
+  // 'delayedHorizonBufferManager_function:88' dhBufferDebug.magFifoDebugData.status = status; 
+  // 'delayedHorizonBufferManager_function:89' dhBufferDebug.magFifoDebugData.count = count; 
+  // 'delayedHorizonBufferManager_function:91' dhSensorIn.sensorValidity.isMagValid = magReady; 
+  // 'delayedHorizonBufferManager_function:92' dhSensorIn.sensorTimestamp.magTimestamp_ms = magTimeOut_ms; 
+  // 'delayedHorizonBufferManager_function:93' dhSensorIn.normMagVec_nd = magOut_uT; 
+  // 'delayedHorizonBufferManager_function:95' [gpsReady, gpsTimeOut_ms, posVelOut, status, count] = ... 
+  // 'delayedHorizonBufferManager_function:96'     gpsFifo(sensorIn.sensorValidity.isGpsValid, ... 
+  // 'delayedHorizonBufferManager_function:97'             gpsTimeIn_ms, ...
+  // 'delayedHorizonBufferManager_function:98'             [sensorIn.nedPosAndVel.pos_m; ... 
+  // 'delayedHorizonBufferManager_function:99'              sensorIn.nedPosAndVel.vel_mps], ... 
+  // 'delayedHorizonBufferManager_function:100'             fusionTime_ms, reset, ... 
+  // 'delayedHorizonBufferManager_function:101'             ekfParams.gpsFifoParams); 
   rtb_CastToSingle_0[0] = static_cast<real32_T>(rtb_nedPos_m_idx_0);
   rtb_CastToSingle_0[1] = static_cast<real32_T>(nRef);
   rtb_CastToSingle_0[2] = static_cast<real32_T>(rtb_nedPos_m_idx_2) +
@@ -4782,19 +4751,22 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
      stateEstimatorEskf_ConstP.DelayedHorizonBufferManager_ekf.gpsFifoParams.minInterval_ms,
      stateEstimatorEskf_ConstP.DelayedHorizonBufferManager_ekf.gpsFifoParams.maxAge_ms,
      stateEstimatorEskf_ConstP.DelayedHorizonBufferManager_ekf.gpsFifoParams.resetThreshold_ms,
-     &dhSensorIn_sensorValidity_isGps, &magTimeIn_ms, rtb_ElementProduct, &a__4,
-     &nextIdx);
+     &dhSensorIn_sensorValidity_isGps, &magTimeIn_ms, rtb_ElementProduct,
+     &stateEstimatorEskf_DW.dhBufferDebug.gpsFifoDebugData.status,
+     &stateEstimatorEskf_DW.dhBufferDebug.gpsFifoDebugData.count);
 
-  // 'delayedHorizonBufferManager_function:93' dhSensorIn.sensorValidity.isGpsValid = gpsReady; 
-  // 'delayedHorizonBufferManager_function:94' dhSensorIn.sensorTimestamp.gpsTimestamp_ms = gpsTimeOut_ms; 
-  // 'delayedHorizonBufferManager_function:95' dhSensorIn.nedPosAndVel.pos_m = posVelOut(1:3); 
-  // 'delayedHorizonBufferManager_function:96' dhSensorIn.nedPosAndVel.vel_mps = posVelOut(4:6); 
-  // 'delayedHorizonBufferManager_function:98' [baroReady, baroTimeOut_ms, baroAltOut_m, ~, ~] = ... 
-  // 'delayedHorizonBufferManager_function:99'     baroFifo(sensorIn.sensorValidity.isBaroValid, ... 
-  // 'delayedHorizonBufferManager_function:100'              baroTimeIn_ms, ...
-  // 'delayedHorizonBufferManager_function:101'              sensorIn.baroAlt_m, ... 
-  // 'delayedHorizonBufferManager_function:102'              fusionTime_ms, reset, ... 
-  // 'delayedHorizonBufferManager_function:103'              ekfParams.baroFifoParams); 
+  // 'delayedHorizonBufferManager_function:103' dhBufferDebug.gpsFifoDebugData.status = status; 
+  // 'delayedHorizonBufferManager_function:104' dhBufferDebug.gpsFifoDebugData.count = count; 
+  // 'delayedHorizonBufferManager_function:106' dhSensorIn.sensorValidity.isGpsValid = gpsReady; 
+  // 'delayedHorizonBufferManager_function:107' dhSensorIn.sensorTimestamp.gpsTimestamp_ms = gpsTimeOut_ms; 
+  // 'delayedHorizonBufferManager_function:108' dhSensorIn.nedPosAndVel.pos_m = posVelOut(1:3); 
+  // 'delayedHorizonBufferManager_function:109' dhSensorIn.nedPosAndVel.vel_mps = posVelOut(4:6); 
+  // 'delayedHorizonBufferManager_function:111' [baroReady, baroTimeOut_ms, baroAltOut_m, status, count] = ... 
+  // 'delayedHorizonBufferManager_function:112'     baroFifo(sensorIn.sensorValidity.isBaroValid, ... 
+  // 'delayedHorizonBufferManager_function:113'              baroTimeIn_ms, ...
+  // 'delayedHorizonBufferManager_function:114'              sensorIn.baroAlt_m, ... 
+  // 'delayedHorizonBufferManager_function:115'              fusionTime_ms, reset, ... 
+  // 'delayedHorizonBufferManager_function:116'              ekfParams.baroFifoParams); 
   //
   //  Barometer fixed-memory FIFO for delayed-horizon ESKF fusion.
   //
@@ -4837,69 +4809,69 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
   //    isBaroValid must behave as a NEW-DATA pulse. It must not remain true
   //    continuously while the same barometer sample is held at the inputs.
   // 'baroFifo:47' MAX_SIZE = 24;
-  // 'baroFifo:49' STATUS_OK             = uint8(0);
-  // 'baroFifo:50' STATUS_BAD_TIMESTAMP  = uint8(1);
-  // 'baroFifo:51' STATUS_OVERWRITE      = uint8(2);
-  // 'baroFifo:52' STATUS_TIMEBASE_RESET = uint8(3);
-  // 'baroFifo:53' STATUS_STALE_DISCARD  = uint8(4);
-  // 'baroFifo:54' STATUS_BAD_CAPACITY   = uint8(5);
   //  Static FIFO storage/state initialization.
-  // 'baroFifo:61' if isempty(head)
+  // 'baroFifo:54' if isempty(head)
   //  Default outputs.
-  // 'baroFifo:72' baroReady = false;
+  // 'baroFifo:65' baroReady = false;
   dhSensorIn_sensorValidity_isBar = false;
 
-  // 'baroFifo:73' baroTimeOut_ms = uint64(0);
-  // 'baroFifo:74' altitudeOut_m = single(0);
+  // 'baroFifo:66' baroTimeOut_ms = uint64(0);
+  // 'baroFifo:67' altitudeOut_m = single(0);
   rtb_XAxis = 0.0F;
 
-  // 'baroFifo:75' status = STATUS_OK;
-  // 'baroFifo:76' countOut = count;
+  // 'baroFifo:68' status = enumDhFifoStatus.OK;
+  status = enumDhFifoStatus::OK;
+
+  // 'baroFifo:69' countOut = count;
+  stateEstimatorEskf_DW.dhBufferDebug.baroFifoDebugData.count =
+    stateEstimatorEskf_DW.count_k;
+
   //  Read-only configuration aliases.
-  // 'baroFifo:79' capacity = baroFifoParams.capacity;
-  // 'baroFifo:80' maxAge_ms = baroFifoParams.maxAge_ms;
-  // 'baroFifo:81' minObsInterval_ms = baroFifoParams.minInterval_ms;
-  // 'baroFifo:82' timeResetThreshold_ms = baroFifoParams.resetThreshold_ms;
+  // 'baroFifo:72' capacity = baroFifoParams.capacity;
+  // 'baroFifo:73' maxAge_ms = baroFifoParams.maxAge_ms;
+  // 'baroFifo:74' minObsInterval_ms = baroFifoParams.minInterval_ms;
+  // 'baroFifo:75' timeResetThreshold_ms = baroFifoParams.resetThreshold_ms;
   //  Prevent invalid circular-buffer indexing if configuration is bad.
-  // 'baroFifo:85' if capacity < 1 || capacity > MAX_SIZE
+  // 'baroFifo:78' if capacity < 1 || capacity > MAX_SIZE
   //  Explicit estimator/FIFO reset.
-  // 'baroFifo:91' if reset
+  // 'baroFifo:84' if reset
   if (stateEstimatorEskf_DW.resetStates) {
-    // 'baroFifo:92' head = uint16(1);
+    // 'baroFifo:85' head = uint16(1);
     stateEstimatorEskf_DW.head_c = 1U;
 
-    // 'baroFifo:93' tail = uint16(1);
+    // 'baroFifo:86' tail = uint16(1);
     stateEstimatorEskf_DW.tail_i = 1U;
 
-    // 'baroFifo:94' count = uint16(0);
+    // 'baroFifo:87' count = uint16(0);
     stateEstimatorEskf_DW.count_k = 0U;
 
-    // 'baroFifo:95' lastPushTime_ms = uint64(0);
+    // 'baroFifo:88' lastPushTime_ms = uint64(0);
     stateEstimatorEskf_DW.lastPushTime_ms_g = dhSensorIn_sensorTimestamp_ma_0;
 
-    // 'baroFifo:96' haveLastPushTime = false;
+    // 'baroFifo:89' haveLastPushTime = false;
     stateEstimatorEskf_DW.haveLastPushTime_p = false;
 
-    // 'baroFifo:97' countOut = count;
+    // 'baroFifo:90' countOut = count;
+    stateEstimatorEskf_DW.dhBufferDebug.baroFifoDebugData.count = 0U;
   } else {
     //  ------------------------------------------------------------------------- 
     //  PUSH NEW BAROMETER MEASUREMENT
     //  ------------------------------------------------------------------------- 
-    // 'baroFifo:104' if isBaroValid
+    // 'baroFifo:97' if isBaroValid
     guard1 = false;
     guard2 = false;
     guard3 = false;
     if (stateEstimatorEskf_DW.sensorDataOut.sensorValidity.isBaroValid) {
       //  Barometer timestamps must normally increase monotonically.
-      // 'baroFifo:106' if haveLastPushTime && baroTimeIn_ms <= lastPushTime_ms
+      // 'baroFifo:99' if haveLastPushTime && baroTimeIn_ms <= lastPushTime_ms
       if (static_cast<boolean_T>(stateEstimatorEskf_DW.haveLastPushTime_p &
            uMultiWordLe(&baroTimeIn_ms.chunks[0U],
                         &stateEstimatorEskf_DW.lastPushTime_ms_g.chunks[0U], 2)))
       {
-        // 'baroFifo:107' backwardsJump_ms = lastPushTime_ms - baroTimeIn_ms;
+        // 'baroFifo:100' backwardsJump_ms = lastPushTime_ms - baroTimeIn_ms;
         //  Large backward jump indicates a sensor time-base discontinuity.
-        // 'baroFifo:110' if timeResetThreshold_ms > 0 && ...
-        // 'baroFifo:111'                 backwardsJump_ms >= timeResetThreshold_ms 
+        // 'baroFifo:103' if timeResetThreshold_ms > 0 && ...
+        // 'baroFifo:104'                 backwardsJump_ms >= timeResetThreshold_ms 
         uMultiWord2MultiWord(&stateEstimatorEskf_DW.lastPushTime_ms_g.chunks[0U],
                              2, &tmp_7.chunks[0U], 3);
         uMultiWord2MultiWord(&baroTimeIn_ms.chunks[0U], 2, &tmp_8.chunks[0U], 3);
@@ -4911,28 +4883,30 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
              uMultiWordGe(&tmp_9.chunks[0U],
                           &stateEstimatorEskf_ConstP.DelayedHorizonBufferManager_ekf.baroFifoParams.resetThreshold_ms.chunks
                           [0], 2))) {
-          // 'baroFifo:112' head = uint16(1);
+          // 'baroFifo:105' head = uint16(1);
           stateEstimatorEskf_DW.head_c = 1U;
 
-          // 'baroFifo:113' tail = uint16(1);
+          // 'baroFifo:106' tail = uint16(1);
           stateEstimatorEskf_DW.tail_i = 1U;
 
-          // 'baroFifo:114' count = uint16(0);
+          // 'baroFifo:107' count = uint16(0);
           stateEstimatorEskf_DW.count_k = 0U;
 
-          // 'baroFifo:115' lastPushTime_ms = uint64(0);
+          // 'baroFifo:108' lastPushTime_ms = uint64(0);
           stateEstimatorEskf_DW.lastPushTime_ms_g =
             dhSensorIn_sensorTimestamp_ma_0;
 
-          // 'baroFifo:116' haveLastPushTime = false;
+          // 'baroFifo:109' haveLastPushTime = false;
           stateEstimatorEskf_DW.haveLastPushTime_p = false;
 
-          // 'baroFifo:117' status = STATUS_TIMEBASE_RESET;
+          // 'baroFifo:110' status = enumDhFifoStatus.TIMEBASE_RESET;
+          status = enumDhFifoStatus::TIMEBASE_RESET;
           guard3 = true;
         } else {
-          // 'baroFifo:118' else
+          // 'baroFifo:111' else
           //  Duplicate timestamp or small backward jump.
-          // 'baroFifo:120' status = STATUS_BAD_TIMESTAMP;
+          // 'baroFifo:113' status = enumDhFifoStatus.BAD_TIMESTAMP;
+          status = enumDhFifoStatus::BAD_TIMESTAMP;
         }
       } else {
         guard3 = true;
@@ -4944,8 +4918,8 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
     if (guard3) {
       //  Optional rate throttling.
       //  minObsInterval_ms == 0 disables throttling.
-      // 'baroFifo:127' if haveLastPushTime && ...
-      // 'baroFifo:128'             (baroTimeIn_ms - lastPushTime_ms) < minObsInterval_ms 
+      // 'baroFifo:120' if haveLastPushTime && ...
+      // 'baroFifo:121'             (baroTimeIn_ms - lastPushTime_ms) < minObsInterval_ms 
       uMultiWord2MultiWord(&baroTimeIn_ms.chunks[0U], 2, &tmp_7.chunks[0U], 3);
       uMultiWord2MultiWord(&stateEstimatorEskf_DW.lastPushTime_ms_g.chunks[0U],
                            2, &tmp_8.chunks[0U], 3);
@@ -4957,24 +4931,24 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
                         [0], 2))) {
       } else {
         //  count is constrained to 0 <= count <= capacity.
-        // 'baroFifo:133' bufferWasFull = (count == capacity);
+        // 'baroFifo:126' bufferWasFull = (count == capacity);
         //  Store barometric altitude and its measurement timestamp.
-        // 'baroFifo:136' timeBuf_ms(head) = baroTimeIn_ms;
+        // 'baroFifo:129' timeBuf_ms(head) = baroTimeIn_ms;
         stateEstimatorEskf_DW.timeBuf_ms_o[stateEstimatorEskf_DW.head_c - 1] =
           baroTimeIn_ms;
 
-        // 'baroFifo:137' altitudeBuf_m(head) = altitudeIn_m;
+        // 'baroFifo:130' altitudeBuf_m(head) = altitudeIn_m;
         stateEstimatorEskf_DW.altitudeBuf_m[stateEstimatorEskf_DW.head_c - 1] =
           stateEstimatorEskf_DW.sensorDataOut.baroAlt_m;
 
         //  Advance write location.
-        // 'baroFifo:140' if head == capacity
+        // 'baroFifo:133' if head == capacity
         if (stateEstimatorEskf_DW.head_c == 16) {
-          // 'baroFifo:141' head = uint16(1);
+          // 'baroFifo:134' head = uint16(1);
           stateEstimatorEskf_DW.head_c = 1U;
         } else {
-          // 'baroFifo:142' else
-          // 'baroFifo:143' head = head + 1;
+          // 'baroFifo:135' else
+          // 'baroFifo:136' head = head + 1;
           qY = stateEstimatorEskf_DW.head_c + 1U;
           if (stateEstimatorEskf_DW.head_c + 1U > 65535U) {
             qY = 65535U;
@@ -4983,17 +4957,17 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
           stateEstimatorEskf_DW.head_c = static_cast<uint16_T>(qY);
         }
 
-        // 'baroFifo:146' if bufferWasFull
+        // 'baroFifo:139' if bufferWasFull
         if (stateEstimatorEskf_DW.count_k == 16) {
           //  New write replaced the oldest measurement.
           //  Advance tail to the new oldest measurement.
-          // 'baroFifo:149' if tail == capacity
+          // 'baroFifo:142' if tail == capacity
           if (stateEstimatorEskf_DW.tail_i == 16) {
-            // 'baroFifo:150' tail = uint16(1);
+            // 'baroFifo:143' tail = uint16(1);
             stateEstimatorEskf_DW.tail_i = 1U;
           } else {
-            // 'baroFifo:151' else
-            // 'baroFifo:152' tail = tail + 1;
+            // 'baroFifo:144' else
+            // 'baroFifo:145' tail = tail + 1;
             qY = stateEstimatorEskf_DW.tail_i + 1U;
             if (stateEstimatorEskf_DW.tail_i + 1U > 65535U) {
               qY = 65535U;
@@ -5003,13 +4977,17 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
           }
 
           //  Occupancy remains full.
-          // 'baroFifo:156' count = capacity;
+          // 'baroFifo:149' count = capacity;
           //  Preserve TIMEBASE_RESET if that occurred during this push.
-          // 'baroFifo:159' if status == STATUS_OK
+          // 'baroFifo:152' if status == enumDhFifoStatus.OK
+          if (status == enumDhFifoStatus::OK) {
+            // 'baroFifo:153' status = enumDhFifoStatus.OVERWRITE;
+            status = enumDhFifoStatus::OVERWRITE;
+          }
         } else {
-          // 'baroFifo:162' else
+          // 'baroFifo:155' else
           //  One new measurement was added without replacing anything.
-          // 'baroFifo:164' count = count + 1;
+          // 'baroFifo:157' count = count + 1;
           qY = stateEstimatorEskf_DW.count_k + 1U;
           if (stateEstimatorEskf_DW.count_k + 1U > 65535U) {
             qY = 65535U;
@@ -5019,13 +4997,15 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
         }
 
         //  Update timestamp history only for measurements actually accepted.
-        // 'baroFifo:168' lastPushTime_ms = baroTimeIn_ms;
+        // 'baroFifo:161' lastPushTime_ms = baroTimeIn_ms;
         stateEstimatorEskf_DW.lastPushTime_ms_g = baroTimeIn_ms;
 
-        // 'baroFifo:169' haveLastPushTime = true;
+        // 'baroFifo:162' haveLastPushTime = true;
         stateEstimatorEskf_DW.haveLastPushTime_p = true;
 
-        // 'baroFifo:170' countOut = count;
+        // 'baroFifo:163' countOut = count;
+        stateEstimatorEskf_DW.dhBufferDebug.baroFifoDebugData.count =
+          stateEstimatorEskf_DW.count_k;
         guard2 = true;
       }
     }
@@ -5035,14 +5015,14 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
       //  POP NEWEST BAROMETER MEASUREMENT ELIGIBLE AT FUSION HORIZON
       //  ------------------------------------------------------------------------- 
       //  Empty FIFO.
-      // 'baroFifo:178' if count == 0
+      // 'baroFifo:171' if count == 0
       if ((stateEstimatorEskf_DW.count_k == 0) || uMultiWordGt
           (&stateEstimatorEskf_DW.timeBuf_ms_o[stateEstimatorEskf_DW.tail_i - 1]
            .chunks[0U], &fusionTime_ms.chunks[0U], 2)) {
       } else {
         //  Measurements are chronologically ordered. If the oldest measurement is 
         //  newer than the fusion horizon, no buffered measurement is ready.
-        // 'baroFifo:184' if timeBuf_ms(tail) > fusionTime_ms
+        // 'baroFifo:177' if timeBuf_ms(tail) > fusionTime_ms
         //  At least one measurement is eligible.
         //
         //  Discard older eligible measurements until tail points at:
@@ -5050,19 +5030,19 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
         //    max{ baroTime | baroTime <= fusionTime_ms }
         //
         //  Loop execution is statically bounded by MAX_SIZE-1.
-        // 'baroFifo:195' for k = 1:(MAX_SIZE-1)
+        // 'baroFifo:188' for k = 1:(MAX_SIZE-1)
         rtb_VectorConcatenate1_tmp = 0;
         exitg1 = false;
         while ((!exitg1) && (static_cast<boolean_T>((rtb_VectorConcatenate1_tmp <
                   23) & (stateEstimatorEskf_DW.count_k != 1)))) {
-          // 'baroFifo:196' if count == 1
-          // 'baroFifo:200' if tail == capacity
+          // 'baroFifo:189' if count == 1
+          // 'baroFifo:193' if tail == capacity
           if (stateEstimatorEskf_DW.tail_i == 16) {
-            // 'baroFifo:201' nextIdx = uint16(1);
+            // 'baroFifo:194' nextIdx = uint16(1);
             nextIdx = 1U;
           } else {
-            // 'baroFifo:202' else
-            // 'baroFifo:203' nextIdx = tail + 1;
+            // 'baroFifo:195' else
+            // 'baroFifo:196' nextIdx = tail + 1;
             qY = stateEstimatorEskf_DW.tail_i + 1U;
             if (stateEstimatorEskf_DW.tail_i + 1U > 65535U) {
               qY = 65535U;
@@ -5071,16 +5051,16 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
             nextIdx = static_cast<uint16_T>(qY);
           }
 
-          // 'baroFifo:206' if timeBuf_ms(nextIdx) > fusionTime_ms
+          // 'baroFifo:199' if timeBuf_ms(nextIdx) > fusionTime_ms
           if (uMultiWordGt(&stateEstimatorEskf_DW.timeBuf_ms_o[nextIdx - 1].
                            chunks[0U], &fusionTime_ms.chunks[0U], 2)) {
             exitg1 = true;
           } else {
             //  A newer eligible measurement exists; discard current tail.
-            // 'baroFifo:211' tail = nextIdx;
+            // 'baroFifo:204' tail = nextIdx;
             stateEstimatorEskf_DW.tail_i = nextIdx;
 
-            // 'baroFifo:212' count = count - 1;
+            // 'baroFifo:205' count = count - 1;
             qY = stateEstimatorEskf_DW.count_k -
               /*MW:operator MISRA2012:D4.1 CERT-C:INT30-C 'Justifying MISRA C rule violation'*/
               /*MW:OvSatOk*/ 1U;
@@ -5095,10 +5075,10 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
         }
 
         //  Tail now points to the newest eligible barometer measurement.
-        // 'baroFifo:216' measurementAge_ms = fusionTime_ms - timeBuf_ms(tail);
+        // 'baroFifo:209' measurementAge_ms = fusionTime_ms - timeBuf_ms(tail);
         //  Optional maximum-age gate.
         //  maxAge_ms == 0 disables this check.
-        // 'baroFifo:220' if maxAge_ms > 0 && measurementAge_ms >= maxAge_ms
+        // 'baroFifo:213' if maxAge_ms > 0 && measurementAge_ms >= maxAge_ms
         if (uMultiWordGt
             (&stateEstimatorEskf_ConstP.DelayedHorizonBufferManager_ekf.baroFifoParams.maxAge_ms.chunks
              [0], &dhSensorIn_sensorTimestamp_ma_0.chunks[0U], 2)) {
@@ -5113,13 +5093,13 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
           if (uMultiWordGe(&tmp_b.chunks[0U],
                            &stateEstimatorEskf_ConstP.DelayedHorizonBufferManager_ekf.baroFifoParams.maxAge_ms.chunks
                            [0], 2)) {
-            // 'baroFifo:221' if tail == capacity
+            // 'baroFifo:214' if tail == capacity
             if (stateEstimatorEskf_DW.tail_i == 16) {
-              // 'baroFifo:222' tail = uint16(1);
+              // 'baroFifo:215' tail = uint16(1);
               stateEstimatorEskf_DW.tail_i = 1U;
             } else {
-              // 'baroFifo:223' else
-              // 'baroFifo:224' tail = tail + 1;
+              // 'baroFifo:216' else
+              // 'baroFifo:217' tail = tail + 1;
               qY = stateEstimatorEskf_DW.tail_i + 1U;
               if (stateEstimatorEskf_DW.tail_i + 1U > 65535U) {
                 qY = 65535U;
@@ -5128,7 +5108,7 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
               stateEstimatorEskf_DW.tail_i = static_cast<uint16_T>(qY);
             }
 
-            // 'baroFifo:227' count = count - 1;
+            // 'baroFifo:220' count = count - 1;
             qY = stateEstimatorEskf_DW.count_k -
               /*MW:operator MISRA2012:D4.1 CERT-C:INT30-C 'Justifying MISRA C rule violation'*/
               /*MW:OvSatOk*/ 1U;
@@ -5139,8 +5119,12 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
 
             stateEstimatorEskf_DW.count_k = static_cast<uint16_T>(qY);
 
-            // 'baroFifo:228' countOut = count;
-            // 'baroFifo:229' status = STATUS_STALE_DISCARD;
+            // 'baroFifo:221' countOut = count;
+            stateEstimatorEskf_DW.dhBufferDebug.baroFifoDebugData.count =
+              stateEstimatorEskf_DW.count_k;
+
+            // 'baroFifo:222' status = enumDhFifoStatus.STALE_DISCARD;
+            status = enumDhFifoStatus::STALE_DISCARD;
           } else {
             guard1 = true;
           }
@@ -5152,22 +5136,22 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
 
     if (guard1) {
       //  Return selected barometric altitude.
-      // 'baroFifo:234' baroTimeOut_ms = timeBuf_ms(tail);
-      // 'baroFifo:235' altitudeOut_m = altitudeBuf_m(tail);
+      // 'baroFifo:227' baroTimeOut_ms = timeBuf_ms(tail);
+      // 'baroFifo:228' altitudeOut_m = altitudeBuf_m(tail);
       rtb_XAxis =
         stateEstimatorEskf_DW.altitudeBuf_m[stateEstimatorEskf_DW.tail_i - 1];
 
-      // 'baroFifo:236' baroReady = true;
+      // 'baroFifo:229' baroReady = true;
       dhSensorIn_sensorValidity_isBar = true;
 
       //  Consume returned measurement.
-      // 'baroFifo:239' if tail == capacity
+      // 'baroFifo:232' if tail == capacity
       if (stateEstimatorEskf_DW.tail_i == 16) {
-        // 'baroFifo:240' tail = uint16(1);
+        // 'baroFifo:233' tail = uint16(1);
         stateEstimatorEskf_DW.tail_i = 1U;
       } else {
-        // 'baroFifo:241' else
-        // 'baroFifo:242' tail = tail + 1;
+        // 'baroFifo:234' else
+        // 'baroFifo:235' tail = tail + 1;
         qY = stateEstimatorEskf_DW.tail_i + 1U;
         if (stateEstimatorEskf_DW.tail_i + 1U > 65535U) {
           qY = 65535U;
@@ -5176,7 +5160,7 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
         stateEstimatorEskf_DW.tail_i = static_cast<uint16_T>(qY);
       }
 
-      // 'baroFifo:245' count = count - 1;
+      // 'baroFifo:238' count = count - 1;
       qY = stateEstimatorEskf_DW.count_k -
         /*MW:operator MISRA2012:D4.1 CERT-C:INT30-C 'Justifying MISRA C rule violation'*/
         /*MW:OvSatOk*/ 1U;
@@ -5186,19 +5170,25 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
 
       stateEstimatorEskf_DW.count_k = static_cast<uint16_T>(qY);
 
-      // 'baroFifo:246' countOut = count;
+      // 'baroFifo:239' countOut = count;
+      stateEstimatorEskf_DW.dhBufferDebug.baroFifoDebugData.count =
+        stateEstimatorEskf_DW.count_k;
     }
   }
 
-  // 'delayedHorizonBufferManager_function:105' dhSensorIn.sensorValidity.isBaroValid = baroReady; 
-  // 'delayedHorizonBufferManager_function:106' dhSensorIn.sensorTimestamp.baroTimestamp_ms = baroTimeOut_ms; 
-  // 'delayedHorizonBufferManager_function:107' dhSensorIn.baroAlt_m = baroAltOut_m; 
-  // 'delayedHorizonBufferManager_function:109' [lidarReady, lidarTimeOut_ms, lidarAglOut_m, ~, ~] = ... 
-  // 'delayedHorizonBufferManager_function:110'     lidarFifo(sensorIn.sensorValidity.isLidarValid, ... 
-  // 'delayedHorizonBufferManager_function:111'               lidarTimeIn_ms, ... 
-  // 'delayedHorizonBufferManager_function:112'               sensorIn.lidarAgl_m, ... 
-  // 'delayedHorizonBufferManager_function:113'               fusionTime_ms, reset, ... 
-  // 'delayedHorizonBufferManager_function:114'               ekfParams.lidarFifoParams); 
+  // 'delayedHorizonBufferManager_function:118' dhBufferDebug.baroFifoDebugData.status= status; 
+  stateEstimatorEskf_DW.dhBufferDebug.baroFifoDebugData.status = status;
+
+  // 'delayedHorizonBufferManager_function:119' dhBufferDebug.baroFifoDebugData.count = count; 
+  // 'delayedHorizonBufferManager_function:121' dhSensorIn.sensorValidity.isBaroValid = baroReady; 
+  // 'delayedHorizonBufferManager_function:122' dhSensorIn.sensorTimestamp.baroTimestamp_ms = baroTimeOut_ms; 
+  // 'delayedHorizonBufferManager_function:123' dhSensorIn.baroAlt_m = baroAltOut_m; 
+  // 'delayedHorizonBufferManager_function:125' [lidarReady, lidarTimeOut_ms, lidarAglOut_m, status, count] = ... 
+  // 'delayedHorizonBufferManager_function:126'     lidarFifo(sensorIn.sensorValidity.isLidarValid, ... 
+  // 'delayedHorizonBufferManager_function:127'               lidarTimeIn_ms, ... 
+  // 'delayedHorizonBufferManager_function:128'               sensorIn.lidarAgl_m, ... 
+  // 'delayedHorizonBufferManager_function:129'               fusionTime_ms, reset, ... 
+  // 'delayedHorizonBufferManager_function:130'               ekfParams.lidarFifoParams); 
   stateEstimatorEskf_lidarFifo(static_cast<boolean_T>(static_cast<boolean_T>
     (rtu_lidarData->isLidarDataValid & rtu_lidarData->isLidarInitialized) &
     static_cast<boolean_T>((rtu_lidarData->range_m >=
@@ -5211,18 +5201,21 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
     stateEstimatorEskf_ConstP.DelayedHorizonBufferManager_ekf.lidarFifoParams.minInterval_ms,
     stateEstimatorEskf_ConstP.DelayedHorizonBufferManager_ekf.lidarFifoParams.maxAge_ms,
     stateEstimatorEskf_ConstP.DelayedHorizonBufferManager_ekf.lidarFifoParams.resetThreshold_ms,
-    &dhSensorIn_sensorValidity_isLid, &gpsTimeIn_ms, &rtb_Product1_b, &a__4,
-    &nextIdx);
+    &dhSensorIn_sensorValidity_isLid, &gpsTimeIn_ms, &rtb_Product1_b,
+    &stateEstimatorEskf_DW.dhBufferDebug.lidarFifoDebugData.status,
+    &stateEstimatorEskf_DW.dhBufferDebug.lidarFifoDebugData.count);
 
-  // 'delayedHorizonBufferManager_function:116' dhSensorIn.sensorValidity.isLidarValid = lidarReady; 
-  // 'delayedHorizonBufferManager_function:117' dhSensorIn.sensorTimestamp.lidarTimestamp_ms = lidarTimeOut_ms; 
-  // 'delayedHorizonBufferManager_function:118' dhSensorIn.lidarAgl_m = lidarAglOut_m; 
-  // 'delayedHorizonBufferManager_function:120' [ofReady, ofTimeOut_ms, ofNeVelOut_mps, ~, ~] = ... 
-  // 'delayedHorizonBufferManager_function:121'     flowFifo(sensorIn.sensorValidity.isOfValid, ... 
-  // 'delayedHorizonBufferManager_function:122'              ofTimeIn_ms, ...
-  // 'delayedHorizonBufferManager_function:123'              sensorIn.ofNeVel_mps, ... 
-  // 'delayedHorizonBufferManager_function:124'              fusionTime_ms, reset, ... 
-  // 'delayedHorizonBufferManager_function:125'              ekfParams.flowFifoParams); 
+  // 'delayedHorizonBufferManager_function:132' dhBufferDebug.lidarFifoDebugData.status = status; 
+  // 'delayedHorizonBufferManager_function:133' dhBufferDebug.lidarFifoDebugData.count = count; 
+  // 'delayedHorizonBufferManager_function:135' dhSensorIn.sensorValidity.isLidarValid = lidarReady; 
+  // 'delayedHorizonBufferManager_function:136' dhSensorIn.sensorTimestamp.lidarTimestamp_ms = lidarTimeOut_ms; 
+  // 'delayedHorizonBufferManager_function:137' dhSensorIn.lidarAgl_m = lidarAglOut_m; 
+  // 'delayedHorizonBufferManager_function:139' [ofReady, ofTimeOut_ms, ofNeVelOut_mps, status, count] = ... 
+  // 'delayedHorizonBufferManager_function:140'     flowFifo(sensorIn.sensorValidity.isOfValid, ... 
+  // 'delayedHorizonBufferManager_function:141'              ofTimeIn_ms, ...
+  // 'delayedHorizonBufferManager_function:142'              sensorIn.ofNeVel_mps, ... 
+  // 'delayedHorizonBufferManager_function:143'              fusionTime_ms, reset, ... 
+  // 'delayedHorizonBufferManager_function:144'              ekfParams.flowFifoParams); 
   stateEstimatorEskf_flowFifo(static_cast<boolean_T>(static_cast<boolean_T>(
     static_cast<boolean_T>(static_cast<boolean_T>(static_cast<boolean_T>(
     static_cast<boolean_T>((rtu_mtf01pData->distPrecision <=
@@ -5237,18 +5230,66 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
     stateEstimatorEskf_ConstP.DelayedHorizonBufferManager_ekf.flowFifoParams.maxAge_ms,
     stateEstimatorEskf_ConstP.DelayedHorizonBufferManager_ekf.flowFifoParams.resetThreshold_ms,
     &dhSensorIn_sensorValidity_isOfV, &lidarTimeIn_ms, rtb_VectorConcatenate_k2,
-    &a__4, &nextIdx);
+    &stateEstimatorEskf_DW.dhBufferDebug.flowFifoDebugData.status,
+    &stateEstimatorEskf_DW.dhBufferDebug.flowFifoDebugData.count);
+
+  // Delay: '<S1>/Delay'
+  // 'delayedHorizonBufferManager_function:146' dhBufferDebug.flowFifoDebugData.status= status; 
+  // 'delayedHorizonBufferManager_function:147' dhBufferDebug.flowFifoDebugData.count = count; 
+  // 'delayedHorizonBufferManager_function:149' dhSensorIn.sensorValidity.isOfValid = ofReady; 
+  // 'delayedHorizonBufferManager_function:150' dhSensorIn.sensorTimestamp.ofTimestamp_ms = ofTimeOut_ms; 
+  // 'delayedHorizonBufferManager_function:151' dhSensorIn.ofNeVel_mps = ofNeVelOut_mps; 
+  stateEstimatorEskf_DW.icLoad = stateEstimatorEskf_DW.resetStates |
+    stateEstimatorEskf_DW.icLoad;
+  if (stateEstimatorEskf_DW.icLoad) {
+    std::memcpy(&stateEstimatorEskf_DW.Delay_DSTATE[0],
+                &stateEstimatorEskf_DW.initialStates[0], 20U * sizeof(real32_T));
+  }
+
+  // Delay: '<S1>/Delay2'
+  stateEstimatorEskf_DW.icLoad_g = stateEstimatorEskf_DW.resetStates |
+    stateEstimatorEskf_DW.icLoad_g;
+  if (stateEstimatorEskf_DW.icLoad_g) {
+    stateEstimatorEskf_DW.Delay2_DSTATE[0] =
+      stateEstimatorEskf_DW.initialDcmBodyToNed[0];
+    stateEstimatorEskf_DW.Delay2_DSTATE[1] =
+      stateEstimatorEskf_DW.initialDcmBodyToNed[1];
+    stateEstimatorEskf_DW.Delay2_DSTATE[2] =
+      stateEstimatorEskf_DW.initialDcmBodyToNed[2];
+    stateEstimatorEskf_DW.Delay2_DSTATE[3] =
+      stateEstimatorEskf_DW.initialDcmBodyToNed[3];
+    stateEstimatorEskf_DW.Delay2_DSTATE[4] =
+      stateEstimatorEskf_DW.initialDcmBodyToNed[4];
+    stateEstimatorEskf_DW.Delay2_DSTATE[5] =
+      stateEstimatorEskf_DW.initialDcmBodyToNed[5];
+    stateEstimatorEskf_DW.Delay2_DSTATE[6] =
+      stateEstimatorEskf_DW.initialDcmBodyToNed[6];
+    stateEstimatorEskf_DW.Delay2_DSTATE[7] =
+      stateEstimatorEskf_DW.initialDcmBodyToNed[7];
+    stateEstimatorEskf_DW.Delay2_DSTATE[8] =
+      stateEstimatorEskf_DW.initialDcmBodyToNed[8];
+  }
+
+  // BusAssignment: '<Root>/Bus Assignment1' incorporates:
+  //   Constant: '<S1>/Constant'
+  //   MATLAB Function: '<S1>/EKF'
+
+  rty_stateEstimatorDebug->ekfDebugData.isAidingUsed.isMagUsed = false;
 
   // MATLAB Function: '<S1>/EKF' incorporates:
   //   BusAssignment: '<Root>/Bus Assignment'
   //   Constant: '<Root>/localNedMag_nd'
+  //   Constant: '<S1>/Constant'
   //   Delay: '<S1>/Delay'
   //   Delay: '<S1>/Delay2'
   //   MATLAB Function: '<S13>/DelayedHorizonBufferManager'
 
-  // 'delayedHorizonBufferManager_function:127' dhSensorIn.sensorValidity.isOfValid = ofReady; 
-  // 'delayedHorizonBufferManager_function:128' dhSensorIn.sensorTimestamp.ofTimestamp_ms = ofTimeOut_ms; 
-  // 'delayedHorizonBufferManager_function:129' dhSensorIn.ofNeVel_mps = ofNeVelOut_mps; 
+  rtb_ekfDebugOut_isAidingUsed_is = false;
+  rtb_ekfDebugOut_isAidingUsed__0 = false;
+  rtb_ekfDebugOut_isAidingUsed__1 = false;
+  rtb_ekfDebugOut_isAidingUsed__2 = false;
+  std::memset(&rtb_ekfDebugOut_dhStates[0], 0, 23U * sizeof(real32_T));
+
   // MATLAB Function 'EKF/EKF': '<S14>:1'
   // '<S14>:1:5' if isempty(covP) || resetStates
   if (static_cast<boolean_T>(static_cast<boolean_T>(static_cast<int32_T>
@@ -5260,8 +5301,8 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
     stateEstimatorEskf_DW.covP_not_empty = true;
   }
 
-  // '<S14>:1:9' [states, covP, ekfDebug] = errorStateEkf_function2(sensorIn, prevStates, covP, prevDcmBodyToNed, estSmMode, ... 
-  // '<S14>:1:10'     processNoiseQ, measNoiseR, gEarth_mps2, ekfParams, sampleTime_s); 
+  // '<S14>:1:9' [states, covP, ekfDebugOut] = errorStateEkf_function2(sensorIn, prevStates, covP, prevDcmBodyToNed, estSmMode, ... 
+  // '<S14>:1:10'     processNoiseQ, measNoiseR, gEarth_mps2, ekfDebugIn, ekfParams, sampleTime_s); 
   // EKF runs an EKF to estimate required states
   //
   // Inputs:
@@ -5316,28 +5357,33 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
   // 19                             Baro bias error
   //  persistent errorStateJac;
   // 'errorStateEkf_function2:65' if isempty(I3)
-  // 'errorStateEkf_function2:75' ekfDebug.isBaroUsed = false;
+  // 'errorStateEkf_function2:75' ekfDebugOut = ekfDebugIn;
+  //  ekfDebugOut.isAidingUsed.mag = false;
+  //  ekfDebugOut.isAidingUsed.gps = false;
+  //  ekfDebugOut.isAidingUsed.baro = false;
+  //  ekfDebugOut.isAidingUsed.lidar = false;
+  //  ekfDebugOut.isAidingUsed.flow = false;
   // Propagate state
-  // 'errorStateEkf_function2:77' if (estSmMode == enumStateEstimateMode.INITIALIZE) 
-  if (mode == enumStateEstimateMode::INITIALIZE) {
-    // 'errorStateEkf_function2:78' states = prevStates;
+  // 'errorStateEkf_function2:84' if (estSmMode == enumStateEstimateMode.INITIALIZE) 
+  if (estSmModeOut == enumStateEstimateMode::INITIALIZE) {
+    // 'errorStateEkf_function2:85' states = prevStates;
     std::memcpy(&rtb_states[0], &stateEstimatorEskf_DW.Delay_DSTATE[0], 20U *
                 sizeof(real32_T));
   } else {
     // ErrorStateHat
-    // 'errorStateEkf_function2:83' errorStateHat = zeros(19, 1, 'single');
+    // 'errorStateEkf_function2:90' errorStateHat = zeros(19, 1, 'single');
     std::memset(&errorStateHat[0], 0, 19U * sizeof(real32_T));
 
-    // 'errorStateEkf_function2:85' isImuValid = sensorIn.sensorValidity.isImuValid; 
+    // 'errorStateEkf_function2:92' isImuValid = sensorIn.sensorValidity.isImuValid; 
     //  if(isImuValid)
     // Get all the sensor data
-    // 'errorStateEkf_function2:89' bodyAccels_mps2 = sensorIn.bodyAccels_mps2;
-    // 'errorStateEkf_function2:90' bodyRates_radps = sensorIn.bodyRates_radps;
-    // 'errorStateEkf_function2:91' dtImuTime_s = sensorIn.dtImuTime_s;
-    // 'errorStateEkf_function2:93' normMagVec_nd = sensorIn.normMagVec_nd;
-    // 'errorStateEkf_function2:94' localNedUnitMag_nd = sensorIn.localNedUnitMag_nd; 
-    // 'errorStateEkf_function2:95' isMagValid = sensorIn.sensorValidity.isMagValid; 
-    // 'errorStateEkf_function2:96' nedPosAndVel =  [sensorIn.nedPosAndVel.pos_m; sensorIn.nedPosAndVel.vel_mps]; 
+    // 'errorStateEkf_function2:96' bodyAccels_mps2 = sensorIn.bodyAccels_mps2;
+    // 'errorStateEkf_function2:97' bodyRates_radps = sensorIn.bodyRates_radps;
+    // 'errorStateEkf_function2:98' dtImuTime_s = sensorIn.dtImuTime_s;
+    // 'errorStateEkf_function2:100' normMagVec_nd = sensorIn.normMagVec_nd;
+    // 'errorStateEkf_function2:101' localNedUnitMag_nd = sensorIn.localNedUnitMag_nd; 
+    // 'errorStateEkf_function2:102' isMagValid = sensorIn.sensorValidity.isMagValid; 
+    // 'errorStateEkf_function2:103' nedPosAndVel =  [sensorIn.nedPosAndVel.pos_m; sensorIn.nedPosAndVel.vel_mps]; 
     nedPosAndVel[0] = rtb_ElementProduct[0];
     nedPosAndVel[3] = rtb_ElementProduct[3];
     nedPosAndVel[1] = rtb_ElementProduct[1];
@@ -5345,38 +5391,38 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
     nedPosAndVel[2] = rtb_ElementProduct[2];
     nedPosAndVel[5] = rtb_ElementProduct[5];
 
-    // 'errorStateEkf_function2:97' isGpsValid = sensorIn.sensorValidity.isGpsValid; 
-    // 'errorStateEkf_function2:98' baroAlt_m = sensorIn.baroAlt_m;
-    // 'errorStateEkf_function2:99' isBaroValid = sensorIn.sensorValidity.isBaroValid; 
-    // 'errorStateEkf_function2:100' lidarAgl_m = sensorIn.lidarAgl_m;
-    // 'errorStateEkf_function2:101' isLidarValid = sensorIn.sensorValidity.isLidarValid; 
-    // 'errorStateEkf_function2:102' ofNeVel_mps = sensorIn.ofNeVel_mps;
-    // 'errorStateEkf_function2:103' isOfValid = sensorIn.sensorValidity.isOfValid; 
+    // 'errorStateEkf_function2:104' isGpsValid = sensorIn.sensorValidity.isGpsValid; 
+    // 'errorStateEkf_function2:105' baroAlt_m = sensorIn.baroAlt_m;
+    // 'errorStateEkf_function2:106' isBaroValid = sensorIn.sensorValidity.isBaroValid; 
+    // 'errorStateEkf_function2:107' lidarAgl_m = sensorIn.lidarAgl_m;
+    // 'errorStateEkf_function2:108' isLidarValid = sensorIn.sensorValidity.isLidarValid; 
+    // 'errorStateEkf_function2:109' ofNeVel_mps = sensorIn.ofNeVel_mps;
+    // 'errorStateEkf_function2:110' isOfValid = sensorIn.sensorValidity.isOfValid; 
     // We don't update error states because initial value of error states are all 
     // zero
     // errorStates = errorStateJac*errorStates + inputPerturbJac*processNoiseCov 
     // Valid nominal state indices when GPS is avalable
     //      idxNs = 1:20;
-    // 'errorStateEkf_function2:111' idxNs2 = 5:20;
+    // 'errorStateEkf_function2:118' idxNs2 = 5:20;
     // Without quaternion
     // Valid error state indices when GPS is avalable
-    // 'errorStateEkf_function2:113' idxEs = 1:19;
-    // 'errorStateEkf_function2:114' idxEs2 = 4:19;
+    // 'errorStateEkf_function2:120' idxEs = 1:19;
+    // 'errorStateEkf_function2:121' idxEs2 = 4:19;
     // Without angle error
     // Valid nominal state indices when there is no GPS avalable
     //      idxNs = [1:4, 7, 10:20];
-    // 'errorStateEkf_function2:118' idxNoGpsNs2 = [7, 10:20];
+    // 'errorStateEkf_function2:125' idxNoGpsNs2 = [7, 10:20];
     // Without quaternion
     // Valid error state indices when there is no GPS avalable
-    // 'errorStateEkf_function2:120' idxNoGpsEs = [1:3, 6, 9:19];
-    // 'errorStateEkf_function2:121' idxNoGpsEs2 = [6, 9:19];
+    // 'errorStateEkf_function2:127' idxNoGpsEs = [1:3, 6, 9:19];
+    // 'errorStateEkf_function2:128' idxNoGpsEs2 = [6, 9:19];
     // Without angle error
     //  %Apply Rodrigues formula to the angleVector to get the rotation vector
     //  dR = I3 + sin(dThetaNorm)*skew3(dThetaUnit) + dThetaUnit*dThetaUnit'*(1 - cos(dThetaNorm)); 
     //  %
     //  errorStateJac(1:3, 1:3) = dR';
-    // 'errorStateEkf_function2:128' if estSmMode == enumStateEstimateMode.RUN
-    if (mode == enumStateEstimateMode::RUN) {
+    // 'errorStateEkf_function2:135' if estSmMode == enumStateEstimateMode.RUN
+    if (estSmModeOut == enumStateEstimateMode::RUN) {
       //      Compute the skew matrix for accel - accelbias
       //      accelSkew = skew3(bodyAccels_mps2 - prevStates(14:16));
       //      errorStateJac(4:6, 7:9) = I3*sampleTime_s;
@@ -5384,25 +5430,25 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
       //          accelSkew*sampleTime_s;
       //      errorStateJac(7:9, 13:15) = -dcmBodyToNed*sampleTime_s;
       //  covP = errorStateJac*covP*errorStateJac' + processNoiseQ;
-      // 'errorStateEkf_function2:136' gpsLossFlag = false;
+      // 'errorStateEkf_function2:143' gpsLossFlag = false;
       gpsLossFlag = false;
     } else {
-      // 'errorStateEkf_function2:137' else
+      // 'errorStateEkf_function2:144' else
       //      errorStateJac(6, 9) = sampleTime_s;
       //      errorStateJac(7:9, 1:3) = single(0);
       //      errorStateJac(7:9, 13:15) = single(0);
       //      %Propogate covariances
       //      covP(idxEs, idxEs) = errorStateJac(idxEs, idxEs) * covP(idxEs, idxEs) * ... 
       //          errorStateJac(idxEs, idxEs)' + processNoiseQ(idxEs, idxEs);
-      // 'errorStateEkf_function2:144' gpsLossFlag = true;
+      // 'errorStateEkf_function2:151' gpsLossFlag = true;
       gpsLossFlag = true;
     }
 
     // Propagate nominal states and Compute Jacobian and propagate covariance only if IMU data is valid 
-    // 'errorStateEkf_function2:148' if(isImuValid)
+    // 'errorStateEkf_function2:155' if(isImuValid)
     if (stateModeReady) {
-      // 'errorStateEkf_function2:149' [states, dThetaNorm, dThetaUnit] = updateEskfStates(prevStates, bodyAccels_mps2, bodyRates_radps, ... 
-      // 'errorStateEkf_function2:150'             dcmBodyToNed, estSmMode, isOfValid, dtImuTime_s, gEarth_mps2); 
+      // 'errorStateEkf_function2:156' [states, dThetaNorm, dThetaUnit] = updateEskfStates(prevStates, bodyAccels_mps2, bodyRates_radps, ... 
+      // 'errorStateEkf_function2:157'             dcmBodyToNed, estSmMode, isOfValid, dtImuTime_s, gEarth_mps2); 
       std::memcpy(&rtb_states[0], &stateEstimatorEskf_DW.Delay_DSTATE[0], 20U *
                   sizeof(real32_T));
 
@@ -5428,7 +5474,7 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
       // dThetaUnit:                Unit vector along with the delt angle occured 
       // Only update NE position and velocity if we have valid GPS
       // 'updateEskfStates:27' if estSmMode == enumStateEstimateMode.RUN || isOfValid 
-      if (static_cast<boolean_T>((mode == enumStateEstimateMode::RUN) |
+      if (static_cast<boolean_T>((estSmModeOut == enumStateEstimateMode::RUN) |
            dhSensorIn_sensorValidity_isOfV)) {
         // 'updateEskfStates:28' stateDot = [ [states(8); states(9); states(10)]; ...                            % Derivative of [pN; pE; pD] 
         // 'updateEskfStates:29'     dcmBodyToNed * (bodyAccels_mps2 - [states(14);states(15);states(16)]) + ... 
@@ -5436,44 +5482,56 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
         //                             % Derivative of [pN; pE; pD]
         //                                                        % Derivative of [vN; vE; vD] 
         // 'updateEskfStates:31' states(5:10) = states(5:10) + sampleTime_s * stateDot; 
-        rtb_Product2_c = imuOut[0] - stateEstimatorEskf_DW.Delay_DSTATE[13];
-        rtb_XAxis1 = imuOut[1] - stateEstimatorEskf_DW.Delay_DSTATE[14];
-        rtb_XAxis2 = imuOut[2] - stateEstimatorEskf_DW.Delay_DSTATE[15];
-        rtb_states[4] = imuOut[6] * stateEstimatorEskf_DW.Delay_DSTATE[7] +
+        rtb_Sum2_idx_1 = rtb_VectorConcatenate[0] -
+          stateEstimatorEskf_DW.Delay_DSTATE[13];
+        rtb_Sum2_idx_2 = rtb_VectorConcatenate[1] -
+          stateEstimatorEskf_DW.Delay_DSTATE[14];
+        rtb_dcmBodyToNed_idx_4 = rtb_VectorConcatenate[2] -
+          stateEstimatorEskf_DW.Delay_DSTATE[15];
+        rtb_states[4] = rtb_VectorConcatenate[6] *
+          stateEstimatorEskf_DW.Delay_DSTATE[7] +
           stateEstimatorEskf_DW.Delay_DSTATE[4];
-        rtb_states[5] = imuOut[6] * stateEstimatorEskf_DW.Delay_DSTATE[8] +
+        rtb_states[5] = rtb_VectorConcatenate[6] *
+          stateEstimatorEskf_DW.Delay_DSTATE[8] +
           stateEstimatorEskf_DW.Delay_DSTATE[5];
-        rtb_states[6] = imuOut[6] * stateEstimatorEskf_DW.Delay_DSTATE[9] +
+        rtb_states[6] = rtb_VectorConcatenate[6] *
+          stateEstimatorEskf_DW.Delay_DSTATE[9] +
           stateEstimatorEskf_DW.Delay_DSTATE[6];
         rtb_states[7] = ((stateEstimatorEskf_DW.Delay2_DSTATE[0] *
-                          rtb_Product2_c + stateEstimatorEskf_DW.Delay2_DSTATE[3]
-                          * rtb_XAxis1) + stateEstimatorEskf_DW.Delay2_DSTATE[6]
-                         * rtb_XAxis2) * imuOut[6] +
+                          rtb_Sum2_idx_1 + stateEstimatorEskf_DW.Delay2_DSTATE[3]
+                          * rtb_Sum2_idx_2) +
+                         stateEstimatorEskf_DW.Delay2_DSTATE[6] *
+                         rtb_dcmBodyToNed_idx_4) * rtb_VectorConcatenate[6] +
           stateEstimatorEskf_DW.Delay_DSTATE[7];
         rtb_states[8] = ((stateEstimatorEskf_DW.Delay2_DSTATE[1] *
-                          rtb_Product2_c + stateEstimatorEskf_DW.Delay2_DSTATE[4]
-                          * rtb_XAxis1) + stateEstimatorEskf_DW.Delay2_DSTATE[7]
-                         * rtb_XAxis2) * imuOut[6] +
+                          rtb_Sum2_idx_1 + stateEstimatorEskf_DW.Delay2_DSTATE[4]
+                          * rtb_Sum2_idx_2) +
+                         stateEstimatorEskf_DW.Delay2_DSTATE[7] *
+                         rtb_dcmBodyToNed_idx_4) * rtb_VectorConcatenate[6] +
           stateEstimatorEskf_DW.Delay_DSTATE[8];
         rtb_states[9] = (((stateEstimatorEskf_DW.Delay2_DSTATE[2] *
-                           rtb_Product2_c + stateEstimatorEskf_DW.Delay2_DSTATE
-                           [5] * rtb_XAxis1) +
-                          stateEstimatorEskf_DW.Delay2_DSTATE[8] * rtb_XAxis2) +
-                         *rtu_gEarth_mps2) * imuOut[6] +
-          stateEstimatorEskf_DW.Delay_DSTATE[9];
+                           rtb_Sum2_idx_1 + stateEstimatorEskf_DW.Delay2_DSTATE
+                           [5] * rtb_Sum2_idx_2) +
+                          stateEstimatorEskf_DW.Delay2_DSTATE[8] *
+                          rtb_dcmBodyToNed_idx_4) + *rtu_gEarth_mps2) *
+          rtb_VectorConcatenate[6] + stateEstimatorEskf_DW.Delay_DSTATE[9];
       } else {
         // 'updateEskfStates:32' else
         // 'updateEskfStates:33' stateDot = states(10);
         //  %Derivative of down position
         // 'updateEskfStates:35' states(7) = states(7) + sampleTime_s * stateDot; 
-        rtb_states[6] = imuOut[6] * stateEstimatorEskf_DW.Delay_DSTATE[9] +
+        rtb_states[6] = rtb_VectorConcatenate[6] *
+          stateEstimatorEskf_DW.Delay_DSTATE[9] +
           stateEstimatorEskf_DW.Delay_DSTATE[6];
       }
 
       // 'updateEskfStates:38' dTheta = (bodyRates_radps - states(11:13))*sampleTime_s; 
-      rtb_CastToSingle[0] = (imuOut[3] - rtb_states[10]) * imuOut[6];
-      rtb_CastToSingle[1] = (imuOut[4] - rtb_states[11]) * imuOut[6];
-      rtb_CastToSingle[2] = (imuOut[5] - rtb_states[12]) * imuOut[6];
+      rtb_CastToSingle[0] = (rtb_VectorConcatenate[3] - rtb_states[10]) *
+        rtb_VectorConcatenate[6];
+      rtb_CastToSingle[1] = (rtb_VectorConcatenate[4] - rtb_states[11]) *
+        rtb_VectorConcatenate[6];
+      rtb_CastToSingle[2] = (rtb_VectorConcatenate[5] - rtb_states[12]) *
+        rtb_VectorConcatenate[6];
 
       // 'updateEskfStates:39' dThetaNorm = norm(dTheta);
       rtb_Product2_c = norm_94qjDDKI(rtb_CastToSingle);
@@ -5521,34 +5579,34 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
         rtb_CastToSingle[2] = 0.0F;
       }
 
-      // 'errorStateEkf_function2:151' errorStateJac = computeEskfStateJac(prevStates, dcmBodyToNed, bodyAccels_mps2, ... 
-      // 'errorStateEkf_function2:152'             dThetaNorm, dThetaUnit, gpsLossFlag, isOfValid, dtImuTime_s); 
-      // 'errorStateEkf_function2:153' covP = updateEskfCovP(covP, errorStateJac, processNoiseQ, dtImuTime_s); 
+      // 'errorStateEkf_function2:158' errorStateJac = computeEskfStateJac(prevStates, dcmBodyToNed, bodyAccels_mps2, ... 
+      // 'errorStateEkf_function2:159'             dThetaNorm, dThetaUnit, gpsLossFlag, isOfValid, dtImuTime_s); 
+      // 'errorStateEkf_function2:160' covP = updateEskfCovP(covP, errorStateJac, processNoiseQ, dtImuTime_s); 
       computeEskfStateJac_tpF0ZWTA(stateEstimatorEskf_DW.Delay_DSTATE,
-        stateEstimatorEskf_DW.Delay2_DSTATE, &imuOut[0], rtb_Product2_c,
-        rtb_CastToSingle, gpsLossFlag, dhSensorIn_sensorValidity_isOfV, imuOut[6],
-        tmp_d);
+        stateEstimatorEskf_DW.Delay2_DSTATE, &rtb_VectorConcatenate[0],
+        rtb_Product2_c, rtb_CastToSingle, gpsLossFlag,
+        dhSensorIn_sensorValidity_isOfV, rtb_VectorConcatenate[6], tmp_d);
       updateEskfCovP_Qn4XLGNE(stateEstimatorEskf_DW.covP, tmp_d,
-        rtu_processNoiseQ, imuOut[6]);
+        rtu_processNoiseQ, rtb_VectorConcatenate[6]);
     } else {
-      // 'errorStateEkf_function2:154' else
-      // 'errorStateEkf_function2:155' states = prevStates;
+      // 'errorStateEkf_function2:161' else
+      // 'errorStateEkf_function2:162' states = prevStates;
       std::memcpy(&rtb_states[0], &stateEstimatorEskf_DW.Delay_DSTATE[0], 20U *
                   sizeof(real32_T));
     }
 
     // Fuse Accel in Correction step if GPS is not available
-    // 'errorStateEkf_function2:159' if estSmMode ~= enumStateEstimateMode.RUN && ~isOfValid && ... 
-    // 'errorStateEkf_function2:160'             isImuValid
-    if (static_cast<boolean_T>(static_cast<boolean_T>((mode !=
+    // 'errorStateEkf_function2:166' if estSmMode ~= enumStateEstimateMode.RUN && ~isOfValid && ... 
+    // 'errorStateEkf_function2:167'             isImuValid
+    if (static_cast<boolean_T>(static_cast<boolean_T>((estSmModeOut !=
            enumStateEstimateMode::RUN) & static_cast<boolean_T>
           (static_cast<int32_T>(dhSensorIn_sensorValidity_isOfV) ^ 1)) &
          stateModeReady)) {
-      // 'errorStateEkf_function2:161' xErrorJac = computeQuatJacWrtAngErr(states, xErrorJac); 
-      // 'errorStateEkf_function2:401' xErrorJac(1:4, 1:3) = 0.5*[-states(2), -states(3), -states(4); 
-      // 'errorStateEkf_function2:402'     states(1), -states(4), states(3);
-      // 'errorStateEkf_function2:403'     states(4), states(1), -states(2);
-      // 'errorStateEkf_function2:404'     -states(3), states(2), states(1)];
+      // 'errorStateEkf_function2:168' xErrorJac = computeQuatJacWrtAngErr(states, xErrorJac); 
+      // 'errorStateEkf_function2:418' xErrorJac(1:4, 1:3) = 0.5*[-states(2), -states(3), -states(4); 
+      // 'errorStateEkf_function2:419'     states(1), -states(4), states(3);
+      // 'errorStateEkf_function2:420'     states(4), states(1), -states(2);
+      // 'errorStateEkf_function2:421'     -states(3), states(2), states(1)];
       rtb_Product2_c = 0.5F * -rtb_states[1];
       stateEstimatorEskf_DW.xErrorJac[0] = rtb_Product2_c;
       rtb_XAxis1 = 0.5F * -rtb_states[2];
@@ -5566,7 +5624,7 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
       stateEstimatorEskf_DW.xErrorJac[23] = 0.5F * rtb_states[1];
       stateEstimatorEskf_DW.xErrorJac[43] = rtb_UnitDelay_g;
 
-      // 'errorStateEkf_function2:163' measJac = computeEskfAccelMeasJac(states, gEarth_mps2); 
+      // 'errorStateEkf_function2:170' measJac = computeEskfAccelMeasJac(states, gEarth_mps2); 
       // COMPUTEESKFACCELMEASJAC Computes Meas Jacobian for accelerometer
       // measurements
       //
@@ -5599,7 +5657,7 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
       rtb_UnitDelay_g = -*rtu_gEarth_mps2 * 2.0F * rtb_states[1];
 
       // 'computeEskfAccelMeasJac:25' tmp5 = 4*gEarth_mps2;
-      rtb_Sum2_idx_1 = 4.0F * *rtu_gEarth_mps2;
+      tmp5 = 4.0F * *rtu_gEarth_mps2;
 
       // 'computeEskfAccelMeasJac:27' accelMeasJac(1, 1) = tmp1;
       measJac[0] = rtb_Product2_c;
@@ -5632,19 +5690,19 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
       measJac[43] = 1.0F;
 
       // 'computeEskfAccelMeasJac:39' accelMeasJac(3, 2) = states(2)*tmp5;
-      measJac[5] = rtb_states[1] * rtb_Sum2_idx_1;
+      measJac[5] = rtb_states[1] * tmp5;
 
       // 'computeEskfAccelMeasJac:40' accelMeasJac(3, 3) = states(3)*tmp5;
-      measJac[8] = rtb_states[2] * rtb_Sum2_idx_1;
+      measJac[8] = rtb_states[2] * tmp5;
 
       // 'computeEskfAccelMeasJac:41' accelMeasJac(3, 16) = 1;
       measJac[47] = 1.0F;
 
-      // 'errorStateEkf_function2:164' H = zeros(3, 19, 'single');
+      // 'errorStateEkf_function2:171' H = zeros(3, 19, 'single');
       std::memset(&H[0], 0, 57U * sizeof(real32_T));
 
-      // 'errorStateEkf_function2:165' H(1:3, 1:3) = measJac(:, 1:4) * xErrorJac(1:4, 1:3); 
-      // 'errorStateEkf_function2:166' H(1:3, 13:15) = I3;
+      // 'errorStateEkf_function2:172' H(1:3, 1:3) = measJac(:, 1:4) * xErrorJac(1:4, 1:3); 
+      // 'errorStateEkf_function2:173' H(1:3, 13:15) = I3;
       rtb_VectorConcatenate1_tmp = 0;
       i_2 = 0;
       for (i = 0; i < 3; i++) {
@@ -5672,44 +5730,42 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
       }
 
       //      H = measJac(:, idxNs) * xErrorJac(idxNs, idxEs);
-      // 'errorStateEkf_function2:170' C_ned2b  = quatToDcm(states(1), states(2), states(3), ... 
-      // 'errorStateEkf_function2:171'             states(4));
+      // 'errorStateEkf_function2:177' C_ned2b  = quatToDcm(states(1), states(2), states(3), ... 
+      // 'errorStateEkf_function2:178'             states(4));
       // NED gravity in body frame
-      // 'errorStateEkf_function2:173' estGravityInBodyFrame = C_ned2b*[0; 0; -gEarth_mps2] + states(14:16); 
-      // 'errorStateEkf_function2:175' tmp1 = covP(:, 13:15) + covP(:, 1:3) * H(:, 1:3).'; 
+      // 'errorStateEkf_function2:180' estGravityInBodyFrame = C_ned2b*[0; 0; -gEarth_mps2] + states(14:16); 
+      // 'errorStateEkf_function2:182' tmp1 = covP(:, 13:15) + covP(:, 1:3) * H(:, 1:3).'; 
       rtb_Product2_c = H[3];
       rtb_XAxis2 = H[0];
       rtb_UnitDelay_g = H[6];
       rtb_XAxis1 = H[4];
       rtb_Sum2_idx_1 = H[1];
       rtb_Sum2_idx_2 = H[7];
-      q2q3 = H[5];
-      rtb_dcmBodyToNed_idx_7 = H[2];
-      rtb_dcmBodyToNed_idx_2 = H[8];
+      rtb_dcmBodyToNed_idx_4 = H[5];
+      tmp5 = H[2];
+      q1q3 = H[8];
       for (rtb_VectorConcatenate1_tmp = 0; rtb_VectorConcatenate1_tmp < 19;
            rtb_VectorConcatenate1_tmp++) {
-        rtb_dcmBodyToNed_idx_5 =
-          stateEstimatorEskf_DW.covP[rtb_VectorConcatenate1_tmp + 19];
+        q2q3 = stateEstimatorEskf_DW.covP[rtb_VectorConcatenate1_tmp + 19];
         rtb_dcmBodyToNed_idx_8 =
           stateEstimatorEskf_DW.covP[rtb_VectorConcatenate1_tmp];
         rtb_Merge_idx_0 = stateEstimatorEskf_DW.covP[rtb_VectorConcatenate1_tmp
           + 38];
-        tmp1[rtb_VectorConcatenate1_tmp] = ((rtb_dcmBodyToNed_idx_5 *
-          rtb_Product2_c + rtb_dcmBodyToNed_idx_8 * rtb_XAxis2) +
-          rtb_Merge_idx_0 * rtb_UnitDelay_g) +
+        tmp1[rtb_VectorConcatenate1_tmp] = ((q2q3 * rtb_Product2_c +
+          rtb_dcmBodyToNed_idx_8 * rtb_XAxis2) + rtb_Merge_idx_0 *
+          rtb_UnitDelay_g) +
           stateEstimatorEskf_DW.covP[rtb_VectorConcatenate1_tmp + 228];
-        tmp1[rtb_VectorConcatenate1_tmp + 19] = ((rtb_dcmBodyToNed_idx_5 *
-          rtb_XAxis1 + rtb_dcmBodyToNed_idx_8 * rtb_Sum2_idx_1) +
-          rtb_Merge_idx_0 * rtb_Sum2_idx_2) +
+        tmp1[rtb_VectorConcatenate1_tmp + 19] = ((q2q3 * rtb_XAxis1 +
+          rtb_dcmBodyToNed_idx_8 * rtb_Sum2_idx_1) + rtb_Merge_idx_0 *
+          rtb_Sum2_idx_2) +
           stateEstimatorEskf_DW.covP[rtb_VectorConcatenate1_tmp + 247];
-        tmp1[rtb_VectorConcatenate1_tmp + 38] = ((rtb_dcmBodyToNed_idx_5 * q2q3
-          + rtb_dcmBodyToNed_idx_8 * rtb_dcmBodyToNed_idx_7) + rtb_Merge_idx_0 *
-          rtb_dcmBodyToNed_idx_2) +
+        tmp1[rtb_VectorConcatenate1_tmp + 38] = ((q2q3 * rtb_dcmBodyToNed_idx_4
+          + rtb_dcmBodyToNed_idx_8 * tmp5) + rtb_Merge_idx_0 * q1q3) +
           stateEstimatorEskf_DW.covP[rtb_VectorConcatenate1_tmp + 266];
       }
 
       // covP(idxEs, idxEs)*H';
-      // 'errorStateEkf_function2:176' K = tmp1(idxNoGpsEs, :)/(H(:, idxNoGpsEs) * tmp1(idxNoGpsEs, :) + measNoiseR(12:14, 12:14)); 
+      // 'errorStateEkf_function2:183' K = tmp1(idxNoGpsEs, :)/(H(:, idxNoGpsEs) * tmp1(idxNoGpsEs, :) + measNoiseR(12:14, 12:14)); 
       for (rtb_VectorConcatenate1_tmp = 0; rtb_VectorConcatenate1_tmp < 3;
            rtb_VectorConcatenate1_tmp++) {
         for (i_2 = 0; i_2 < 15; i_2++) {
@@ -5725,23 +5781,22 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
               + c];
           }
 
-          rtb_VectorConcatenate_m[rtb_VectorConcatenate1_tmp + 3 * i_2] =
-            rtu_measNoiseR[((i_2 + 11) * 15 + rtb_VectorConcatenate1_tmp) + 11]
-            + rtb_XAxis1;
+          H_0[rtb_VectorConcatenate1_tmp + 3 * i_2] = rtu_measNoiseR[((i_2 + 11)
+            * 15 + rtb_VectorConcatenate1_tmp) + 11] + rtb_XAxis1;
         }
       }
 
-      mrdiv_9ppBIzmt(tmp1_0, rtb_VectorConcatenate_m, K);
+      mrdiv_9ppBIzmt(tmp1_0, H_0, K);
 
-      // 'errorStateEkf_function2:178' errorStateHat(idxNoGpsEs) = K*(bodyAccels_mps2 - estGravityInBodyFrame); 
+      // 'errorStateEkf_function2:185' errorStateHat(idxNoGpsEs) = K*(bodyAccels_mps2 - estGravityInBodyFrame); 
       quatToDcm_smxwJjrc(rtb_states[0], rtb_states[1], rtb_states[2],
                          rtb_states[3], tmp_4);
-      imuOut_0[0] = imuOut[0] - (static_cast<real32_T>(tmp_4[6]) *
-        -*rtu_gEarth_mps2 + rtb_states[13]);
-      imuOut_0[1] = imuOut[1] - (static_cast<real32_T>(tmp_4[7]) *
-        -*rtu_gEarth_mps2 + rtb_states[14]);
-      imuOut_0[2] = imuOut[2] - (static_cast<real32_T>(tmp_4[8]) *
-        -*rtu_gEarth_mps2 + rtb_states[15]);
+      rtb_VectorConcatenate_0[0] = rtb_VectorConcatenate[0] -
+        (static_cast<real32_T>(tmp_4[6]) * -*rtu_gEarth_mps2 + rtb_states[13]);
+      rtb_VectorConcatenate_0[1] = rtb_VectorConcatenate[1] -
+        (static_cast<real32_T>(tmp_4[7]) * -*rtu_gEarth_mps2 + rtb_states[14]);
+      rtb_VectorConcatenate_0[2] = rtb_VectorConcatenate[2] -
+        (static_cast<real32_T>(tmp_4[8]) * -*rtu_gEarth_mps2 + rtb_states[15]);
       for (rtb_VectorConcatenate1_tmp = 0; rtb_VectorConcatenate1_tmp < 15;
            rtb_VectorConcatenate1_tmp++) {
         K_0[rtb_VectorConcatenate1_tmp] = 0.0F;
@@ -5749,7 +5804,7 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
 
       rtb_VectorConcatenate1_tmp = 0;
       for (i_2 = 0; i_2 < 3; i_2++) {
-        rtb_XAxis1 = imuOut_0[i_2];
+        rtb_XAxis1 = rtb_VectorConcatenate_0[i_2];
         for (i = 0; i < 15; i++) {
           K_0[i] += K[i + rtb_VectorConcatenate1_tmp] * rtb_XAxis1;
         }
@@ -5763,8 +5818,8 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
           K_0[rtb_VectorConcatenate1_tmp];
       }
 
-      // 'errorStateEkf_function2:180' covP(idxNoGpsEs, idxNoGpsEs) = covP(idxNoGpsEs, idxNoGpsEs) - K*(covP(13:15, idxNoGpsEs) + ... 
-      // 'errorStateEkf_function2:181'             H(:, 1:3) * covP(1:3, idxNoGpsEs)); 
+      // 'errorStateEkf_function2:187' covP(idxNoGpsEs, idxNoGpsEs) = covP(idxNoGpsEs, idxNoGpsEs) - K*(covP(13:15, idxNoGpsEs) + ... 
+      // 'errorStateEkf_function2:188'             H(:, 1:3) * covP(1:3, idxNoGpsEs)); 
       for (rtb_VectorConcatenate1_tmp = 0; rtb_VectorConcatenate1_tmp < 3;
            rtb_VectorConcatenate1_tmp++) {
         rtb_Product2_c = H[rtb_VectorConcatenate1_tmp + 3];
@@ -5804,7 +5859,7 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
       }
 
       // Update the nominal state
-      // 'errorStateEkf_function2:184' states(idxNoGpsNs2) = states(idxNoGpsNs2) + errorStateHat(idxNoGpsEs2); 
+      // 'errorStateEkf_function2:191' states(idxNoGpsNs2) = states(idxNoGpsNs2) + errorStateHat(idxNoGpsEs2); 
       for (rtb_VectorConcatenate1_tmp = 0; rtb_VectorConcatenate1_tmp < 12;
            rtb_VectorConcatenate1_tmp++) {
         rtb_states_0[rtb_VectorConcatenate1_tmp] =
@@ -5819,7 +5874,7 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
       }
 
       // Construct quaternion from the rotation vector and reset covP
-      // 'errorStateEkf_function2:187' [nomQuat, covP] = updateQuatAndResetCovP(states(1:4), errorStateHat(1:3), covP); 
+      // 'errorStateEkf_function2:194' [nomQuat, covP] = updateQuatAndResetCovP(states(1:4), errorStateHat(1:3), covP); 
       qDelayed[0] = rtb_states[0];
       qDelayed[1] = rtb_states[1];
       qDelayed[2] = rtb_states[2];
@@ -5830,13 +5885,13 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
       std::memcpy(&stateEstimatorEskf_DW.covP[0], &covP[0], 361U * sizeof
                   (real32_T));
 
-      // 'errorStateEkf_function2:188' states(1:4) = nomQuat;
+      // 'errorStateEkf_function2:195' states(1:4) = nomQuat;
       rtb_states[0] = qDelayed[0];
       rtb_states[1] = qDelayed[1];
       rtb_states[2] = qDelayed[2];
       rtb_states[3] = qDelayed[3];
 
-      // 'errorStateEkf_function2:190' covP(idxNoGpsEs, idxNoGpsEs) = (covP(idxNoGpsEs, idxNoGpsEs) + covP(idxNoGpsEs, idxNoGpsEs)')/2; 
+      // 'errorStateEkf_function2:197' covP(idxNoGpsEs, idxNoGpsEs) = (covP(idxNoGpsEs, idxNoGpsEs) + covP(idxNoGpsEs, idxNoGpsEs)')/2; 
       for (rtb_VectorConcatenate1_tmp = 0; rtb_VectorConcatenate1_tmp < 15;
            rtb_VectorConcatenate1_tmp++) {
         for (i_2 = 0; i_2 < 15; i_2++) {
@@ -5848,18 +5903,18 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
     }
 
     // Fuse Mag data if it is valid
-    // 'errorStateEkf_function2:194' if(isMagValid)
+    // 'errorStateEkf_function2:201' if(isMagValid)
     if (dhSensorIn_sensorValidity_isMag) {
-      // 'errorStateEkf_function2:195' measJac = computEskfMagMeasJac(states, localNedUnitMag_nd); 
-      // 'errorStateEkf_function2:197' C_ned2b = quatToDcm(states(1), states(2), states(3), ... 
-      // 'errorStateEkf_function2:198'             states(4));
+      // 'errorStateEkf_function2:202' measJac = computEskfMagMeasJac(states, localNedUnitMag_nd); 
+      // 'errorStateEkf_function2:204' C_ned2b = quatToDcm(states(1), states(2), states(3), ... 
+      // 'errorStateEkf_function2:205'             states(4));
       // Rotate propogated mag states and add bias to estimate measurements
-      // 'errorStateEkf_function2:201' estBodyMagUnitVec = C_ned2b*localNedUnitMag_nd + states(17:19); 
-      // 'errorStateEkf_function2:203' xErrorJac = computeQuatJacWrtAngErr(states, xErrorJac); 
-      // 'errorStateEkf_function2:401' xErrorJac(1:4, 1:3) = 0.5*[-states(2), -states(3), -states(4); 
-      // 'errorStateEkf_function2:402'     states(1), -states(4), states(3);
-      // 'errorStateEkf_function2:403'     states(4), states(1), -states(2);
-      // 'errorStateEkf_function2:404'     -states(3), states(2), states(1)];
+      // 'errorStateEkf_function2:208' estBodyMagUnitVec = C_ned2b*localNedUnitMag_nd + states(17:19); 
+      // 'errorStateEkf_function2:210' xErrorJac = computeQuatJacWrtAngErr(states, xErrorJac); 
+      // 'errorStateEkf_function2:418' xErrorJac(1:4, 1:3) = 0.5*[-states(2), -states(3), -states(4); 
+      // 'errorStateEkf_function2:419'     states(1), -states(4), states(3);
+      // 'errorStateEkf_function2:420'     states(4), states(1), -states(2);
+      // 'errorStateEkf_function2:421'     -states(3), states(2), states(1)];
       rtb_Product2_c = 0.5F * -rtb_states[1];
       stateEstimatorEskf_DW.xErrorJac[0] = rtb_Product2_c;
       rtb_XAxis1 = 0.5F * -rtb_states[2];
@@ -5877,14 +5932,14 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
       stateEstimatorEskf_DW.xErrorJac[23] = 0.5F * rtb_states[1];
       stateEstimatorEskf_DW.xErrorJac[43] = rtb_UnitDelay_g;
 
-      // 'errorStateEkf_function2:205' H = zeros(3, 19, 'single');
+      // 'errorStateEkf_function2:212' H = zeros(3, 19, 'single');
       std::memset(&H[0], 0, 57U * sizeof(real32_T));
 
-      // 'errorStateEkf_function2:206' H(1:3, 1:3) = measJac(:, 1:4) * xErrorJac(1:4, 1:3); 
+      // 'errorStateEkf_function2:213' H(1:3, 1:3) = measJac(:, 1:4) * xErrorJac(1:4, 1:3); 
       computEskfMagMeasJac_ecmRY7bq(rtb_states, rtCP_localNedMag_nd_Value,
         measJac);
 
-      // 'errorStateEkf_function2:207' H(1:3, 16:18) = I3;
+      // 'errorStateEkf_function2:214' H(1:3, 16:18) = I3;
       rtb_VectorConcatenate1_tmp = 0;
       i_2 = 0;
       for (i = 0; i < 3; i++) {
@@ -5911,44 +5966,42 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
         i_2 += 3;
       }
 
-      // 'errorStateEkf_function2:208' tmp1 = covP(:, 16:18) + covP(:, 1:3) * H(:,1:3).'; 
+      // 'errorStateEkf_function2:215' tmp1 = covP(:, 16:18) + covP(:, 1:3) * H(:,1:3).'; 
       rtb_Product2_c = H[3];
       rtb_XAxis2 = H[0];
       rtb_UnitDelay_g = H[6];
       rtb_XAxis1 = H[4];
       rtb_Sum2_idx_1 = H[1];
       rtb_Sum2_idx_2 = H[7];
-      q2q3 = H[5];
-      rtb_dcmBodyToNed_idx_7 = H[2];
-      rtb_dcmBodyToNed_idx_2 = H[8];
+      rtb_dcmBodyToNed_idx_4 = H[5];
+      tmp5 = H[2];
+      q1q3 = H[8];
       for (rtb_VectorConcatenate1_tmp = 0; rtb_VectorConcatenate1_tmp < 19;
            rtb_VectorConcatenate1_tmp++) {
-        rtb_dcmBodyToNed_idx_5 =
-          stateEstimatorEskf_DW.covP[rtb_VectorConcatenate1_tmp + 19];
+        q2q3 = stateEstimatorEskf_DW.covP[rtb_VectorConcatenate1_tmp + 19];
         rtb_dcmBodyToNed_idx_8 =
           stateEstimatorEskf_DW.covP[rtb_VectorConcatenate1_tmp];
         rtb_Merge_idx_0 = stateEstimatorEskf_DW.covP[rtb_VectorConcatenate1_tmp
           + 38];
-        tmp1[rtb_VectorConcatenate1_tmp] = ((rtb_dcmBodyToNed_idx_5 *
-          rtb_Product2_c + rtb_dcmBodyToNed_idx_8 * rtb_XAxis2) +
-          rtb_Merge_idx_0 * rtb_UnitDelay_g) +
+        tmp1[rtb_VectorConcatenate1_tmp] = ((q2q3 * rtb_Product2_c +
+          rtb_dcmBodyToNed_idx_8 * rtb_XAxis2) + rtb_Merge_idx_0 *
+          rtb_UnitDelay_g) +
           stateEstimatorEskf_DW.covP[rtb_VectorConcatenate1_tmp + 285];
-        tmp1[rtb_VectorConcatenate1_tmp + 19] = ((rtb_dcmBodyToNed_idx_5 *
-          rtb_XAxis1 + rtb_dcmBodyToNed_idx_8 * rtb_Sum2_idx_1) +
-          rtb_Merge_idx_0 * rtb_Sum2_idx_2) +
+        tmp1[rtb_VectorConcatenate1_tmp + 19] = ((q2q3 * rtb_XAxis1 +
+          rtb_dcmBodyToNed_idx_8 * rtb_Sum2_idx_1) + rtb_Merge_idx_0 *
+          rtb_Sum2_idx_2) +
           stateEstimatorEskf_DW.covP[rtb_VectorConcatenate1_tmp + 304];
-        tmp1[rtb_VectorConcatenate1_tmp + 38] = ((rtb_dcmBodyToNed_idx_5 * q2q3
-          + rtb_dcmBodyToNed_idx_8 * rtb_dcmBodyToNed_idx_7) + rtb_Merge_idx_0 *
-          rtb_dcmBodyToNed_idx_2) +
+        tmp1[rtb_VectorConcatenate1_tmp + 38] = ((q2q3 * rtb_dcmBodyToNed_idx_4
+          + rtb_dcmBodyToNed_idx_8 * tmp5) + rtb_Merge_idx_0 * q1q3) +
           stateEstimatorEskf_DW.covP[rtb_VectorConcatenate1_tmp + 323];
       }
 
       // covP(idxEs, idxEs)*H(:, idxEs)';
-      // 'errorStateEkf_function2:210' if estSmMode == enumStateEstimateMode.RUN || isOfValid 
-      stateModeReady = (mode == enumStateEstimateMode::RUN) |
+      // 'errorStateEkf_function2:217' if estSmMode == enumStateEstimateMode.RUN || isOfValid 
+      stateModeReady = (estSmModeOut == enumStateEstimateMode::RUN) |
         dhSensorIn_sensorValidity_isOfV;
       if (stateModeReady) {
-        // 'errorStateEkf_function2:211' K = tmp1(idxEs, :)/(H(:, idxEs) * tmp1(idxEs, :) + measNoiseR(1:3, 1:3)); 
+        // 'errorStateEkf_function2:218' K = tmp1(idxEs, :)/(H(:, idxEs) * tmp1(idxEs, :) + measNoiseR(1:3, 1:3)); 
         for (rtb_VectorConcatenate1_tmp = 0; rtb_VectorConcatenate1_tmp < 3;
              rtb_VectorConcatenate1_tmp++) {
           i_2 = 0;
@@ -5963,32 +6016,32 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
               tmp_c += 3;
             }
 
-            rtb_VectorConcatenate_m[i_2 + rtb_VectorConcatenate1_tmp] =
-              rtu_measNoiseR[i + rtb_VectorConcatenate1_tmp] + rtb_XAxis1;
+            H_0[i_2 + rtb_VectorConcatenate1_tmp] = rtu_measNoiseR[i +
+              rtb_VectorConcatenate1_tmp] + rtb_XAxis1;
             i_2 += 3;
             i += 15;
             i_1 += 19;
           }
         }
 
-        mrdiv_7fpDxZtR(tmp1, rtb_VectorConcatenate_m, b_K);
+        mrdiv_7fpDxZtR(tmp1, H_0, b_K);
 
-        // 'errorStateEkf_function2:212' errorStateHat(idxEs) = K*(normMagVec_nd - estBodyMagUnitVec); 
+        // 'errorStateEkf_function2:219' errorStateHat(idxEs) = K*(normMagVec_nd - estBodyMagUnitVec); 
         quatToDcm_smxwJjrc(rtb_states[0], rtb_states[1], rtb_states[2],
                            rtb_states[3], tmp_4);
-        imuOut_0[0] = Divide[0] - (((static_cast<real32_T>(tmp_4[0]) * 0.4752F +
-          static_cast<real32_T>(tmp_4[3]) * 0.1096F) + static_cast<real32_T>
-          (tmp_4[6]) * 0.873F) + rtb_states[16]);
-        imuOut_0[1] = Divide[1] - (((static_cast<real32_T>(tmp_4[1]) * 0.4752F +
-          static_cast<real32_T>(tmp_4[4]) * 0.1096F) + static_cast<real32_T>
-          (tmp_4[7]) * 0.873F) + rtb_states[17]);
-        imuOut_0[2] = Divide[2] - (((static_cast<real32_T>(tmp_4[2]) * 0.4752F +
-          static_cast<real32_T>(tmp_4[5]) * 0.1096F) + static_cast<real32_T>
-          (tmp_4[8]) * 0.873F) + rtb_states[18]);
+        rtb_VectorConcatenate_0[0] = Divide[0] - (((static_cast<real32_T>(tmp_4
+          [0]) * 0.4752F + static_cast<real32_T>(tmp_4[3]) * 0.1096F) +
+          static_cast<real32_T>(tmp_4[6]) * 0.873F) + rtb_states[16]);
+        rtb_VectorConcatenate_0[1] = Divide[1] - (((static_cast<real32_T>(tmp_4
+          [1]) * 0.4752F + static_cast<real32_T>(tmp_4[4]) * 0.1096F) +
+          static_cast<real32_T>(tmp_4[7]) * 0.873F) + rtb_states[17]);
+        rtb_VectorConcatenate_0[2] = Divide[2] - (((static_cast<real32_T>(tmp_4
+          [2]) * 0.4752F + static_cast<real32_T>(tmp_4[5]) * 0.1096F) +
+          static_cast<real32_T>(tmp_4[8]) * 0.873F) + rtb_states[18]);
         std::memset(&d_K[0], 0, 19U * sizeof(real32_T));
         rtb_VectorConcatenate1_tmp = 0;
         for (i_2 = 0; i_2 < 3; i_2++) {
-          rtb_XAxis1 = imuOut_0[i_2];
+          rtb_XAxis1 = rtb_VectorConcatenate_0[i_2];
           for (i = 0; i < 19; i++) {
             d_K[i] += b_K[i + rtb_VectorConcatenate1_tmp] * rtb_XAxis1;
           }
@@ -5998,8 +6051,8 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
 
         std::memcpy(&errorStateHat[0], &d_K[0], 19U * sizeof(real32_T));
 
-        // 'errorStateEkf_function2:214' covP(idxEs, idxEs) = covP(idxEs, idxEs) - K*(covP(16:18, idxEs) + ... 
-        // 'errorStateEkf_function2:215'                 H(:, 1:3) * covP(1:3, idxEs)); 
+        // 'errorStateEkf_function2:221' covP(idxEs, idxEs) = covP(idxEs, idxEs) - K*(covP(16:18, idxEs) + ... 
+        // 'errorStateEkf_function2:222'                 H(:, 1:3) * covP(1:3, idxEs)); 
         for (rtb_VectorConcatenate1_tmp = 0; rtb_VectorConcatenate1_tmp < 3;
              rtb_VectorConcatenate1_tmp++) {
           rtb_Product2_c = H[rtb_VectorConcatenate1_tmp + 3];
@@ -6035,15 +6088,15 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
         }
 
         // Update the nominal state
-        // 'errorStateEkf_function2:218' states(idxNs2) = states(idxNs2) + errorStateHat(idxEs2); 
+        // 'errorStateEkf_function2:225' states(idxNs2) = states(idxNs2) + errorStateHat(idxEs2); 
         for (rtb_VectorConcatenate1_tmp = 0; rtb_VectorConcatenate1_tmp < 16;
              rtb_VectorConcatenate1_tmp++) {
           rtb_states[rtb_VectorConcatenate1_tmp + 4] +=
             errorStateHat[rtb_VectorConcatenate1_tmp + 3];
         }
       } else {
-        // 'errorStateEkf_function2:219' else
-        // 'errorStateEkf_function2:220' K = tmp1(idxNoGpsEs, :)/(H(:, idxNoGpsEs) * tmp1(idxNoGpsEs, :) + measNoiseR(1:3, 1:3)); 
+        // 'errorStateEkf_function2:226' else
+        // 'errorStateEkf_function2:227' K = tmp1(idxNoGpsEs, :)/(H(:, idxNoGpsEs) * tmp1(idxNoGpsEs, :) + measNoiseR(1:3, 1:3)); 
         for (rtb_VectorConcatenate1_tmp = 0; rtb_VectorConcatenate1_tmp < 3;
              rtb_VectorConcatenate1_tmp++) {
           for (i_2 = 0; i_2 < 15; i_2++) {
@@ -6059,25 +6112,25 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
                 i_2 + c];
             }
 
-            rtb_VectorConcatenate_m[rtb_VectorConcatenate1_tmp + 3 * i_2] =
-              rtu_measNoiseR[15 * i_2 + rtb_VectorConcatenate1_tmp] + rtb_XAxis1;
+            H_0[rtb_VectorConcatenate1_tmp + 3 * i_2] = rtu_measNoiseR[15 * i_2
+              + rtb_VectorConcatenate1_tmp] + rtb_XAxis1;
           }
         }
 
-        mrdiv_9ppBIzmt(tmp1_0, rtb_VectorConcatenate_m, K);
+        mrdiv_9ppBIzmt(tmp1_0, H_0, K);
 
-        // 'errorStateEkf_function2:221' errorStateHat(idxNoGpsEs) = K*(normMagVec_nd - estBodyMagUnitVec); 
+        // 'errorStateEkf_function2:228' errorStateHat(idxNoGpsEs) = K*(normMagVec_nd - estBodyMagUnitVec); 
         quatToDcm_smxwJjrc(rtb_states[0], rtb_states[1], rtb_states[2],
                            rtb_states[3], tmp_4);
-        imuOut_0[0] = Divide[0] - (((static_cast<real32_T>(tmp_4[0]) * 0.4752F +
-          static_cast<real32_T>(tmp_4[3]) * 0.1096F) + static_cast<real32_T>
-          (tmp_4[6]) * 0.873F) + rtb_states[16]);
-        imuOut_0[1] = Divide[1] - (((static_cast<real32_T>(tmp_4[1]) * 0.4752F +
-          static_cast<real32_T>(tmp_4[4]) * 0.1096F) + static_cast<real32_T>
-          (tmp_4[7]) * 0.873F) + rtb_states[17]);
-        imuOut_0[2] = Divide[2] - (((static_cast<real32_T>(tmp_4[2]) * 0.4752F +
-          static_cast<real32_T>(tmp_4[5]) * 0.1096F) + static_cast<real32_T>
-          (tmp_4[8]) * 0.873F) + rtb_states[18]);
+        rtb_VectorConcatenate_0[0] = Divide[0] - (((static_cast<real32_T>(tmp_4
+          [0]) * 0.4752F + static_cast<real32_T>(tmp_4[3]) * 0.1096F) +
+          static_cast<real32_T>(tmp_4[6]) * 0.873F) + rtb_states[16]);
+        rtb_VectorConcatenate_0[1] = Divide[1] - (((static_cast<real32_T>(tmp_4
+          [1]) * 0.4752F + static_cast<real32_T>(tmp_4[4]) * 0.1096F) +
+          static_cast<real32_T>(tmp_4[7]) * 0.873F) + rtb_states[17]);
+        rtb_VectorConcatenate_0[2] = Divide[2] - (((static_cast<real32_T>(tmp_4
+          [2]) * 0.4752F + static_cast<real32_T>(tmp_4[5]) * 0.1096F) +
+          static_cast<real32_T>(tmp_4[8]) * 0.873F) + rtb_states[18]);
         for (rtb_VectorConcatenate1_tmp = 0; rtb_VectorConcatenate1_tmp < 15;
              rtb_VectorConcatenate1_tmp++) {
           K_0[rtb_VectorConcatenate1_tmp] = 0.0F;
@@ -6085,7 +6138,7 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
 
         rtb_VectorConcatenate1_tmp = 0;
         for (i_2 = 0; i_2 < 3; i_2++) {
-          rtb_XAxis1 = imuOut_0[i_2];
+          rtb_XAxis1 = rtb_VectorConcatenate_0[i_2];
           for (i = 0; i < 15; i++) {
             K_0[i] += K[i + rtb_VectorConcatenate1_tmp] * rtb_XAxis1;
           }
@@ -6099,8 +6152,8 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
             K_0[rtb_VectorConcatenate1_tmp];
         }
 
-        // 'errorStateEkf_function2:223' covP(idxNoGpsEs, idxNoGpsEs) = covP(idxNoGpsEs, idxNoGpsEs) - K*(covP(16:18, idxNoGpsEs) + ... 
-        // 'errorStateEkf_function2:224'                 H(:, 1:3) * covP(1:3, idxNoGpsEs)); 
+        // 'errorStateEkf_function2:230' covP(idxNoGpsEs, idxNoGpsEs) = covP(idxNoGpsEs, idxNoGpsEs) - K*(covP(16:18, idxNoGpsEs) + ... 
+        // 'errorStateEkf_function2:231'                 H(:, 1:3) * covP(1:3, idxNoGpsEs)); 
         for (rtb_VectorConcatenate1_tmp = 0; rtb_VectorConcatenate1_tmp < 3;
              rtb_VectorConcatenate1_tmp++) {
           rtb_Product2_c = H[rtb_VectorConcatenate1_tmp + 3];
@@ -6140,7 +6193,7 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
         }
 
         // Update the nominal state
-        // 'errorStateEkf_function2:227' states(idxNoGpsNs2) = states(idxNoGpsNs2) + errorStateHat(idxNoGpsEs2); 
+        // 'errorStateEkf_function2:234' states(idxNoGpsNs2) = states(idxNoGpsNs2) + errorStateHat(idxNoGpsEs2); 
         for (rtb_VectorConcatenate1_tmp = 0; rtb_VectorConcatenate1_tmp < 12;
              rtb_VectorConcatenate1_tmp++) {
           rtb_states_0[rtb_VectorConcatenate1_tmp] =
@@ -6156,7 +6209,7 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
       }
 
       // Construct quaternion from the rotation vector and reset covP
-      // 'errorStateEkf_function2:231' [nomQuat, covP] = updateQuatAndResetCovP(states(1:4), errorStateHat(1:3), covP); 
+      // 'errorStateEkf_function2:238' [nomQuat, covP] = updateQuatAndResetCovP(states(1:4), errorStateHat(1:3), covP); 
       qDelayed[0] = rtb_states[0];
       qDelayed[1] = rtb_states[1];
       qDelayed[2] = rtb_states[2];
@@ -6167,15 +6220,15 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
       std::memcpy(&stateEstimatorEskf_DW.covP[0], &covP[0], 361U * sizeof
                   (real32_T));
 
-      // 'errorStateEkf_function2:232' states(1:4) = nomQuat;
+      // 'errorStateEkf_function2:239' states(1:4) = nomQuat;
       rtb_states[0] = qDelayed[0];
       rtb_states[1] = qDelayed[1];
       rtb_states[2] = qDelayed[2];
       rtb_states[3] = qDelayed[3];
 
-      // 'errorStateEkf_function2:233' if estSmMode == enumStateEstimateMode.RUN || isOfValid 
+      // 'errorStateEkf_function2:240' if estSmMode == enumStateEstimateMode.RUN || isOfValid 
       if (stateModeReady) {
-        // 'errorStateEkf_function2:234' covP(idxEs, idxEs) = (covP(idxEs, idxEs) + covP(idxEs, idxEs)').*0.5; 
+        // 'errorStateEkf_function2:241' covP(idxEs, idxEs) = (covP(idxEs, idxEs) + covP(idxEs, idxEs)').*0.5; 
         rtb_VectorConcatenate1_tmp = 0;
         for (i_2 = 0; i_2 < 19; i_2++) {
           i = 0;
@@ -6189,9 +6242,9 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
           rtb_VectorConcatenate1_tmp += 19;
         }
       } else {
-        // 'errorStateEkf_function2:235' else
-        // 'errorStateEkf_function2:236' covP(idxNoGpsEs, idxNoGpsEs) = (covP(idxNoGpsEs, idxNoGpsEs) + ... 
-        // 'errorStateEkf_function2:237'                 covP(idxNoGpsEs, idxNoGpsEs)').*0.5; 
+        // 'errorStateEkf_function2:242' else
+        // 'errorStateEkf_function2:243' covP(idxNoGpsEs, idxNoGpsEs) = (covP(idxNoGpsEs, idxNoGpsEs) + ... 
+        // 'errorStateEkf_function2:244'                 covP(idxNoGpsEs, idxNoGpsEs)').*0.5; 
         for (rtb_VectorConcatenate1_tmp = 0; rtb_VectorConcatenate1_tmp < 15;
              rtb_VectorConcatenate1_tmp++) {
           for (i_2 = 0; i_2 < 15; i_2++) {
@@ -6201,14 +6254,21 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
           }
         }
 
-        // 'errorStateEkf_function2:238' states(8:9) = 0;
+        // 'errorStateEkf_function2:245' states(8:9) = 0;
         rtb_states[7] = 0.0F;
         rtb_states[8] = 0.0F;
       }
+
+      // BusAssignment: '<Root>/Bus Assignment1' incorporates:
+      //   BusAssignment: '<Root>/Bus Assignment'
+      //   Constant: '<Root>/localNedMag_nd'
+
+      // 'errorStateEkf_function2:248' ekfDebugOut.isAidingUsed.isMagUsed = true; 
+      rty_stateEstimatorDebug->ekfDebugData.isAidingUsed.isMagUsed = true;
     }
 
     // Integrate optical flow data
-    // 'errorStateEkf_function2:243' if(isOfValid)
+    // 'errorStateEkf_function2:252' if(isOfValid)
     if (dhSensorIn_sensorValidity_isOfV) {
       //          measJac = computeEskfOfMeasJac(states);
       //          C_ned2b = quatToDcm(states(1), states(2), states(3), ...
@@ -6237,28 +6297,28 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
       //          [nomQuat, covP] = updateQuatAndResetCovP(states(1:4), errorStateHat(1:3), covP); 
       //          states(1:4) = nomQuat;
       //          covP(idxEs, idxEs) = (covP(idxEs, idxEs) + covP(idxEs, idxEs)').*0.5; 
-      // 'errorStateEkf_function2:272' [states, covP] = applyOfVelCorr(states, ofNeVel_mps, covP, 7, idxEs, ... 
-      // 'errorStateEkf_function2:273'             idxEs2, idxNs2, measNoiseR, ekfParams.nisParams.nisNedPosAndVel(1)); 
-      // 'errorStateEkf_function2:491' iS = 1/(covP(idx, idx) + measNoiseR(15, 15)); 
+      // 'errorStateEkf_function2:281' [states, covP] = applyOfVelCorr(states, ofNeVel_mps, covP, 7, idxEs, ... 
+      // 'errorStateEkf_function2:282'             idxEs2, idxNs2, measNoiseR, ekfParams.nisParams.nisNedPosAndVel(1)); 
+      // 'errorStateEkf_function2:508' iS = 1/(covP(idx, idx) + measNoiseR(15, 15)); 
       rtb_Product2_c = 1.0F / (stateEstimatorEskf_DW.covP[120] + rtu_measNoiseR
         [224]);
 
-      // 'errorStateEkf_function2:492' nu = ofNeVel_mps(idx - 6)  - states(idx + 1); 
+      // 'errorStateEkf_function2:509' nu = ofNeVel_mps(idx - 6)  - states(idx + 1); 
       rtb_XAxis1 = rtb_VectorConcatenate_k2[0] - rtb_states[7];
 
-      // 'errorStateEkf_function2:493' NIS = nu*nu*iS;
+      // 'errorStateEkf_function2:510' NIS = nu*nu*iS;
       // ErrorStateHat
-      // 'errorStateEkf_function2:496' errorStateHat = zeros(19, 1, 'single');
+      // 'errorStateEkf_function2:513' errorStateHat = zeros(19, 1, 'single');
       //  if NIS < innovGate
-      // 'errorStateEkf_function2:499' K = covP(idxEs, idx).*iS;
-      // 'errorStateEkf_function2:500' errorStateHat(idxEs) = K*nu;
+      // 'errorStateEkf_function2:516' K = covP(idxEs, idx).*iS;
+      // 'errorStateEkf_function2:517' errorStateHat(idxEs) = K*nu;
       for (i = 0; i < 19; i++) {
         rtb_XAxis2 = stateEstimatorEskf_DW.covP[i + 114] * rtb_Product2_c;
         d_K[i] = rtb_XAxis2;
         b_errorStateHat[i] = rtb_XAxis2 * rtb_XAxis1;
       }
 
-      // 'errorStateEkf_function2:502' covP(idxEs, idxEs) = covP(idxEs, idxEs) - (K*covP(idx, idxEs)); 
+      // 'errorStateEkf_function2:519' covP(idxEs, idxEs) = covP(idxEs, idxEs) - (K*covP(idx, idxEs)); 
       rtb_VectorConcatenate1_tmp = 0;
       for (i_2 = 0; i_2 < 19; i_2++) {
         for (i = 0; i < 19; i++) {
@@ -6271,7 +6331,7 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
       }
 
       // Update the nominal state
-      // 'errorStateEkf_function2:505' states(idxNs2) = states(idxNs2) + errorStateHat(idxEs2); 
+      // 'errorStateEkf_function2:522' states(idxNs2) = states(idxNs2) + errorStateHat(idxEs2); 
       for (rtb_VectorConcatenate1_tmp = 0; rtb_VectorConcatenate1_tmp < 16;
            rtb_VectorConcatenate1_tmp++) {
         rtb_states[rtb_VectorConcatenate1_tmp + 4] +=
@@ -6279,30 +6339,30 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
       }
 
       // Construct quaternion from the rotation vector and reset covP
-      // 'errorStateEkf_function2:508' [nomQuat, covP] = updateQuatAndResetCovP(states(1:4), errorStateHat(1:3), covP); 
+      // 'errorStateEkf_function2:525' [nomQuat, covP] = updateQuatAndResetCovP(states(1:4), errorStateHat(1:3), covP); 
       qDelayed[0] = rtb_states[0];
       qDelayed[1] = rtb_states[1];
       qDelayed[2] = rtb_states[2];
       qDelayed[3] = rtb_states[3];
       updateQuatAndResetCovP_o483nOwE(qDelayed, &b_errorStateHat[0], covP);
 
-      // 'errorStateEkf_function2:509' states(1:4) = nomQuat;
+      // 'errorStateEkf_function2:526' states(1:4) = nomQuat;
       rtb_states[0] = qDelayed[0];
       rtb_states[1] = qDelayed[1];
       rtb_states[2] = qDelayed[2];
       rtb_states[3] = qDelayed[3];
 
-      // 'errorStateEkf_function2:511' covP(idxEs, idxEs) = (covP(idxEs, idxEs) + covP(idxEs, idxEs)').*0.5; 
+      // 'errorStateEkf_function2:528' covP(idxEs, idxEs) = (covP(idxEs, idxEs) + covP(idxEs, idxEs)').*0.5; 
       //  end
-      // 'errorStateEkf_function2:274' [states, covP] = applyOfVelCorr(states, ofNeVel_mps, covP, 8, idxEs, ... 
-      // 'errorStateEkf_function2:275'             idxEs2, idxNs2, measNoiseR, ekfParams.nisParams.nisNedPosAndVel(1)); 
-      // 'errorStateEkf_function2:491' iS = 1/(covP(idx, idx) + measNoiseR(15, 15)); 
-      // 'errorStateEkf_function2:492' nu = ofNeVel_mps(idx - 6)  - states(idx + 1); 
+      // 'errorStateEkf_function2:283' [states, covP] = applyOfVelCorr(states, ofNeVel_mps, covP, 8, idxEs, ... 
+      // 'errorStateEkf_function2:284'             idxEs2, idxNs2, measNoiseR, ekfParams.nisParams.nisNedPosAndVel(1)); 
+      // 'errorStateEkf_function2:508' iS = 1/(covP(idx, idx) + measNoiseR(15, 15)); 
+      // 'errorStateEkf_function2:509' nu = ofNeVel_mps(idx - 6)  - states(idx + 1); 
       rtb_XAxis1 = rtb_VectorConcatenate_k2[1] - rtb_states[8];
 
-      // 'errorStateEkf_function2:493' NIS = nu*nu*iS;
+      // 'errorStateEkf_function2:510' NIS = nu*nu*iS;
       // ErrorStateHat
-      // 'errorStateEkf_function2:496' errorStateHat = zeros(19, 1, 'single');
+      // 'errorStateEkf_function2:513' errorStateHat = zeros(19, 1, 'single');
       i = 0;
       for (i_1 = 0; i_1 < 19; i_1++) {
         rtb_VectorConcatenate1_tmp = 0;
@@ -6319,15 +6379,15 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
       rtb_Product2_c = 1.0F / (b_covP[140] + rtu_measNoiseR[224]);
 
       //  if NIS < innovGate
-      // 'errorStateEkf_function2:499' K = covP(idxEs, idx).*iS;
-      // 'errorStateEkf_function2:500' errorStateHat(idxEs) = K*nu;
+      // 'errorStateEkf_function2:516' K = covP(idxEs, idx).*iS;
+      // 'errorStateEkf_function2:517' errorStateHat(idxEs) = K*nu;
       for (i = 0; i < 19; i++) {
         rtb_XAxis2 = b_covP[i + 133] * rtb_Product2_c;
         d_K[i] = rtb_XAxis2;
         b_errorStateHat[i] = rtb_XAxis2 * rtb_XAxis1;
       }
 
-      // 'errorStateEkf_function2:502' covP(idxEs, idxEs) = covP(idxEs, idxEs) - (K*covP(idx, idxEs)); 
+      // 'errorStateEkf_function2:519' covP(idxEs, idxEs) = covP(idxEs, idxEs) - (K*covP(idx, idxEs)); 
       rtb_VectorConcatenate1_tmp = 0;
       for (i_2 = 0; i_2 < 19; i_2++) {
         for (i = 0; i < 19; i++) {
@@ -6342,7 +6402,7 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
       std::memcpy(&b_covP[0], &covP[0], 361U * sizeof(real32_T));
 
       // Update the nominal state
-      // 'errorStateEkf_function2:505' states(idxNs2) = states(idxNs2) + errorStateHat(idxEs2); 
+      // 'errorStateEkf_function2:522' states(idxNs2) = states(idxNs2) + errorStateHat(idxEs2); 
       for (rtb_VectorConcatenate1_tmp = 0; rtb_VectorConcatenate1_tmp < 16;
            rtb_VectorConcatenate1_tmp++) {
         rtb_states[rtb_VectorConcatenate1_tmp + 4] +=
@@ -6350,20 +6410,20 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
       }
 
       // Construct quaternion from the rotation vector and reset covP
-      // 'errorStateEkf_function2:508' [nomQuat, covP] = updateQuatAndResetCovP(states(1:4), errorStateHat(1:3), covP); 
+      // 'errorStateEkf_function2:525' [nomQuat, covP] = updateQuatAndResetCovP(states(1:4), errorStateHat(1:3), covP); 
       qDelayed[0] = rtb_states[0];
       qDelayed[1] = rtb_states[1];
       qDelayed[2] = rtb_states[2];
       qDelayed[3] = rtb_states[3];
       updateQuatAndResetCovP_o483nOwE(qDelayed, &b_errorStateHat[0], b_covP);
 
-      // 'errorStateEkf_function2:509' states(1:4) = nomQuat;
+      // 'errorStateEkf_function2:526' states(1:4) = nomQuat;
       rtb_states[0] = qDelayed[0];
       rtb_states[1] = qDelayed[1];
       rtb_states[2] = qDelayed[2];
       rtb_states[3] = qDelayed[3];
 
-      // 'errorStateEkf_function2:511' covP(idxEs, idxEs) = (covP(idxEs, idxEs) + covP(idxEs, idxEs)').*0.5; 
+      // 'errorStateEkf_function2:528' covP(idxEs, idxEs) = (covP(idxEs, idxEs) + covP(idxEs, idxEs)').*0.5; 
       rtb_VectorConcatenate1_tmp = 0;
       for (i_2 = 0; i_2 < 19; i_2++) {
         i = 0;
@@ -6378,32 +6438,36 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
       }
 
       //  end
+      // 'errorStateEkf_function2:286' ekfDebugOut.isAidingUsed.isFlowUsed = true; 
+      rtb_ekfDebugOut_isAidingUsed__2 = true;
     }
 
     // Fuse Baro data if it is valid
-    // 'errorStateEkf_function2:279' if(isBaroValid)
+    // 'errorStateEkf_function2:290' if(isBaroValid)
     if (dhSensorIn_sensorValidity_isBar) {
-      // 'errorStateEkf_function2:280' iS = 1/(covP(19, 19) - covP(19, 6) + covP(6, 6) - covP(6, 19) + measNoiseR(10, 10)); 
+      // 'errorStateEkf_function2:291' iS = 1/(covP(19, 19) - covP(19, 6) + covP(6, 6) - covP(6, 19) + measNoiseR(10, 10)); 
       rtb_Product2_c = 1.0F / ((((stateEstimatorEskf_DW.covP[360] -
         stateEstimatorEskf_DW.covP[113]) + stateEstimatorEskf_DW.covP[100]) -
         stateEstimatorEskf_DW.covP[347]) + rtu_measNoiseR[144]);
 
-      // 'errorStateEkf_function2:281' nu = baroAlt_m  + states(7) - states(20); 
+      // 'errorStateEkf_function2:292' nu = baroAlt_m  + states(7) - states(20); 
       rtb_XAxis = (rtb_XAxis + rtb_states[6]) - rtb_states[19];
 
-      // 'errorStateEkf_function2:282' NIS = nu*nu*iS;
-      // 'errorStateEkf_function2:284' if NIS < 3.68
+      // 'errorStateEkf_function2:293' NIS = nu*nu*iS;
+      // 'errorStateEkf_function2:295' if NIS < 3.68
       if (rtb_XAxis * rtb_XAxis * rtb_Product2_c < 3.68) {
-        // 'errorStateEkf_function2:285' ekfDebug.isBaroUsed = true;
-        // 'errorStateEkf_function2:286' if estSmMode == enumStateEstimateMode.RUN || isOfValid 
-        stateModeReady = (mode == enumStateEstimateMode::RUN) |
+        // 'errorStateEkf_function2:296' ekfDebugOut.isAidingUsed.isBaroUsed = true; 
+        rtb_ekfDebugOut_isAidingUsed__0 = true;
+
+        // 'errorStateEkf_function2:298' if estSmMode == enumStateEstimateMode.RUN || isOfValid 
+        stateModeReady = (estSmModeOut == enumStateEstimateMode::RUN) |
           dhSensorIn_sensorValidity_isOfV;
         if (stateModeReady) {
-          // 'errorStateEkf_function2:287' K = (covP(idxEs, 19) - covP(idxEs, 6)).*iS; 
-          // 'errorStateEkf_function2:288' errorStateHat(idxEs) = K*nu;
+          // 'errorStateEkf_function2:299' K = (covP(idxEs, 19) - covP(idxEs, 6)).*iS; 
+          // 'errorStateEkf_function2:300' errorStateHat(idxEs) = K*nu;
           //            covP(idxEs, idxEs) = covP(idxEs, idxEs) - K*H*covP(idxEs, idxEs); 
-          // 'errorStateEkf_function2:290' covP(idxEs, idxEs) = covP(idxEs, idxEs) - ... 
-          // 'errorStateEkf_function2:291'                     (-K * (covP(6, idxEs) - covP(19, idxEs))); 
+          // 'errorStateEkf_function2:302' covP(idxEs, idxEs) = covP(idxEs, idxEs) - ... 
+          // 'errorStateEkf_function2:303'                     (-K * (covP(6, idxEs) - covP(19, idxEs))); 
           i = 0;
           for (i_1 = 0; i_1 < 19; i_1++) {
             rtb_XAxis2 = (stateEstimatorEskf_DW.covP[i_1 + 342] -
@@ -6427,19 +6491,19 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
           }
 
           // Update the nominal state
-          // 'errorStateEkf_function2:293' states(idxNs2) = states(idxNs2) + errorStateHat(idxEs2); 
+          // 'errorStateEkf_function2:305' states(idxNs2) = states(idxNs2) + errorStateHat(idxEs2); 
           for (rtb_VectorConcatenate1_tmp = 0; rtb_VectorConcatenate1_tmp < 16;
                rtb_VectorConcatenate1_tmp++) {
             rtb_states[rtb_VectorConcatenate1_tmp + 4] +=
               errorStateHat[rtb_VectorConcatenate1_tmp + 3];
           }
         } else {
-          // 'errorStateEkf_function2:294' else
-          // 'errorStateEkf_function2:295' K = (covP(idxNoGpsEs, 19) - covP(idxNoGpsEs, 6)).*iS; 
-          // 'errorStateEkf_function2:296' errorStateHat(idxNoGpsEs) = K*nu;
+          // 'errorStateEkf_function2:306' else
+          // 'errorStateEkf_function2:307' K = (covP(idxNoGpsEs, 19) - covP(idxNoGpsEs, 6)).*iS; 
+          // 'errorStateEkf_function2:308' errorStateHat(idxNoGpsEs) = K*nu;
           //            covP(idxEs, idxEs) = covP(idxEs, idxEs) - K*H*covP(idxEs, idxEs); 
-          // 'errorStateEkf_function2:298' covP(idxNoGpsEs, idxNoGpsEs) = covP(idxNoGpsEs, idxNoGpsEs) - ... 
-          // 'errorStateEkf_function2:299'                     (-K * (covP(6, idxNoGpsEs) - covP(19, idxNoGpsEs))); 
+          // 'errorStateEkf_function2:310' covP(idxNoGpsEs, idxNoGpsEs) = covP(idxNoGpsEs, idxNoGpsEs) - ... 
+          // 'errorStateEkf_function2:311'                     (-K * (covP(6, idxNoGpsEs) - covP(19, idxNoGpsEs))); 
           for (rtb_VectorConcatenate1_tmp = 0; rtb_VectorConcatenate1_tmp < 15;
                rtb_VectorConcatenate1_tmp++) {
             c = c_0[rtb_VectorConcatenate1_tmp];
@@ -6472,7 +6536,7 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
           }
 
           // Update the nominal state
-          // 'errorStateEkf_function2:301' states(idxNoGpsNs2) = states(idxNoGpsNs2) + errorStateHat(idxNoGpsEs2); 
+          // 'errorStateEkf_function2:313' states(idxNoGpsNs2) = states(idxNoGpsNs2) + errorStateHat(idxNoGpsEs2); 
           for (rtb_VectorConcatenate1_tmp = 0; rtb_VectorConcatenate1_tmp < 12;
                rtb_VectorConcatenate1_tmp++) {
             rtb_states_0[rtb_VectorConcatenate1_tmp] =
@@ -6488,7 +6552,7 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
         }
 
         // Construct quaternion from the rotation vector and reset covP
-        // 'errorStateEkf_function2:305' [nomQuat, covP] = updateQuatAndResetCovP(states(1:4), errorStateHat(1:3), covP); 
+        // 'errorStateEkf_function2:317' [nomQuat, covP] = updateQuatAndResetCovP(states(1:4), errorStateHat(1:3), covP); 
         qDelayed[0] = rtb_states[0];
         qDelayed[1] = rtb_states[1];
         qDelayed[2] = rtb_states[2];
@@ -6499,15 +6563,15 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
         std::memcpy(&stateEstimatorEskf_DW.covP[0], &covP[0], 361U * sizeof
                     (real32_T));
 
-        // 'errorStateEkf_function2:306' states(1:4) = nomQuat;
+        // 'errorStateEkf_function2:318' states(1:4) = nomQuat;
         rtb_states[0] = qDelayed[0];
         rtb_states[1] = qDelayed[1];
         rtb_states[2] = qDelayed[2];
         rtb_states[3] = qDelayed[3];
 
-        // 'errorStateEkf_function2:307' if estSmMode == enumStateEstimateMode.RUN || isOfValid 
+        // 'errorStateEkf_function2:319' if estSmMode == enumStateEstimateMode.RUN || isOfValid 
         if (stateModeReady) {
-          // 'errorStateEkf_function2:308' covP(idxEs, idxEs) = (covP(idxEs, idxEs) + covP(idxEs, idxEs)').*0.5; 
+          // 'errorStateEkf_function2:320' covP(idxEs, idxEs) = (covP(idxEs, idxEs) + covP(idxEs, idxEs)').*0.5; 
           rtb_VectorConcatenate1_tmp = 0;
           for (i_2 = 0; i_2 < 19; i_2++) {
             i = 0;
@@ -6521,9 +6585,9 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
             rtb_VectorConcatenate1_tmp += 19;
           }
         } else {
-          // 'errorStateEkf_function2:309' else
-          // 'errorStateEkf_function2:310' covP(idxNoGpsEs, idxNoGpsEs) = (covP(idxNoGpsEs, idxNoGpsEs) + ... 
-          // 'errorStateEkf_function2:311'                     covP(idxNoGpsEs, idxNoGpsEs)').*0.5; 
+          // 'errorStateEkf_function2:321' else
+          // 'errorStateEkf_function2:322' covP(idxNoGpsEs, idxNoGpsEs) = (covP(idxNoGpsEs, idxNoGpsEs) + ... 
+          // 'errorStateEkf_function2:323'                     covP(idxNoGpsEs, idxNoGpsEs)').*0.5; 
           for (rtb_VectorConcatenate1_tmp = 0; rtb_VectorConcatenate1_tmp < 15;
                rtb_VectorConcatenate1_tmp++) {
             for (i_2 = 0; i_2 < 15; i_2++) {
@@ -6533,7 +6597,7 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
             }
           }
 
-          // 'errorStateEkf_function2:312' states(8:9) = 0;
+          // 'errorStateEkf_function2:324' states(8:9) = 0;
           rtb_states[7] = 0.0F;
           rtb_states[8] = 0.0F;
         }
@@ -6541,25 +6605,28 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
     }
 
     // Fuse Lidar data if it is valid
-    // 'errorStateEkf_function2:318' if(isLidarValid)
+    // 'errorStateEkf_function2:330' if(isLidarValid)
     if (dhSensorIn_sensorValidity_isLid) {
-      // 'errorStateEkf_function2:319' iS = 1/(covP(6, 6) + measNoiseR(11, 11)); 
+      // 'errorStateEkf_function2:331' iS = 1/(covP(6, 6) + measNoiseR(11, 11)); 
       rtb_Product2_c = 1.0F / (stateEstimatorEskf_DW.covP[100] + rtu_measNoiseR
         [160]);
 
-      // 'errorStateEkf_function2:320' nu = lidarAgl_m  + states(7);
+      // 'errorStateEkf_function2:332' nu = lidarAgl_m  + states(7);
       rtb_XAxis = rtb_Product1_b + rtb_states[6];
 
-      // 'errorStateEkf_function2:321' NIS = nu*nu*iS;
-      // 'errorStateEkf_function2:323' if NIS < 27
+      // 'errorStateEkf_function2:333' NIS = nu*nu*iS;
+      // 'errorStateEkf_function2:335' if NIS < 27
       if (rtb_XAxis * rtb_XAxis * rtb_Product2_c < 27.0F) {
-        // 'errorStateEkf_function2:324' if estSmMode == enumStateEstimateMode.RUN || isOfValid 
-        stateModeReady = (mode == enumStateEstimateMode::RUN) |
+        // 'errorStateEkf_function2:336' ekfDebugOut.isAidingUsed.isLidarUsed = true; 
+        rtb_ekfDebugOut_isAidingUsed__1 = true;
+
+        // 'errorStateEkf_function2:337' if estSmMode == enumStateEstimateMode.RUN || isOfValid 
+        stateModeReady = (estSmModeOut == enumStateEstimateMode::RUN) |
           dhSensorIn_sensorValidity_isOfV;
         if (stateModeReady) {
-          // 'errorStateEkf_function2:325' K = -covP(idxEs, 6).*iS;
-          // 'errorStateEkf_function2:326' errorStateHat(idxEs) = K*nu;
-          // 'errorStateEkf_function2:328' covP(idxEs, idxEs) = covP(idxEs, idxEs) - (-K*covP(6, idxEs)); 
+          // 'errorStateEkf_function2:338' K = -covP(idxEs, 6).*iS;
+          // 'errorStateEkf_function2:339' errorStateHat(idxEs) = K*nu;
+          // 'errorStateEkf_function2:341' covP(idxEs, idxEs) = covP(idxEs, idxEs) - (-K*covP(6, idxEs)); 
           for (i = 0; i < 19; i++) {
             rtb_XAxis2 = -stateEstimatorEskf_DW.covP[i + 95] * rtb_Product2_c;
             errorStateHat[i] = rtb_XAxis2 * rtb_XAxis;
@@ -6582,17 +6649,17 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
                       (real32_T));
 
           // Update the nominal state
-          // 'errorStateEkf_function2:331' states(idxNs2) = states(idxNs2) + errorStateHat(idxEs2); 
+          // 'errorStateEkf_function2:344' states(idxNs2) = states(idxNs2) + errorStateHat(idxEs2); 
           for (rtb_VectorConcatenate1_tmp = 0; rtb_VectorConcatenate1_tmp < 16;
                rtb_VectorConcatenate1_tmp++) {
             rtb_states[rtb_VectorConcatenate1_tmp + 4] +=
               errorStateHat[rtb_VectorConcatenate1_tmp + 3];
           }
         } else {
-          // 'errorStateEkf_function2:332' else
-          // 'errorStateEkf_function2:333' K = -covP(idxNoGpsEs, 6).*iS;
-          // 'errorStateEkf_function2:334' errorStateHat(idxNoGpsEs) = K*nu;
-          // 'errorStateEkf_function2:336' covP(idxNoGpsEs, idxNoGpsEs) = covP(idxNoGpsEs, idxNoGpsEs) - (-K*covP(6, idxNoGpsEs)); 
+          // 'errorStateEkf_function2:345' else
+          // 'errorStateEkf_function2:346' K = -covP(idxNoGpsEs, 6).*iS;
+          // 'errorStateEkf_function2:347' errorStateHat(idxNoGpsEs) = K*nu;
+          // 'errorStateEkf_function2:349' covP(idxNoGpsEs, idxNoGpsEs) = covP(idxNoGpsEs, idxNoGpsEs) - (-K*covP(6, idxNoGpsEs)); 
           for (rtb_VectorConcatenate1_tmp = 0; rtb_VectorConcatenate1_tmp < 15;
                rtb_VectorConcatenate1_tmp++) {
             rtb_XAxis1 =
@@ -6623,7 +6690,7 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
           }
 
           // Update the nominal state
-          // 'errorStateEkf_function2:339' states(idxNoGpsNs2) = states(idxNoGpsNs2) + errorStateHat(idxNoGpsEs2); 
+          // 'errorStateEkf_function2:352' states(idxNoGpsNs2) = states(idxNoGpsNs2) + errorStateHat(idxNoGpsEs2); 
           for (rtb_VectorConcatenate1_tmp = 0; rtb_VectorConcatenate1_tmp < 12;
                rtb_VectorConcatenate1_tmp++) {
             rtb_states_0[rtb_VectorConcatenate1_tmp] =
@@ -6639,7 +6706,7 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
         }
 
         // Construct quaternion from the rotation vector and reset covP
-        // 'errorStateEkf_function2:343' [nomQuat, covP] = updateQuatAndResetCovP(states(1:4), errorStateHat(1:3), covP); 
+        // 'errorStateEkf_function2:356' [nomQuat, covP] = updateQuatAndResetCovP(states(1:4), errorStateHat(1:3), covP); 
         qDelayed[0] = rtb_states[0];
         qDelayed[1] = rtb_states[1];
         qDelayed[2] = rtb_states[2];
@@ -6650,15 +6717,15 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
         std::memcpy(&stateEstimatorEskf_DW.covP[0], &covP[0], 361U * sizeof
                     (real32_T));
 
-        // 'errorStateEkf_function2:344' states(1:4) = nomQuat;
+        // 'errorStateEkf_function2:357' states(1:4) = nomQuat;
         rtb_states[0] = qDelayed[0];
         rtb_states[1] = qDelayed[1];
         rtb_states[2] = qDelayed[2];
         rtb_states[3] = qDelayed[3];
 
-        // 'errorStateEkf_function2:345' if estSmMode == enumStateEstimateMode.RUN || isOfValid 
+        // 'errorStateEkf_function2:358' if estSmMode == enumStateEstimateMode.RUN || isOfValid 
         if (stateModeReady) {
-          // 'errorStateEkf_function2:346' covP(idxEs, idxEs) = (covP(idxEs, idxEs) + covP(idxEs, idxEs)').*0.5; 
+          // 'errorStateEkf_function2:359' covP(idxEs, idxEs) = (covP(idxEs, idxEs) + covP(idxEs, idxEs)').*0.5; 
           rtb_VectorConcatenate1_tmp = 0;
           for (i_2 = 0; i_2 < 19; i_2++) {
             i = 0;
@@ -6672,9 +6739,9 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
             rtb_VectorConcatenate1_tmp += 19;
           }
         } else {
-          // 'errorStateEkf_function2:347' else
-          // 'errorStateEkf_function2:348' covP(idxNoGpsEs, idxNoGpsEs) = (covP(idxNoGpsEs, idxNoGpsEs) + ... 
-          // 'errorStateEkf_function2:349'                     covP(idxNoGpsEs, idxNoGpsEs)').*0.5; 
+          // 'errorStateEkf_function2:360' else
+          // 'errorStateEkf_function2:361' covP(idxNoGpsEs, idxNoGpsEs) = (covP(idxNoGpsEs, idxNoGpsEs) + ... 
+          // 'errorStateEkf_function2:362'                     covP(idxNoGpsEs, idxNoGpsEs)').*0.5; 
           for (rtb_VectorConcatenate1_tmp = 0; rtb_VectorConcatenate1_tmp < 15;
                rtb_VectorConcatenate1_tmp++) {
             for (i_2 = 0; i_2 < 15; i_2++) {
@@ -6684,7 +6751,7 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
             }
           }
 
-          // 'errorStateEkf_function2:350' states(8:9) = 0;
+          // 'errorStateEkf_function2:363' states(8:9) = 0;
           rtb_states[7] = 0.0F;
           rtb_states[8] = 0.0F;
         }
@@ -6692,11 +6759,11 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
     }
 
     // Fuse GPS data if it is valid
-    // 'errorStateEkf_function2:356' if(isGpsValid && estSmMode == enumStateEstimateMode.RUN) 
-    if (static_cast<boolean_T>((mode == enumStateEstimateMode::RUN) &
+    // 'errorStateEkf_function2:369' if(isGpsValid && estSmMode == enumStateEstimateMode.RUN) 
+    if (static_cast<boolean_T>((estSmModeOut == enumStateEstimateMode::RUN) &
          dhSensorIn_sensorValidity_isGps)) {
-      // 'errorStateEkf_function2:357' [states, covP] = applyGpsPosAndVelCorr(states, nedPosAndVel, covP, 4, idxEs, ... 
-      // 'errorStateEkf_function2:358'             idxEs2, idxNs2, measNoiseR, ekfParams.nisParams.nisNedPosAndVel(1)); 
+      // 'errorStateEkf_function2:371' [states, covP] = applyGpsPosAndVelCorr(states, nedPosAndVel, covP, 4, idxEs, ... 
+      // 'errorStateEkf_function2:372'             idxEs2, idxNs2, measNoiseR, ekfParams.nisParams.nisNedPosAndVel(1)); 
       for (rtb_VectorConcatenate1_tmp = 0; rtb_VectorConcatenate1_tmp < 19;
            rtb_VectorConcatenate1_tmp++) {
         tmp[rtb_VectorConcatenate1_tmp] = static_cast<real_T>
@@ -6715,8 +6782,8 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
         stateEstimatorEskf_DW.covP, 4.0, tmp, tmp_0, tmp_1, rtu_measNoiseR,
         27.0F);
 
-      // 'errorStateEkf_function2:359' [states, covP] = applyGpsPosAndVelCorr(states, nedPosAndVel, covP, 5, idxEs, ... 
-      // 'errorStateEkf_function2:360'             idxEs2, idxNs2, measNoiseR, ekfParams.nisParams.nisNedPosAndVel(2)); 
+      // 'errorStateEkf_function2:373' [states, covP] = applyGpsPosAndVelCorr(states, nedPosAndVel, covP, 5, idxEs, ... 
+      // 'errorStateEkf_function2:374'             idxEs2, idxNs2, measNoiseR, ekfParams.nisParams.nisNedPosAndVel(2)); 
       for (rtb_VectorConcatenate1_tmp = 0; rtb_VectorConcatenate1_tmp < 19;
            rtb_VectorConcatenate1_tmp++) {
         tmp[rtb_VectorConcatenate1_tmp] = static_cast<real_T>
@@ -6736,8 +6803,8 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
         27.0F);
 
       //  if (~isBaroValid)
-      // 'errorStateEkf_function2:362' [states, covP] = applyGpsPosAndVelCorr(states, nedPosAndVel, covP, 6, idxEs, ... 
-      // 'errorStateEkf_function2:363'                 idxEs2, idxNs2, measNoiseR, ekfParams.nisParams.nisNedPosAndVel(3)); 
+      // 'errorStateEkf_function2:376' [states, covP] = applyGpsPosAndVelCorr(states, nedPosAndVel, covP, 6, idxEs, ... 
+      // 'errorStateEkf_function2:377'                 idxEs2, idxNs2, measNoiseR, ekfParams.nisParams.nisNedPosAndVel(3)); 
       for (rtb_VectorConcatenate1_tmp = 0; rtb_VectorConcatenate1_tmp < 19;
            rtb_VectorConcatenate1_tmp++) {
         tmp[rtb_VectorConcatenate1_tmp] = static_cast<real_T>
@@ -6757,8 +6824,8 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
         3.68F);
 
       //  end
-      // 'errorStateEkf_function2:365' [states, covP] = applyGpsPosAndVelCorr(states, nedPosAndVel, covP, 7, idxEs, ... 
-      // 'errorStateEkf_function2:366'             idxEs2, idxNs2, measNoiseR, ekfParams.nisParams.nisNedPosAndVel(4)); 
+      // 'errorStateEkf_function2:379' [states, covP] = applyGpsPosAndVelCorr(states, nedPosAndVel, covP, 7, idxEs, ... 
+      // 'errorStateEkf_function2:380'             idxEs2, idxNs2, measNoiseR, ekfParams.nisParams.nisNedPosAndVel(4)); 
       for (rtb_VectorConcatenate1_tmp = 0; rtb_VectorConcatenate1_tmp < 19;
            rtb_VectorConcatenate1_tmp++) {
         tmp[rtb_VectorConcatenate1_tmp] = static_cast<real_T>
@@ -6777,8 +6844,8 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
         stateEstimatorEskf_DW.covP, 7.0, tmp, tmp_0, tmp_1, rtu_measNoiseR,
         27.0F);
 
-      // 'errorStateEkf_function2:367' [states, covP] = applyGpsPosAndVelCorr(states, nedPosAndVel, covP, 8, idxEs, ... 
-      // 'errorStateEkf_function2:368'             idxEs2, idxNs2, measNoiseR, ekfParams.nisParams.nisNedPosAndVel(5)); 
+      // 'errorStateEkf_function2:381' [states, covP] = applyGpsPosAndVelCorr(states, nedPosAndVel, covP, 8, idxEs, ... 
+      // 'errorStateEkf_function2:382'             idxEs2, idxNs2, measNoiseR, ekfParams.nisParams.nisNedPosAndVel(5)); 
       for (rtb_VectorConcatenate1_tmp = 0; rtb_VectorConcatenate1_tmp < 19;
            rtb_VectorConcatenate1_tmp++) {
         tmp[rtb_VectorConcatenate1_tmp] = static_cast<real_T>
@@ -6797,8 +6864,8 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
         stateEstimatorEskf_DW.covP, 8.0, tmp, tmp_0, tmp_1, rtu_measNoiseR,
         27.0F);
 
-      // 'errorStateEkf_function2:369' [states, covP] = applyGpsPosAndVelCorr(states, nedPosAndVel, covP, 9, idxEs, ... 
-      // 'errorStateEkf_function2:370'             idxEs2, idxNs2, measNoiseR, ekfParams.nisParams.nisNedPosAndVel(6)); 
+      // 'errorStateEkf_function2:383' [states, covP] = applyGpsPosAndVelCorr(states, nedPosAndVel, covP, 9, idxEs, ... 
+      // 'errorStateEkf_function2:384'             idxEs2, idxNs2, measNoiseR, ekfParams.nisParams.nisNedPosAndVel(6)); 
       for (rtb_VectorConcatenate1_tmp = 0; rtb_VectorConcatenate1_tmp < 19;
            rtb_VectorConcatenate1_tmp++) {
         tmp[rtb_VectorConcatenate1_tmp] = static_cast<real_T>
@@ -6816,6 +6883,9 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
       applyGpsPosAndVelCorr_wtI6aFgH(rtb_states, nedPosAndVel,
         stateEstimatorEskf_DW.covP, 9.0, tmp, tmp_0, tmp_1, rtu_measNoiseR,
         27.0F);
+
+      // 'errorStateEkf_function2:386' ekfDebugOut.isAidingUsed.isGpsUsed = true; 
+      rtb_ekfDebugOut_isAidingUsed_is = true;
 
       //      K = covP(idxEs, 4:9)/ ...
       //          (covP(4:9, 4:9) + measNoiseR(4:9, 4:9));
@@ -6837,6 +6907,10 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
       //      end
     }
 
+    // 'errorStateEkf_function2:409' ekfDebugOut.dhStates(1:20) = states;
+    std::memcpy(&rtb_ekfDebugOut_dhStates[0], &rtb_states[0], 20U * sizeof
+                (real32_T));
+
     // Compute Body To NED DCM
     //  dcmBodyToNed = quatToDcm_function(states(1:4));
     //  else
@@ -6844,7 +6918,24 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
     //  end
   }
 
-  // End of MATLAB Function: '<S1>/EKF'
+  // BusAssignment: '<Root>/Bus Assignment1' incorporates:
+  //   BusAssignment: '<S1>/Bus Assignment'
+
+  rty_stateEstimatorDebug->ekfDebugData.isAidingUsed.isGpsUsed =
+    rtb_ekfDebugOut_isAidingUsed_is;
+  rty_stateEstimatorDebug->ekfDebugData.isAidingUsed.isBaroUsed =
+    rtb_ekfDebugOut_isAidingUsed__0;
+  rty_stateEstimatorDebug->ekfDebugData.isAidingUsed.isLidarUsed =
+    rtb_ekfDebugOut_isAidingUsed__1;
+  rty_stateEstimatorDebug->ekfDebugData.isAidingUsed.isFlowUsed =
+    rtb_ekfDebugOut_isAidingUsed__2;
+  std::memcpy(&rty_stateEstimatorDebug->ekfDebugData.dhStates[0],
+              &rtb_ekfDebugOut_dhStates[0], 23U * sizeof(real32_T));
+  rty_stateEstimatorDebug->ekfDebugData.dhBufferDebugData =
+    stateEstimatorEskf_DW.dhBufferDebug;
+  rty_stateEstimatorDebug->stateEstInitPct =
+    stateEstimatorEskf_DW.stateEstInitPct;
+  rty_stateEstimatorDebug->smMode = mode;
 
   // MATLAB Function: '<S12>/OutputPredictor' incorporates:
   //   BusAssignment: '<Root>/Bus Assignment'
@@ -7289,12 +7380,12 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
         stateEstimatorEskf_DW.qCurrent[3];
 
       // 'outputPredictor_function:371' q1q2 = q1*q2;
-      rtb_Sum2_idx_1 = stateEstimatorEskf_DW.qCurrent[1] *
-        stateEstimatorEskf_DW.qCurrent[2];
+      tmp5 = stateEstimatorEskf_DW.qCurrent[1] * stateEstimatorEskf_DW.qCurrent
+        [2];
 
       // 'outputPredictor_function:372' q1q3 = q1*q3;
-      rtb_Sum2_idx_2 = stateEstimatorEskf_DW.qCurrent[1] *
-        stateEstimatorEskf_DW.qCurrent[3];
+      q1q3 = stateEstimatorEskf_DW.qCurrent[1] * stateEstimatorEskf_DW.qCurrent
+        [3];
 
       // 'outputPredictor_function:373' q2q3 = q2*q3;
       q2q3 = stateEstimatorEskf_DW.qCurrent[2] * stateEstimatorEskf_DW.qCurrent
@@ -7319,15 +7410,15 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
       // 'outputPredictor_function:259' vCurrent = vCurrent + sampleTime_s*accelNed_mps2; 
       stateEstimatorEskf_DW.pCurrent[0] += rtu_imuData->dtImuTime_s *
         stateEstimatorEskf_DW.vCurrent[0];
-      rtb_dcmBodyToNed_idx_7 =
-        stateEstimatorEskf_DW.sensorDataOut.bodyAccels_mps2[0] - rtb_states[13];
+      rtb_Sum2_idx_1 = stateEstimatorEskf_DW.sensorDataOut.bodyAccels_mps2[0] -
+        rtb_states[13];
       stateEstimatorEskf_DW.pCurrent[1] += rtu_imuData->dtImuTime_s *
         stateEstimatorEskf_DW.vCurrent[1];
-      rtb_dcmBodyToNed_idx_2 =
-        stateEstimatorEskf_DW.sensorDataOut.bodyAccels_mps2[1] - rtb_states[14];
+      rtb_Sum2_idx_2 = stateEstimatorEskf_DW.sensorDataOut.bodyAccels_mps2[1] -
+        rtb_states[14];
       stateEstimatorEskf_DW.pCurrent[2] += rtu_imuData->dtImuTime_s *
         stateEstimatorEskf_DW.vCurrent[2];
-      rtb_dcmBodyToNed_idx_5 =
+      rtb_dcmBodyToNed_idx_4 =
         stateEstimatorEskf_DW.sensorDataOut.bodyAccels_mps2[2] - rtb_states[15];
 
       //  Current gyro propagation plus delayed-horizon complementary attitude
@@ -7336,23 +7427,23 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
       // 'outputPredictor_function:264'     (bodyRates_radps - gyroBias_radps)*sampleTime_s + ... 
       // 'outputPredictor_function:265'     deltaAngleCorr;
       stateEstimatorEskf_DW.vCurrent[0] += (((1.0F - (rtb_XAxis + rtb_Product2_c)
-        * 2.0F) * rtb_dcmBodyToNed_idx_7 + (rtb_Sum2_idx_1 - rtb_UnitDelay_g) *
-        2.0F * rtb_dcmBodyToNed_idx_2) + (rtb_Sum2_idx_2 + rtb_XAxis2) * 2.0F *
-        rtb_dcmBodyToNed_idx_5) * rtu_imuData->dtImuTime_s;
+        * 2.0F) * rtb_Sum2_idx_1 + (tmp5 - rtb_UnitDelay_g) * 2.0F *
+        rtb_Sum2_idx_2) + (q1q3 + rtb_XAxis2) * 2.0F * rtb_dcmBodyToNed_idx_4) *
+        rtu_imuData->dtImuTime_s;
       rtb_CastToSingle[0] +=
         (stateEstimatorEskf_DW.sensorDataOut.bodyRates_radps[0] - rtb_states[10])
         * rtu_imuData->dtImuTime_s;
       stateEstimatorEskf_DW.vCurrent[1] += (((1.0F - (rtb_Product1_b +
-        rtb_Product2_c) * 2.0F) * rtb_dcmBodyToNed_idx_2 + (rtb_Sum2_idx_1 +
-        rtb_UnitDelay_g) * 2.0F * rtb_dcmBodyToNed_idx_7) + (q2q3 - rtb_XAxis1) *
-        2.0F * rtb_dcmBodyToNed_idx_5) * rtu_imuData->dtImuTime_s;
+        rtb_Product2_c) * 2.0F) * rtb_Sum2_idx_2 + (tmp5 + rtb_UnitDelay_g) *
+        2.0F * rtb_Sum2_idx_1) + (q2q3 - rtb_XAxis1) * 2.0F *
+        rtb_dcmBodyToNed_idx_4) * rtu_imuData->dtImuTime_s;
       rtb_CastToSingle[1] +=
         (stateEstimatorEskf_DW.sensorDataOut.bodyRates_radps[1] - rtb_states[11])
         * rtu_imuData->dtImuTime_s;
-      stateEstimatorEskf_DW.vCurrent[2] += ((((rtb_Sum2_idx_2 - rtb_XAxis2) *
-        2.0F * rtb_dcmBodyToNed_idx_7 + (q2q3 + rtb_XAxis1) * 2.0F *
-        rtb_dcmBodyToNed_idx_2) + (1.0F - (rtb_Product1_b + rtb_XAxis) * 2.0F) *
-        rtb_dcmBodyToNed_idx_5) + *rtu_gEarth_mps2) * rtu_imuData->dtImuTime_s;
+      stateEstimatorEskf_DW.vCurrent[2] += ((((q1q3 - rtb_XAxis2) * 2.0F *
+        rtb_Sum2_idx_1 + (q2q3 + rtb_XAxis1) * 2.0F * rtb_Sum2_idx_2) + (1.0F -
+        (rtb_Product1_b + rtb_XAxis) * 2.0F) * rtb_dcmBodyToNed_idx_4) +
+        *rtu_gEarth_mps2) * rtu_imuData->dtImuTime_s;
       rtb_CastToSingle[2] +=
         (stateEstimatorEskf_DW.sensorDataOut.bodyRates_radps[2] - rtb_states[12])
         * rtu_imuData->dtImuTime_s;
@@ -7565,14 +7656,11 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
     * 2.0F;
   rtb_Sum2_idx_2 = (rty_states[1] * rty_states[2] + rty_states[0] * rty_states[3])
     * 2.0F;
-  q2q3 = 1.0F - (rty_states[1] * rty_states[1] + rty_states[3] * rty_states[3]) *
-    2.0F;
-  rtb_dcmBodyToNed_idx_7 = (rty_states[2] * rty_states[3] - rty_states[0] *
-    rty_states[1]) * 2.0F;
-  rtb_dcmBodyToNed_idx_2 = (rty_states[1] * rty_states[3] - rty_states[0] *
-    rty_states[2]) * 2.0F;
-  rtb_dcmBodyToNed_idx_5 = (rty_states[2] * rty_states[3] + rty_states[0] *
-    rty_states[1]) * 2.0F;
+  rtb_dcmBodyToNed_idx_4 = 1.0F - (rty_states[1] * rty_states[1] + rty_states[3]
+    * rty_states[3]) * 2.0F;
+  tmp5 = (rty_states[2] * rty_states[3] - rty_states[0] * rty_states[1]) * 2.0F;
+  q1q3 = (rty_states[1] * rty_states[3] - rty_states[0] * rty_states[2]) * 2.0F;
+  q2q3 = (rty_states[2] * rty_states[3] + rty_states[0] * rty_states[1]) * 2.0F;
   rtb_dcmBodyToNed_idx_8 = 1.0F - (rty_states[1] * rty_states[1] + rty_states[2]
     * rty_states[2]) * 2.0F;
 
@@ -7604,16 +7692,15 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
   //   Product: '<S49>/Product2'
   //   Sum: '<S49>/Sum'
 
-  rtb_VectorConcatenate_m[6] = (rtb_Product1_b * rtb_XAxis - rtb_XAxis1 *
-    rtb_Product2_c) * 2.0F;
+  rtb_Merge_idx_1 = (rtb_Product1_b * rtb_XAxis - rtb_XAxis1 * rtb_Product2_c) *
+    2.0F;
 
   // If: '<S18>/If' incorporates:
-  //   Concatenate: '<S56>/Vector Concatenate'
   //   Gain: '<S22>/Gain1'
-  //   Selector: '<S22>/Selector1'
+  //   Gain: '<S49>/Gain'
 
-  if (static_cast<boolean_T>((-rtb_VectorConcatenate_m[6] >= 1.0F) |
-       (-rtb_VectorConcatenate_m[6] <= -1.0F))) {
+  if (static_cast<boolean_T>((-rtb_Merge_idx_1 >= 1.0F) | (-rtb_Merge_idx_1 <=
+        -1.0F))) {
     // Outputs for IfAction SubSystem: '<S18>/AxisRotZeroR3' incorporates:
     //   ActionPort: '<S21>/Action Port'
 
@@ -7638,14 +7725,14 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
     //   Constant: '<S30>/Constant'
     //   Fcn: '<S21>/Fcn2'
 
-    if (-rtb_VectorConcatenate_m[6] > 1.0F) {
+    if (-rtb_Merge_idx_1 > 1.0F) {
       // Outputs for IfAction SubSystem: '<S28>/If Action Subsystem' incorporates:
       //   ActionPort: '<S29>/Action Port'
 
       rtb_XAxis1 = 1.0F;
 
       // End of Outputs for SubSystem: '<S28>/If Action Subsystem'
-    } else if (-rtb_VectorConcatenate_m[6] < -1.0F) {
+    } else if (-rtb_Merge_idx_1 < -1.0F) {
       // Outputs for IfAction SubSystem: '<S28>/If Action Subsystem1' incorporates:
       //   ActionPort: '<S30>/Action Port'
 
@@ -7653,7 +7740,7 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
 
       // End of Outputs for SubSystem: '<S28>/If Action Subsystem1'
     } else {
-      rtb_XAxis1 = -rtb_VectorConcatenate_m[6];
+      rtb_XAxis1 = -rtb_Merge_idx_1;
     }
 
     rtb_Merge_idx_1 = std::asin(rtb_XAxis1);
@@ -7704,7 +7791,7 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
       rtb_Merge_idx_0_tmp_1) - rtb_Merge_idx_0_tmp_2);
 
     // Fcn: '<S20>/Fcn2'
-    rtb_Merge_idx_1 = std::asin(-rtb_VectorConcatenate_m[6]);
+    rtb_Merge_idx_1 = std::asin(-rtb_Merge_idx_1);
 
     // Fcn: '<S20>/Fcn3' incorporates:
     //   Gain: '<S52>/Gain'
@@ -7744,8 +7831,8 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
 
   // Math: '<Root>/Transpose'
   rty_dcmNedToBody[3] = rtb_Sum2_idx_2;
-  rty_dcmNedToBody[4] = q2q3;
-  rty_dcmNedToBody[5] = rtb_dcmBodyToNed_idx_7;
+  rty_dcmNedToBody[4] = rtb_dcmBodyToNed_idx_4;
+  rty_dcmNedToBody[5] = tmp5;
 
   // Sum: '<Root>/Sum' incorporates:
   //   Product: '<S4>/Product'
@@ -7753,8 +7840,8 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
   rty_bodyAccels_mps2[2] = Product[2] - rty_states[16];
 
   // Math: '<Root>/Transpose'
-  rty_dcmNedToBody[6] = rtb_dcmBodyToNed_idx_2;
-  rty_dcmNedToBody[7] = rtb_dcmBodyToNed_idx_5;
+  rty_dcmNedToBody[6] = q1q3;
+  rty_dcmNedToBody[7] = q2q3;
   rty_dcmNedToBody[8] = rtb_dcmBodyToNed_idx_8;
 
   // MATLAB Function: '<Root>/eulToDcm' incorporates:
@@ -7839,12 +7926,12 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
   // Update for UnitDelay: '<Root>/Unit Delay2'
   stateEstimatorEskf_DW.UnitDelay2_DSTATE[0] = rtb_XAxis2;
   stateEstimatorEskf_DW.UnitDelay2_DSTATE[1] = rtb_Sum2_idx_2;
-  stateEstimatorEskf_DW.UnitDelay2_DSTATE[2] = rtb_dcmBodyToNed_idx_2;
+  stateEstimatorEskf_DW.UnitDelay2_DSTATE[2] = q1q3;
   stateEstimatorEskf_DW.UnitDelay2_DSTATE[3] = rtb_UnitDelay_g;
-  stateEstimatorEskf_DW.UnitDelay2_DSTATE[4] = q2q3;
-  stateEstimatorEskf_DW.UnitDelay2_DSTATE[5] = rtb_dcmBodyToNed_idx_5;
+  stateEstimatorEskf_DW.UnitDelay2_DSTATE[4] = rtb_dcmBodyToNed_idx_4;
+  stateEstimatorEskf_DW.UnitDelay2_DSTATE[5] = q2q3;
   stateEstimatorEskf_DW.UnitDelay2_DSTATE[6] = rtb_Sum2_idx_1;
-  stateEstimatorEskf_DW.UnitDelay2_DSTATE[7] = rtb_dcmBodyToNed_idx_7;
+  stateEstimatorEskf_DW.UnitDelay2_DSTATE[7] = tmp5;
   stateEstimatorEskf_DW.UnitDelay2_DSTATE[8] = rtb_dcmBodyToNed_idx_8;
 
   // Update for DiscreteTransferFcn: '<S71>/Discrete Transfer Fcn'
@@ -7872,12 +7959,12 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
   stateEstimatorEskf_DW.icLoad_g = false;
   stateEstimatorEskf_DW.Delay2_DSTATE[0] = rtb_XAxis2;
   stateEstimatorEskf_DW.Delay2_DSTATE[1] = rtb_Sum2_idx_2;
-  stateEstimatorEskf_DW.Delay2_DSTATE[2] = rtb_dcmBodyToNed_idx_2;
+  stateEstimatorEskf_DW.Delay2_DSTATE[2] = q1q3;
   stateEstimatorEskf_DW.Delay2_DSTATE[3] = rtb_UnitDelay_g;
-  stateEstimatorEskf_DW.Delay2_DSTATE[4] = q2q3;
-  stateEstimatorEskf_DW.Delay2_DSTATE[5] = rtb_dcmBodyToNed_idx_5;
+  stateEstimatorEskf_DW.Delay2_DSTATE[4] = rtb_dcmBodyToNed_idx_4;
+  stateEstimatorEskf_DW.Delay2_DSTATE[5] = q2q3;
   stateEstimatorEskf_DW.Delay2_DSTATE[6] = rtb_Sum2_idx_1;
-  stateEstimatorEskf_DW.Delay2_DSTATE[7] = rtb_dcmBodyToNed_idx_7;
+  stateEstimatorEskf_DW.Delay2_DSTATE[7] = tmp5;
   stateEstimatorEskf_DW.Delay2_DSTATE[8] = rtb_dcmBodyToNed_idx_8;
 
   // Update for UnitDelay: '<S64>/Delay Input1'

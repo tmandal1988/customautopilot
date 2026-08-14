@@ -5,7 +5,7 @@
 //
 // Model version                  : 7.0
 // Simulink Coder version         : 25.1 (R2025a) 21-Nov-2024
-// C/C++ source code generated on : Fri Aug 14 07:31:47 2026
+// C/C++ source code generated on : Fri Aug 14 10:38:35 2026
 //
 // Target selection: ert.tlc
 // Embedded hardware selection: ARM Compatible->ARM Cortex-M
@@ -338,6 +338,107 @@ enum class enumStateEstimateMode
 
 #endif
 
+#ifndef DEFINED_TYPEDEF_FOR_busIsAidingUsed_
+#define DEFINED_TYPEDEF_FOR_busIsAidingUsed_
+
+// Bus including flags to indicate if a sensor has been used in correction step of the EKF 
+struct busIsAidingUsed
+{
+  // Flag to indicate if mag data was used in correction step
+  boolean_T isMagUsed;
+
+  // Flag to indicate if gps data was used in correction step
+  boolean_T isGpsUsed;
+
+  // Flag to indicate if Baro data was used in the correction stage
+  boolean_T isBaroUsed;
+
+  // Flag to indicate if Lidar data was used in correction step
+  boolean_T isLidarUsed;
+  boolean_T isFlowUsed;
+};
+
+#endif
+
+#ifndef DEFINED_TYPEDEF_FOR_enumDhFifoStatus_
+#define DEFINED_TYPEDEF_FOR_enumDhFifoStatus_
+
+// Defines the Delayed Horizon FIFO status
+enum class enumDhFifoStatus
+  : int32_T {
+  OK = 0,                              // Default value
+  OVERWRITE,
+  BAD_CONFIG,
+  BAD_TIMESTAMP,
+  TIMEBASE_RESET,
+  STALE_DISCARD,
+  BAD_CAPACITY
+};
+
+#endif
+
+#ifndef DEFINED_TYPEDEF_FOR_busFifoDebug_
+#define DEFINED_TYPEDEF_FOR_busFifoDebug_
+
+// Contains individual fifo debug data
+struct busFifoDebug
+{
+  enumDhFifoStatus status;
+
+  // Fifo data count
+  uint16_T count;
+};
+
+#endif
+
+#ifndef DEFINED_TYPEDEF_FOR_busDhBufferDebug_
+#define DEFINED_TYPEDEF_FOR_busDhBufferDebug_
+
+// Delayed Horizon Buffer Manager Debug data
+struct busDhBufferDebug
+{
+  // estimator status FIFO debug data
+  busFifoDebug statusFifoDebugData;
+
+  // IMU FIFO debug data
+  busFifoDebug imuFifoDebugData;
+
+  // mag FIFO debug data
+  busFifoDebug magFifoDebugData;
+
+  // GPS FIFO debug data
+  busFifoDebug gpsFifoDebugData;
+
+  // baro FIFO debug data
+  busFifoDebug baroFifoDebugData;
+
+  // Lidar FIFO debug data
+  busFifoDebug lidarFifoDebugData;
+
+  // flow FIFO debug data
+  busFifoDebug flowFifoDebugData;
+};
+
+#endif
+
+#ifndef DEFINED_TYPEDEF_FOR_busEkfDebugData_
+#define DEFINED_TYPEDEF_FOR_busEkfDebugData_
+
+// Bus that contains EKF debug data
+struct busEkfDebugData
+{
+  // Sensor aiding boolean flags
+  busIsAidingUsed isAidingUsed;
+
+  // Fused EKF States at delayed horizon
+  real32_T dhStates[23];
+
+  // DH buffer debug data
+  busDhBufferDebug dhBufferDebugData;
+};
+
+#endif
+
 #ifndef DEFINED_TYPEDEF_FOR_busStateEstimatorDebug_
 #define DEFINED_TYPEDEF_FOR_busStateEstimatorDebug_
 
@@ -349,6 +450,9 @@ struct busStateEstimatorDebug
 
   // State Machine Mode
   enumStateEstimateMode smMode;
+
+  // EKF Debug Data
+  busEkfDebugData ekfDebugData;
 };
 
 #endif

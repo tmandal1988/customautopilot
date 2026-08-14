@@ -5,7 +5,7 @@
 //
 // Model version                  : 7.0
 // Simulink Coder version         : 25.1 (R2025a) 21-Nov-2024
-// C/C++ source code generated on : Fri Aug 14 07:31:47 2026
+// C/C++ source code generated on : Fri Aug 14 10:38:35 2026
 //
 // Target selection: ert.tlc
 // Embedded hardware selection: ARM Compatible->ARM Cortex-M
@@ -73,9 +73,30 @@ void stateEstimatorAutocode::step()
 void stateEstimatorAutocode::initialize()
 {
   // SystemInitialize for ModelReference: '<Root>/State Estimator' incorporates:
+  //   Constant: '<Root>/accelParams'
+  //   Constant: '<Root>/gEarth_mps2'
+  //   Constant: '<Root>/imuNtchFilterParams'
+  //   Constant: '<Root>/initCovP'
+  //   Constant: '<Root>/lidarParams'
+  //   Constant: '<Root>/magParams'
+  //   Constant: '<Root>/measNoiseR'
+  //   Constant: '<Root>/mtf01pParams'
+  //   Constant: '<Root>/processNoiseQ'
+  //   Constant: '<Root>/stateEstSmParams'
+  //   Inport: '<Root>/baroData'
+  //   Inport: '<Root>/gpsData'
+  //   Inport: '<Root>/imuData'
+  //   Inport: '<Root>/lidarData'
+  //   Inport: '<Root>/magData'
+  //   Inport: '<Root>/mtf01pData'
+  //   Outport: '<Root>/bodyAccels_mps2'
+  //   Outport: '<Root>/dcmNedToBody'
+  //   Outport: '<Root>/dcmNedToFep'
+  //   Outport: '<Root>/eulAng_rad'
   //   Outport: '<Root>/stateEstimatorDebug'
+  //   Outport: '<Root>/states'
 
-  State_EstimatorMDLOBJ1.init(&stateEstimatorEskfAutocode_Y.stateEstimatorDebug);
+  State_EstimatorMDLOBJ1.init();
 }
 
 // Model terminate function

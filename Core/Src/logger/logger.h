@@ -20,6 +20,7 @@
 #include "messages/pwm_data.h"
 #include "messages/mtf01p_data.h"
 #include "messages/magnetometer_data.h"
+#include "messages/state_estimator_debug_data.h"
 #if RTOS_METRICS_LOGGING_ENABLE || \
     (RTOS_METRICS_ENABLE && RTOS_METRICS_DEBUG_PRINT_ENABLE)
 #include "messages/rtos_metrics_data.h"

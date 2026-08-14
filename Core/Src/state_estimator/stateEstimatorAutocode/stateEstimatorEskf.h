@@ -3,9 +3,9 @@
 //
 // Code generated for Simulink model 'stateEstimatorEskf'.
 //
-// Model version                  : 7.53
+// Model version                  : 7.58
 // Simulink Coder version         : 25.1 (R2025a) 21-Nov-2024
-// C/C++ source code generated on : Fri Aug 14 07:31:18 2026
+// C/C++ source code generated on : Fri Aug 14 10:38:05 2026
 //
 // Target selection: ert.tlc
 // Embedded hardware selection: ARM Compatible->ARM Cortex-M
@@ -37,6 +37,7 @@ class stateEstimatorEskf final
     uint64m_T timeBuf_ms_e[24];        // '<S13>/DelayedHorizonBufferManager'
     busSensorIn sensorDataOut;         // '<Root>/estimatorStateMachine'
     uint64m_T timeBuf_ms_k[16];        // '<S13>/DelayedHorizonBufferManager'
+    busDhBufferDebug dhBufferDebug;    // '<S13>/DelayedHorizonBufferManager'
     uint64m_T lastPushTime_ms;         // '<S13>/DelayedHorizonBufferManager'
     uint64m_T lastPushTime_ms_h;       // '<S13>/DelayedHorizonBufferManager'
     uint64m_T lastPushTime_ms_g;       // '<S13>/DelayedHorizonBufferManager'
@@ -155,7 +156,7 @@ class stateEstimatorEskf final
   };
 
   // Initial conditions function
-  void init(busStateEstimatorDebug *rty_stateEstimatorDebug);
+  void init();
 
   // Copy Constructor
   stateEstimatorEskf(stateEstimatorEskf const&) = delete;
@@ -210,27 +211,29 @@ class stateEstimatorEskf final
     boolean_T reset, uint16_T magFifoParams_capacity, const uint64m_T
     magFifoParams_minInterval_ms, const uint64m_T magFifoParams_maxAge_ms, const
     uint64m_T magFifoParams_resetThreshold_ms, boolean_T *magReady, uint64m_T
-    *magTimeOut_ms, real32_T magOut_uT[3], uint8_T *status, uint16_T *countOut);
+    *magTimeOut_ms, real32_T magOut_uT[3], enumDhFifoStatus *status, uint16_T
+    *countOut);
   void stateEstimatorEskf_gpsFifo(boolean_T isGpsValid, const uint64m_T
     gpsTimeIn_ms, const real32_T posVelIn[6], const uint64m_T fusionTime_ms,
     boolean_T reset, uint16_T gpsFifoParams_capacity, const uint64m_T
     gpsFifoParams_minInterval_ms, const uint64m_T gpsFifoParams_maxAge_ms, const
     uint64m_T gpsFifoParams_resetThreshold_ms, boolean_T *gpsReady, uint64m_T
-    *gpsTimeOut_ms, real32_T posVelOut[6], uint8_T *status, uint16_T *countOut);
+    *gpsTimeOut_ms, real32_T posVelOut[6], enumDhFifoStatus *status, uint16_T
+    *countOut);
   void stateEstimatorEskf_lidarFifo(boolean_T isLidarValid, const uint64m_T
     lidarTimeIn_ms, real32_T aglIn_m, const uint64m_T fusionTime_ms, boolean_T
     reset, uint16_T lidarFifoParams_capacity, const uint64m_T
     lidarFifoParams_minInterval_ms, const uint64m_T lidarFifoParams_maxAge_ms,
     const uint64m_T lidarFifoParams_resetThreshold_, boolean_T *lidarReady,
-    uint64m_T *lidarTimeOut_ms, real32_T *aglOut_m, uint8_T *status, uint16_T
-    *countOut);
+    uint64m_T *lidarTimeOut_ms, real32_T *aglOut_m, enumDhFifoStatus *status,
+    uint16_T *countOut);
   void stateEstimatorEskf_flowFifo(boolean_T isFlowValid, const uint64m_T
     flowTimeIn_ms, const real32_T velNEIn[2], const uint64m_T fusionTime_ms,
     boolean_T reset, uint16_T flowFifoParams_capacity, const uint64m_T
     flowFifoParams_minInterval_ms, const uint64m_T flowFifoParams_maxAge_ms,
     const uint64m_T flowFifoParams_resetThreshold_m, boolean_T *flowReady,
-    uint64m_T *flowTimeOut_ms, real32_T velNEOut[2], uint8_T *status, uint16_T
-    *countOut);
+    uint64m_T *flowTimeOut_ms, real32_T velNEOut[2], enumDhFifoStatus *status,
+    uint16_T *countOut);
 };
 
 // Constant parameters (default storage)

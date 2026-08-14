@@ -21,6 +21,19 @@ void SetAutocodeTimestampMs(uint64m_T& destination, uint64_t timestamp_ms) {
   destination.chunks[1] = static_cast<uint32_T>(timestamp_ms >> 32U);
 }
 
+uint8_t ToLogFifoStatus(enumDhFifoStatus status) {
+  return static_cast<uint8_t>(status);
+}
+
+void CopyFifoDebug(const busFifoDebug& source,
+                   StateEstimatorFifoDebugData* destination) {
+  if (destination == nullptr) {
+    return;
+  }
+  destination->status = ToLogFifoStatus(source.status);
+  destination->count = source.count;
+}
+
 }  // namespace
 
 StateEstimator::StateEstimator(bool register_task)
@@ -30,12 +43,15 @@ StateEstimator::StateEstimator(bool register_task)
 void StateEstimator::InitializeEstimator() {
   DEBUG_PRINT("FreeRTOS heap remaining: %u bytes\n", xPortGetFreeHeapSize());
   pubSubManager().advertise<EkfData>(TopicID::EKF);
+  pubSubManager().advertise<StateEstimatorDebugData>(
+      TopicID::STATE_ESTIMATOR_DEBUG);
   stateEstimatorAutocodeObj_.initialize();
   gps_fix_count_ = 0;
   blink_counter_ = 0;
   first_iteration_ = true;
   prev_imu_time_s = 0.0F;
   ekf_data_ = {};
+  state_estimator_debug_data_ = {};
 }
 
 bool StateEstimator::StepOnce(TickType_t scheduled_start_tick,
@@ -219,6 +235,44 @@ bool StateEstimator::StepOnce(TickType_t scheduled_start_tick,
   ekf_data_.state_init_pct =
       y.stateEstimatorDebug.stateEstInitPct;
   ekf_data_.sm_mode = static_cast<uint8_t>(y.stateEstimatorDebug.smMode);
+
+  if (imu_updated &&
+      ((ekf_data_.ekf_step_seq % kDebugPublishDecimation) == 0U)) {
+    const auto& debug = y.stateEstimatorDebug;
+    const auto& ekf_debug = debug.ekfDebugData;
+    const auto& buffer_debug = ekf_debug.dhBufferDebugData;
+
+    state_estimator_debug_data_.is_mag_used =
+        ekf_debug.isAidingUsed.isMagUsed;
+    state_estimator_debug_data_.is_gps_used =
+        ekf_debug.isAidingUsed.isGpsUsed;
+    state_estimator_debug_data_.is_baro_used =
+        ekf_debug.isAidingUsed.isBaroUsed;
+    state_estimator_debug_data_.is_lidar_used =
+        ekf_debug.isAidingUsed.isLidarUsed;
+    state_estimator_debug_data_.is_flow_used =
+        ekf_debug.isAidingUsed.isFlowUsed;
+
+    std::memcpy(state_estimator_debug_data_.dh_states,
+                ekf_debug.dhStates,
+                sizeof(state_estimator_debug_data_.dh_states));
+    CopyFifoDebug(buffer_debug.statusFifoDebugData,
+                  &state_estimator_debug_data_.status_fifo);
+    CopyFifoDebug(buffer_debug.imuFifoDebugData,
+                  &state_estimator_debug_data_.imu_fifo);
+    CopyFifoDebug(buffer_debug.magFifoDebugData,
+                  &state_estimator_debug_data_.mag_fifo);
+    CopyFifoDebug(buffer_debug.gpsFifoDebugData,
+                  &state_estimator_debug_data_.gps_fifo);
+    CopyFifoDebug(buffer_debug.baroFifoDebugData,
+                  &state_estimator_debug_data_.baro_fifo);
+    CopyFifoDebug(buffer_debug.lidarFifoDebugData,
+                  &state_estimator_debug_data_.lidar_fifo);
+    CopyFifoDebug(buffer_debug.flowFifoDebugData,
+                  &state_estimator_debug_data_.flow_fifo);
+    pubSubManager().publish<StateEstimatorDebugData>(
+        TopicID::STATE_ESTIMATOR_DEBUG, state_estimator_debug_data_);
+  }
 
   pubSubManager().publish<EkfData>(TopicID::EKF, ekf_data_);
   if (output != nullptr) {

@@ -278,12 +278,12 @@ inline constexpr std::array<ParameterDescriptor, kParameterCount>
 
 inline constexpr std::array<std::uint32_t, kParameterCount>
     kParameterDefaultBits{{
-    MakeReal32Value(3.04999995F).bits,
+    MakeReal32Value(3.75F).bits,
     MakeReal32Value(1.0F).bits,
     MakeReal32Value(0.0F).bits,
     MakeReal32Value(0.0F).bits,
     MakeReal32Value(0.0F).bits,
-    MakeReal32Value(1.60000002F).bits,
+    MakeReal32Value(1.0F).bits,
     MakeReal32Value(1.5F).bits,
     MakeReal32Value(1.5F).bits,
     MakeReal32Value(0.200000003F).bits,

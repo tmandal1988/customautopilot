@@ -620,7 +620,7 @@ inline void AssignFcsCtrlParams(busFcsParams& fcs_ctrl_params) noexcept {
 	//#################################################*
 
 	//**************************************************
-	fcs_ctrl_params.outerLoopCtrlParams.posCtrlParams.ctrlParamsArray[2].Kp = 1.60000000;
+	fcs_ctrl_params.outerLoopCtrlParams.posCtrlParams.ctrlParamsArray[2].Kp = 1.00000000;
 	//#################################################*
 
 	//**************************************************
@@ -890,7 +890,7 @@ inline void AssignFcsCtrlParams(busFcsParams& fcs_ctrl_params) noexcept {
 	//#################################################*
 
 	//**************************************************
-	fcs_ctrl_params.outerLoopCtrlParams.velCtrlParams.ctrlParamsArray[2].Kp = 3.05000000;
+	fcs_ctrl_params.outerLoopCtrlParams.velCtrlParams.ctrlParamsArray[2].Kp = 3.75000000;
 	//#################################################*
 
 	//**************************************************
@@ -1084,7 +1084,7 @@ inline void AssignFcsCtrlParams(busFcsParams& fcs_ctrl_params) noexcept {
 	//#################################################*
 
 	//**************************************************
-	fcs_ctrl_params.outerLoopCtrlParams.velCtrlParams.measSignalConditioningParamsArray[2].filterParams.filterBandwidth_radps = 314.15926536;
+	fcs_ctrl_params.outerLoopCtrlParams.velCtrlParams.measSignalConditioningParamsArray[2].filterParams.filterBandwidth_radps = 125.66370614;
 	//#################################################*
 
 	//**************************************************

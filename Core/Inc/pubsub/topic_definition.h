@@ -25,7 +25,8 @@ enum class TopicID {
 #if RTOS_METRICS_LOGGING_ENABLE
 	RTOS_METRICS,
 #endif
-    MAX_TOPICS
+	STATE_ESTIMATOR_DEBUG,
+	MAX_TOPICS
 };
 
 static_assert(static_cast<int>(TopicID::IST8310) == 10,

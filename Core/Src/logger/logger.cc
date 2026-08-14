@@ -74,6 +74,11 @@ void Logger::SetupTopics() {
   AddLogConfig<PwmData>(TopicID::PWM, 20);
   AddLogConfig<Mtf01pData>(TopicID::MTF01P, 10);
   AddLogConfig<MagnetometerData>(TopicID::IST8310, 10);
+#if STATE_ESTIMATOR_FAST_DEBUG_LOG_ENABLE
+  AddLogConfig<StateEstimatorDebugData>(TopicID::STATE_ESTIMATOR_DEBUG, 8);
+#else
+  AddLogConfig<StateEstimatorDebugData>(TopicID::STATE_ESTIMATOR_DEBUG, 40);
+#endif
 }
 
 void Logger::Run() {
