@@ -890,11 +890,11 @@ inline void AssignFcsCtrlParams(busFcsParams& fcs_ctrl_params) noexcept {
 	//#################################################*
 
 	//**************************************************
-	fcs_ctrl_params.outerLoopCtrlParams.velCtrlParams.ctrlParamsArray[2].Kp = 4.00000000;
+	fcs_ctrl_params.outerLoopCtrlParams.velCtrlParams.ctrlParamsArray[2].Kp = 3.05000000;
 	//#################################################*
 
 	//**************************************************
-	fcs_ctrl_params.outerLoopCtrlParams.velCtrlParams.ctrlParamsArray[2].Ki = 2.00000000;
+	fcs_ctrl_params.outerLoopCtrlParams.velCtrlParams.ctrlParamsArray[2].Ki = 1.00000000;
 	//#################################################*
 
 	//**************************************************
