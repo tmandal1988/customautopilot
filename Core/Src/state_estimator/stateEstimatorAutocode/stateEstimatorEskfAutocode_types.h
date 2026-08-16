@@ -5,7 +5,7 @@
 //
 // Model version                  : 7.0
 // Simulink Coder version         : 25.1 (R2025a) 21-Nov-2024
-// C/C++ source code generated on : Fri Aug 14 10:38:35 2026
+// C/C++ source code generated on : Sat Aug 15 22:52:54 2026
 //
 // Target selection: ert.tlc
 // Embedded hardware selection: ARM Compatible->ARM Cortex-M
@@ -78,6 +78,12 @@ struct busGpsData
   // false -> GPS data is invalid
   boolean_T isGpsDataValid;
   boolean_T isGpsInitialized;
+
+  // GPS HPOS Accuracy
+  real32_T hacc_m;
+
+  // GPS VPOS Accuracy
+  real32_T vacc_m;
 
   // Time when the data was published (not captured)
   uint64m_T timestamp_ms;
@@ -310,6 +316,12 @@ struct busStateEstSmParams
   // Duration to check the GPS validity flag before flagging GPS LOSS
   real32_T gpsLossCheckDuration_s;
 
+  // Min horizontal accuracy needed to initialze GPS into state estimator
+  real32_T gpsHorAccThres_m;
+
+  // Min vertical accuracy needed to initialze GPS into state estimator
+  real32_T gpsVerAccThres_m;
+
   // Duration to check the OF validity flag before flagging OF LOSS
   real32_T ofLossCheckDuration_s;
 
@@ -347,8 +359,8 @@ struct busIsAidingUsed
   // Flag to indicate if mag data was used in correction step
   boolean_T isMagUsed;
 
-  // Flag to indicate if gps data was used in correction step
-  boolean_T isGpsUsed;
+  // Integer
+  uint8_T isGpsUsed;
 
   // Flag to indicate if Baro data was used in the correction stage
   boolean_T isBaroUsed;

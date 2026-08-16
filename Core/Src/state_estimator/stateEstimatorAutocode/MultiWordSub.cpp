@@ -3,9 +3,9 @@
 //
 // Code generated for Simulink model 'stateEstimatorEskf'.
 //
-// Model version                  : 7.53
+// Model version                  : 7.70
 // Simulink Coder version         : 25.1 (R2025a) 21-Nov-2024
-// C/C++ source code generated on : Thu Aug 13 15:28:24 2026
+// C/C++ source code generated on : Sat Aug 15 22:52:20 2026
 //
 #include "MultiWordSub.h"
 #include "rtwtypes.h"

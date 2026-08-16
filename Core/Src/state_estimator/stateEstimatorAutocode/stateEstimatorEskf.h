@@ -3,9 +3,9 @@
 //
 // Code generated for Simulink model 'stateEstimatorEskf'.
 //
-// Model version                  : 7.58
+// Model version                  : 7.70
 // Simulink Coder version         : 25.1 (R2025a) 21-Nov-2024
-// C/C++ source code generated on : Fri Aug 14 10:38:05 2026
+// C/C++ source code generated on : Sat Aug 15 22:52:20 2026
 //
 // Target selection: ert.tlc
 // Embedded hardware selection: ARM Compatible->ARM Cortex-M
@@ -198,10 +198,10 @@ class stateEstimatorEskf final
 
   // private member function(s) for subsystem '<Root>/TmpModelReferenceSubsystem'
   void stateEstimatorEskf_INITIALIZE(enumStateEstimateMode *mode, real_T
-    latLonAltOut[3], const real32_T *Divide1, const real32_T Product[3], const
-    real32_T Divide[3], const busMagData *rtu_magData, const busGpsData
-    *rtu_gpsData, const busBaroData *rtu_baroData, const busStateEstSmParams
-    *rtu_stateEstSmParams);
+    latLonAltOut[3], const real32_T VectorConcatenate[2], const real32_T
+    *Divide1, const real32_T Product[3], const real32_T Divide[3], const
+    busMagData *rtu_magData, const busGpsData *rtu_gpsData, const busBaroData
+    *rtu_baroData, const busStateEstSmParams *rtu_stateEstSmParams);
   void state_enter_atomic_RUN_INIT_GPS(enumStateEstimateMode *mode, real_T
     latLonAltOut[3], const real32_T *Divide1, const real32_T Product[3], const
     real32_T Divide[3], const busMagData *rtu_magData, const busGpsData

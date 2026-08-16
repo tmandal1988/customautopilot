@@ -144,6 +144,8 @@ bool StateEstimator::StepOnce(TickType_t scheduled_start_tick,
     state_estimator_autocode_u_.gpsData.nedVel_mps[0] = gps_data_.vn_mps;
     state_estimator_autocode_u_.gpsData.nedVel_mps[1] = gps_data_.ve_mps;
     state_estimator_autocode_u_.gpsData.nedVel_mps[2] = gps_data_.vd_mps;
+    state_estimator_autocode_u_.gpsData.hacc_m = gps_data_.hacc_m;
+    state_estimator_autocode_u_.gpsData.vacc_m = gps_data_.vacc_m;
     SetAutocodeTimestampMs(state_estimator_autocode_u_.gpsData.timestamp_ms,
                            gps_data_.timestamp_ms);
 

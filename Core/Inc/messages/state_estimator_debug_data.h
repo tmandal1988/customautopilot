@@ -12,6 +12,9 @@ struct PACKED StateEstimatorFifoDebugData {
 
 struct PACKED StateEstimatorDebugData {
   uint8_t is_mag_used;
+  // GPS fusion bitmask from autocode:
+  // bit0/0x01 = N position, bit1/0x02 = E position, bit2/0x04 = D position,
+  // bit3/0x08 = N velocity, bit4/0x10 = E velocity, bit5/0x20 = D velocity.
   uint8_t is_gps_used;
   uint8_t is_baro_used;
   uint8_t is_lidar_used;

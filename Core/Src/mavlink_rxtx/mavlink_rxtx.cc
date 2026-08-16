@@ -713,10 +713,14 @@ void MavlinkRxTx::BuildGps(uint32_t now_ms)
 
     const uint64_t  now_us = static_cast<uint64_t>(now_ms) * 1000ULL;
 
-    float rel_alt_m = 0.0;
-
+    float rel_alt_m = 0.0F;
     if(home_state_ == HomeState::HOMED){
-    	rel_alt_m = last_valid_wgs84_alt_m_ - home_wgs84_alt_m_;
+        rel_alt_m = static_cast<float>(last_valid_wgs84_alt_m_ -
+                                       home_wgs84_alt_m_);
+    }
+
+    if (ekf_valid_) {
+        rel_alt_m = -ekf_data_.nedpos_m[2];
     }
 
     PackAndQueue(mavlink_msg_global_position_int_pack,
@@ -728,7 +732,7 @@ void MavlinkRxTx::BuildGps(uint32_t now_ms)
    		static_cast<int32_t>(last_valid_lon_deg_ * 1e7),     // Longitude (degrees × 1e7)
    		static_cast<int32_t>(last_valid_wgs84_alt_m_ * 1000),// Altitude above MSL (mm)
 
-   		static_cast<int32_t>(rel_alt_m * 1000U),
+   		static_cast<int32_t>(rel_alt_m * 1000.0F),
    		static_cast<int16_t>(gps_data_.vn_mps * 1e2), // North Velocity cm/s
    		static_cast<int16_t>(gps_data_.ve_mps * 1e2), // East Velocity cm/s
    		static_cast<int16_t>(gps_data_.vd_mps * 1e2), // Down Velocity cm/s
@@ -767,7 +771,7 @@ void MavlinkRxTx::BuildGps(uint32_t now_ms)
 
 void MavlinkRxTx::BuildAttitude(uint32_t now_ms)
 {
-    if (!ekf_sub_.copy(ekf_data_)) return;
+    if (!ekf_valid_) return;
 
     const float roll     = ekf_data_.euler_rad[0];
     const float pitch    = ekf_data_.euler_rad[1];
@@ -941,6 +945,10 @@ void MavlinkRxTx::Run() {
 
     const uint32_t now_ticks = static_cast<uint32_t>(now);
     const uint32_t now_ms = now_ticks * portTICK_PERIOD_MS;
+    if (ekf_sub_.copy(ekf_data_)) {
+      ekf_valid_ = true;
+    }
+
     if (mavlink_transport::DeadlineReached(
             now_ticks, static_cast<uint32_t>(next_heartbeat))) {
       BuildHeartbeat();

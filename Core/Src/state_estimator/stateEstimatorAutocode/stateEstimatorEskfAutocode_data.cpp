@@ -5,7 +5,7 @@
 //
 // Model version                  : 7.0
 // Simulink Coder version         : 25.1 (R2025a) 21-Nov-2024
-// C/C++ source code generated on : Fri Aug 14 10:38:35 2026
+// C/C++ source code generated on : Sat Aug 15 22:52:54 2026
 //
 // Target selection: ert.tlc
 // Embedded hardware selection: ARM Compatible->ARM Cortex-M
@@ -97,6 +97,8 @@ const stateEstimatorAutocode::ConstP_stateEstimatorEskfAuto_T
     5.0F,
     3U,
     2.0F,
+    2.0F,
+    4.0F,
     0.05F,
     0.244977906F,
     true

@@ -1,6 +1,6 @@
 # ERT MAIN SAMPLE
 ---
-```
+```cpp
 //
 // File: ert_main.cpp
 //
@@ -8,7 +8,7 @@
 //
 // Model version                  : 7.0
 // Simulink Coder version         : 25.1 (R2025a) 21-Nov-2024
-// C/C++ source code generated on : Fri Aug 14 10:38:35 2026
+// C/C++ source code generated on : Sat Aug 15 22:52:54 2026
 //
 // Target selection: ert.tlc
 // Embedded hardware selection: ARM Compatible->ARM Cortex-M
@@ -88,8 +88,7 @@ int_T main(int_T argc, const char *argv[])
 
   printf("Warning: The simulation will run forever. "
          "Generated ERT main won't simulate model step behavior. "
-         "To change this behavior select the 'MAT-file logging' option.
-");
+         "To change this behavior select the 'MAT-file logging' option.\n");
   fflush((nullptr));
   while (1) {
     //  Perform application tasks here

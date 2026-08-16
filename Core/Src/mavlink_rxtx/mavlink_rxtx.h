@@ -107,6 +107,7 @@ private:
     double home_wgs84_alt_m_ = 0.0;
 
     bool gps_valid_ = false;
+    bool ekf_valid_ = false;
 
     //Double buffering for MAVLink TX
     alignas(32) uint8_t tx_buffer_a_[kTxBufferSize]{};

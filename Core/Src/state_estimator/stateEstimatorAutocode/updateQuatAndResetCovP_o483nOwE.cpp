@@ -3,9 +3,9 @@
 //
 // Code generated for Simulink model 'stateEstimatorEskf'.
 //
-// Model version                  : 7.53
+// Model version                  : 7.70
 // Simulink Coder version         : 25.1 (R2025a) 21-Nov-2024
-// C/C++ source code generated on : Thu Aug 13 15:28:24 2026
+// C/C++ source code generated on : Sat Aug 15 22:52:20 2026
 //
 #include "rtwtypes.h"
 #include "updateQuatAndResetCovP_o483nOwE.h"
@@ -43,20 +43,20 @@ void updateQuatAndResetCovP_o483nOwE(real32_T nomQuat[4], const real32_T angErr
   real32_T v_idx_1;
   real32_T v_idx_2;
 
-  // 'errorStateEkf_function2:409' dAng = norm(angErr);
+  // 'errorStateEkf_function2:470' dAng = norm(angErr);
   dAng = norm_94qjDDKI(angErr);
 
-  // 'errorStateEkf_function2:410' if(dAng > 1e-7)
+  // 'errorStateEkf_function2:471' if(dAng > 1e-7)
   if (dAng > 1.0E-7) {
-    // 'errorStateEkf_function2:411' du = angErr/dAng;
-    // 'errorStateEkf_function2:412' qError = [cos(dAng*0.5); du*sin(dAng*0.5)]; 
+    // 'errorStateEkf_function2:472' du = angErr/dAng;
+    // 'errorStateEkf_function2:473' qError = [cos(dAng*0.5); du*sin(dAng*0.5)]; 
     b_tmp = dAng * 0.5F;
     b = std::sin(b_tmp);
 
-    // 'errorStateEkf_function2:414' nomQuat = quatMultiply(nomQuat, qError);
+    // 'errorStateEkf_function2:475' nomQuat = quatMultiply(nomQuat, qError);
     tmp[0] = std::cos(b_tmp);
 
-    // 'errorStateEkf_function2:415' angG = eye(3, 'single') - skew3(angErr*0.5); 
+    // 'errorStateEkf_function2:476' angG = eye(3, 'single') - skew3(angErr*0.5); 
     tmp[1] = angErr[0] / dAng * b;
     v_idx_0 = angErr[0] * 0.5F;
     tmp[2] = angErr[1] / dAng * b;
@@ -75,7 +75,7 @@ void updateQuatAndResetCovP_o483nOwE(real32_T nomQuat[4], const real32_T angErr
     // 'skew3:8' S = single([  0,    -v(3),  v(2);
     // 'skew3:9'              v(3),   0,    -v(1);
     // 'skew3:10'             -v(2),  v(1),   0 ]);
-    // 'errorStateEkf_function2:416' covP(1:3, 1:3) = angG*covP(1:3, 1:3)*angG'; 
+    // 'errorStateEkf_function2:477' covP(1:3, 1:3) = angG*covP(1:3, 1:3)*angG'; 
     angG[0] = 1.0F;
     angG[1] = 0.0F - v_idx_2;
     angG[2] = 0.0F - (-v_idx_1);
@@ -142,20 +142,20 @@ void updateQuatAndResetCovP_o483nOwE(real32_T nomQuat[4], const real32_T angErr
       i_1 += 19;
     }
 
-    // 'errorStateEkf_function2:418' nQuat = norm(nomQuat);
+    // 'errorStateEkf_function2:479' nQuat = norm(nomQuat);
     dAng = norm_NoMIKEmk(nomQuat);
 
-    // 'errorStateEkf_function2:419' if(nQuat > 1e-7)
+    // 'errorStateEkf_function2:480' if(nQuat > 1e-7)
     if (dAng > 1.0E-7) {
       // Normalize the quaternion
-      // 'errorStateEkf_function2:421' nomQuat = nomQuat/nQuat;
+      // 'errorStateEkf_function2:482' nomQuat = nomQuat/nQuat;
       nomQuat[0] /= dAng;
       nomQuat[1] /= dAng;
       nomQuat[2] /= dAng;
       nomQuat[3] /= dAng;
     } else {
-      // 'errorStateEkf_function2:422' else
-      // 'errorStateEkf_function2:423' nomQuat = single([1; 0; 0; 0]);
+      // 'errorStateEkf_function2:483' else
+      // 'errorStateEkf_function2:484' nomQuat = single([1; 0; 0; 0]);
       nomQuat[0] = 1.0F;
       nomQuat[1] = 0.0F;
       nomQuat[2] = 0.0F;

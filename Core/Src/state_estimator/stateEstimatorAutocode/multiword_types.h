@@ -3,19 +3,22 @@
 //
 // Code generated for Simulink model 'stateEstimatorEskf'.
 //
-// Model version                  : 7.53
+// Model version                  : 7.70
+// Simulink Coder version         : 25.1 (R2025a) 21-Nov-2024
+// C/C++ source code generated on : Sat Aug 15 22:52:20 2026
+//
 #ifndef MULTIWORD_TYPES_H
 #define MULTIWORD_TYPES_H
 #include "rtwtypes.h"
 
-/*
- * MultiWord supporting definitions
- */
+//
+//  MultiWord supporting definitions
+
 typedef long int long_T;
 
-/*
- * MultiWord types
- */
+//
+//  MultiWord types
+
 typedef struct {
   uint32_T chunks[2];
 } int64m_T;
@@ -72,7 +75,7 @@ typedef struct {
   uint32_T chunks[8];
 } uint256m_T;
 
-#endif                                 /* MULTIWORD_TYPES_H */
+#endif                                 // MULTIWORD_TYPES_H
 
 //
 // File trailer for generated code.
