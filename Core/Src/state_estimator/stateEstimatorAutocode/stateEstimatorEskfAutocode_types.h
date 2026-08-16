@@ -5,7 +5,7 @@
 //
 // Model version                  : 7.0
 // Simulink Coder version         : 25.1 (R2025a) 21-Nov-2024
-// C/C++ source code generated on : Sun Aug 16 07:55:04 2026
+// C/C++ source code generated on : Sun Aug 16 10:34:52 2026
 //
 // Target selection: ert.tlc
 // Embedded hardware selection: ARM Compatible->ARM Cortex-M
@@ -253,6 +253,9 @@ struct busMagParams
 // Bus containing lidar params
 struct busLidarParams
 {
+  // X offset of Lidar mount point wrt to CG
+  real32_T xMntOff_m;
+
   // Y offset of Lidar mount point wrt to CG
   real32_T yMntOff_m;
 

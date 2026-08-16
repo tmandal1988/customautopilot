@@ -3,15 +3,15 @@
 //
 // Code generated for Simulink model 'stateEstimatorEskf'.
 //
-// Model version                  : 7.70
+// Model version                  : 7.81
 // Simulink Coder version         : 25.1 (R2025a) 21-Nov-2024
-// C/C++ source code generated on : Sun Aug 16 07:54:31 2026
+// C/C++ source code generated on : Sun Aug 16 10:34:06 2026
 //
 #include "rtwtypes.h"
 #include "norm_NoMIKEmk.h"
 #include <cmath>
 
-// Function for MATLAB Function: '<S12>/OutputPredictor'
+// Function for MATLAB Function: '<S14>/OutputPredictor'
 real32_T norm_NoMIKEmk(const real32_T x[4])
 {
   real32_T absxk;

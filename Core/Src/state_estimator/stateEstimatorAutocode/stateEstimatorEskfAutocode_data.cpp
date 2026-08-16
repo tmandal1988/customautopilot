@@ -5,7 +5,7 @@
 //
 // Model version                  : 7.0
 // Simulink Coder version         : 25.1 (R2025a) 21-Nov-2024
-// C/C++ source code generated on : Sun Aug 16 07:55:04 2026
+// C/C++ source code generated on : Sun Aug 16 10:34:52 2026
 //
 // Target selection: ert.tlc
 // Embedded hardware selection: ARM Compatible->ARM Cortex-M
@@ -102,16 +102,6 @@ const stateEstimatorAutocode::ConstP_stateEstimatorEskfAuto_T
     0.05F,
     0.244977906F,
     true
-  },
-
-  // Expression: lidarParams
-  //  Referenced by: '<Root>/lidarParams'
-
-  {
-    0.1F,
-    0.02F,
-
-    { 0.3F, 99.0F }
   }
 };
 
