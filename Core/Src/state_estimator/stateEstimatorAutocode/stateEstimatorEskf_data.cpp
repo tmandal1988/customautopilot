@@ -3,9 +3,9 @@
 //
 // Code generated for Simulink model 'stateEstimatorEskf'.
 //
-// Model version                  : 7.81
+// Model version                  : 7.84
 // Simulink Coder version         : 25.1 (R2025a) 21-Nov-2024
-// C/C++ source code generated on : Sun Aug 16 10:34:06 2026
+// C/C++ source code generated on : Sun Aug 16 16:27:15 2026
 //
 // Target selection: ert.tlc
 // Embedded hardware selection: ARM Compatible->ARM Cortex-M
@@ -33,13 +33,13 @@ const stateEstimatorEskf::ConstP_stateEstimatorEskf_T stateEstimatorEskf_ConstP{
     false,
     true,
 
-    { { 0U, 0U } },
+    { { 0x3CU, 0U } },
 
     { { 0x6EU, 0U } },
 
-    { { 0U, 0U } },
+    { { 0x3CU, 0U } },
 
-    { { 0x14U, 0U } },
+    { { 0x5U, 0U } },
 
     { { 0x14U, 0U } },
 
