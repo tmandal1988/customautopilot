@@ -3,9 +3,9 @@
 //
 // Code generated for Simulink model 'stateEstimatorEskf'.
 //
-// Model version                  : 7.84
+// Model version                  : 7.88
 // Simulink Coder version         : 25.1 (R2025a) 21-Nov-2024
-// C/C++ source code generated on : Sun Aug 16 16:27:15 2026
+// C/C++ source code generated on : Sun Aug 23 09:38:07 2026
 //
 // Target selection: ert.tlc
 // Embedded hardware selection: ARM Compatible->ARM Cortex-M
@@ -68,8 +68,12 @@ Verification pane for ERT based targets, which will disable the \
 preprocessor word size checks.
 #endif
 
+extern const uint64m_T rtCP_pooled_pA0qXqPpgtK7;
 extern const real32_T rtCP_pooled_N0XDWuexoW9o[3];
 extern const real32_T rtCP_pooled_hgQumAwLKgQK[20];
+
+#define rtCP_Constant_Value_j          rtCP_pooled_pA0qXqPpgtK7  // Computed Parameter: rtCP_Constant_Value_j
+                                                                 //  Referenced by: '<S21>/Constant'
 
 #define rtCP_localNedMag_nd_Value      rtCP_pooled_N0XDWuexoW9o  // Computed Parameter: rtCP_localNedMag_nd_Value
                                                                  //  Referenced by: '<Root>/localNedMag_nd'

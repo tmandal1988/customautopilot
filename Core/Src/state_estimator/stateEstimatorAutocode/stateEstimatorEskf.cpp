@@ -3,9 +3,9 @@
 //
 // Code generated for Simulink model 'stateEstimatorEskf'.
 //
-// Model version                  : 7.84
+// Model version                  : 7.88
 // Simulink Coder version         : 25.1 (R2025a) 21-Nov-2024
-// C/C++ source code generated on : Sun Aug 16 16:27:15 2026
+// C/C++ source code generated on : Sun Aug 23 09:38:07 2026
 //
 // Target selection: ert.tlc
 // Embedded hardware selection: ARM Compatible->ARM Cortex-M
@@ -63,38 +63,38 @@ void stateEstimatorEskf::stateEstimatorEskf_INITIALIZE(enumStateEstimateMode
   *mode = enumStateEstimateMode::INITIALIZE;
   stateEstimatorEskf_DW.resetStates = true;
 
-  // During 'INITIALIZE': '<S7>:1'
-  // '<S7>:44:1' sf_internal_predicateOutput = 0 | (isAttInitialized && isPosInitialized ... 
-  // '<S7>:44:2'  && isBaroInitialized);
+  // During 'INITIALIZE': '<S8>:1'
+  // '<S8>:44:1' sf_internal_predicateOutput = 0 | (isAttInitialized && isPosInitialized ... 
+  // '<S8>:44:2'  && isBaroInitialized);
   if (static_cast<boolean_T>(static_cast<boolean_T>
        (stateEstimatorEskf_DW.isAttInitialized &
         stateEstimatorEskf_DW.isPosInitialized) &
        stateEstimatorEskf_DW.isBaroInitialized)) {
-    // Transition: '<S7>:44'
+    // Transition: '<S8>:44'
     stateEstimatorEskf_DW.durationCounter_1 = 0U;
     stateEstimatorEskf_DW.is_c3_stateEstimatorEskf = stateEstimatorEskf_IN_RUN;
 
-    // Entry 'RUN': '<S7>:43'
+    // Entry 'RUN': '<S8>:43'
     // FULL EKF WITH GPS IS RUNNING
-    // '<S7>:43:4' resetStates = false;
+    // '<S8>:43:4' resetStates = false;
     stateEstimatorEskf_DW.resetStates = false;
 
-    // '<S7>:43:5' mode = enumStateEstimateMode.RUN;
+    // '<S8>:43:5' mode = enumStateEstimateMode.RUN;
     *mode = enumStateEstimateMode::RUN;
 
     // Chart: '<Root>/estimatorStateMachine'
-    // '<S7>:43:6' sensorDataOut.bodyAccels_mps2 = filtBodyAccelsIn_mps2;
-    // '<S7>:43:7' sensorDataOut.bodyRates_radps = filtBodyRatesIn_radps;
-    // '<S7>:43:8' sensorDataOut.normMagVec_nd = normMagVecIn_nd;
-    // '<S7>:43:9' sensorDataOut.sensorValidity.isMagValid = isMagDataValid;
+    // '<S8>:43:6' sensorDataOut.bodyAccels_mps2 = filtBodyAccelsIn_mps2;
+    // '<S8>:43:7' sensorDataOut.bodyRates_radps = filtBodyRatesIn_radps;
+    // '<S8>:43:8' sensorDataOut.normMagVec_nd = normMagVecIn_nd;
+    // '<S8>:43:9' sensorDataOut.sensorValidity.isMagValid = isMagDataValid;
     stateEstimatorEskf_DW.sensorDataOut.sensorValidity.isMagValid =
       rtu_magData->isMagDataValid;
 
-    // Product: '<S6>/Product'
-    // '<S7>:43:10' latLonAltOut = latLonAltIn;
+    // Product: '<S7>/Product'
+    // '<S8>:43:10' latLonAltOut = latLonAltIn;
     stateEstimatorEskf_DW.sensorDataOut.bodyAccels_mps2[0] = Product[0];
 
-    // SignalConversion generated from: '<S7>/ SFunction '
+    // SignalConversion generated from: '<S8>/ SFunction '
     stateEstimatorEskf_DW.sensorDataOut.bodyRates_radps[0] =
       stateEstimatorEskf_DW.TmpSignalConversionAtSFunctionI[0];
 
@@ -104,10 +104,10 @@ void stateEstimatorEskf::stateEstimatorEskf_INITIALIZE(enumStateEstimateMode
     // Chart: '<Root>/estimatorStateMachine'
     latLonAltOut[0] = rtu_gpsData->latLonAlt[0];
 
-    // Product: '<S6>/Product'
+    // Product: '<S7>/Product'
     stateEstimatorEskf_DW.sensorDataOut.bodyAccels_mps2[1] = Product[1];
 
-    // SignalConversion generated from: '<S7>/ SFunction '
+    // SignalConversion generated from: '<S8>/ SFunction '
     stateEstimatorEskf_DW.sensorDataOut.bodyRates_radps[1] =
       stateEstimatorEskf_DW.TmpSignalConversionAtSFunctionI[1];
 
@@ -117,10 +117,10 @@ void stateEstimatorEskf::stateEstimatorEskf_INITIALIZE(enumStateEstimateMode
     // Chart: '<Root>/estimatorStateMachine'
     latLonAltOut[1] = rtu_gpsData->latLonAlt[1];
 
-    // Product: '<S6>/Product'
+    // Product: '<S7>/Product'
     stateEstimatorEskf_DW.sensorDataOut.bodyAccels_mps2[2] = Product[2];
 
-    // SignalConversion generated from: '<S7>/ SFunction '
+    // SignalConversion generated from: '<S8>/ SFunction '
     stateEstimatorEskf_DW.sensorDataOut.bodyRates_radps[2] =
       stateEstimatorEskf_DW.TmpSignalConversionAtSFunctionI[2];
 
@@ -130,16 +130,16 @@ void stateEstimatorEskf::stateEstimatorEskf_INITIALIZE(enumStateEstimateMode
     // Chart: '<Root>/estimatorStateMachine'
     latLonAltOut[2] = rtu_gpsData->latLonAlt[2];
 
-    // '<S7>:43:11' sensorDataOut.sensorValidity.isGpsValid = isGpsDataValid;
+    // '<S8>:43:11' sensorDataOut.sensorValidity.isGpsValid = isGpsDataValid;
     stateEstimatorEskf_DW.sensorDataOut.sensorValidity.isGpsValid =
       rtu_gpsData->isGpsDataValid;
 
-    // '<S7>:43:12' sensorDataOut.baroAlt_m = baroPressAlt_m - baroInitAltMean;
+    // '<S8>:43:12' sensorDataOut.baroAlt_m = baroPressAlt_m - baroInitAltMean;
     stateEstimatorEskf_DW.sensorDataOut.baroAlt_m = *Divide1 -
       stateEstimatorEskf_DW.baroInitAltMean;
 
     // Chart: '<Root>/estimatorStateMachine'
-    // '<S7>:43:13' sensorDataOut.sensorValidity.isBaroValid = isBaroDataValid;
+    // '<S8>:43:13' sensorDataOut.sensorValidity.isBaroValid = isBaroDataValid;
     stateEstimatorEskf_DW.sensorDataOut.sensorValidity.isBaroValid =
       rtu_baroData->isBaroDataValid;
 
@@ -148,41 +148,41 @@ void stateEstimatorEskf::stateEstimatorEskf_INITIALIZE(enumStateEstimateMode
     // Chart: '<Root>/estimatorStateMachine' incorporates:
     //   Concatenate: '<Root>/Vector Concatenate'
     //   Product: '<S11>/Divide'
-    //   Product: '<S6>/Product'
-    //   SignalConversion generated from: '<S7>/ SFunction '
+    //   Product: '<S7>/Product'
+    //   SignalConversion generated from: '<S8>/ SFunction '
 
-    // '<S7>:63:1' sf_internal_predicateOutput = 0 | (isAttInitialized && ~isGpsInitialized &&  isBaroInitialized); 
+    // '<S8>:63:1' sf_internal_predicateOutput = 0 | (isAttInitialized && ~isGpsInitialized &&  isBaroInitialized); 
   } else if (static_cast<boolean_T>(static_cast<boolean_T>(static_cast<boolean_T>
                (static_cast<int32_T>(rtu_gpsData->isGpsInitialized) ^ 1) &
                stateEstimatorEskf_DW.isAttInitialized) &
               stateEstimatorEskf_DW.isBaroInitialized)) {
-    // Transition: '<S7>:63'
+    // Transition: '<S8>:63'
     stateEstimatorEskf_DW.durationCounter_1_n = 0U;
     stateEstimatorEskf_DW.is_c3_stateEstimatorEskf =
       stateEstima_IN_RUN_GPS_NOT_INIT;
 
-    // Entry 'RUN_GPS_NOT_INIT': '<S7>:62'
+    // Entry 'RUN_GPS_NOT_INIT': '<S8>:62'
     // EKF STARTED RUNNING WITHOUT GPS
-    // '<S7>:62:4' resetStates = false;
+    // '<S8>:62:4' resetStates = false;
     stateEstimatorEskf_DW.resetStates = false;
 
-    // '<S7>:62:5' isPosInitialized = false;
+    // '<S8>:62:5' isPosInitialized = false;
     stateEstimatorEskf_DW.isPosInitialized = false;
 
-    // '<S7>:62:6' gpsValidCount = 0;
+    // '<S8>:62:6' gpsValidCount = 0;
     stateEstimatorEskf_DW.gpsValidCount = 0U;
 
-    // '<S7>:62:7' mode = enumStateEstimateMode.RUN_GPS_NOT_INIT;
+    // '<S8>:62:7' mode = enumStateEstimateMode.RUN_GPS_NOT_INIT;
     *mode = enumStateEstimateMode::RUN_GPS_NOT_INIT;
 
-    // '<S7>:62:8' sensorDataOut.bodyAccels_mps2 = filtBodyAccelsIn_mps2;
-    // '<S7>:62:9' sensorDataOut.bodyRates_radps = filtBodyRatesIn_radps;
-    // '<S7>:62:10' sensorDataOut.normMagVec_nd = normMagVecIn_nd;
-    // '<S7>:62:11' sensorDataOut.sensorValidity.isMagValid = isMagDataValid;
+    // '<S8>:62:8' sensorDataOut.bodyAccels_mps2 = filtBodyAccelsIn_mps2;
+    // '<S8>:62:9' sensorDataOut.bodyRates_radps = filtBodyRatesIn_radps;
+    // '<S8>:62:10' sensorDataOut.normMagVec_nd = normMagVecIn_nd;
+    // '<S8>:62:11' sensorDataOut.sensorValidity.isMagValid = isMagDataValid;
     stateEstimatorEskf_DW.sensorDataOut.sensorValidity.isMagValid =
       rtu_magData->isMagDataValid;
 
-    // '<S7>:62:12' latLonAltOut = latLonAltIn;
+    // '<S8>:62:12' latLonAltOut = latLonAltIn;
     stateEstimatorEskf_DW.sensorDataOut.bodyAccels_mps2[0] = Product[0];
     stateEstimatorEskf_DW.sensorDataOut.bodyRates_radps[0] =
       stateEstimatorEskf_DW.TmpSignalConversionAtSFunctionI[0];
@@ -199,15 +199,15 @@ void stateEstimatorEskf::stateEstimatorEskf_INITIALIZE(enumStateEstimateMode
     stateEstimatorEskf_DW.sensorDataOut.normMagVec_nd[2] = Divide[2];
     latLonAltOut[2] = rtu_gpsData->latLonAlt[2];
 
-    // '<S7>:62:13' sensorDataOut.sensorValidity.isGpsValid = isGpsDataValid;
+    // '<S8>:62:13' sensorDataOut.sensorValidity.isGpsValid = isGpsDataValid;
     stateEstimatorEskf_DW.sensorDataOut.sensorValidity.isGpsValid =
       rtu_gpsData->isGpsDataValid;
 
-    // '<S7>:62:14' sensorDataOut.baroAlt_m = baroPressAlt_m - baroInitAltMean;
+    // '<S8>:62:14' sensorDataOut.baroAlt_m = baroPressAlt_m - baroInitAltMean;
     stateEstimatorEskf_DW.sensorDataOut.baroAlt_m = *Divide1 -
       stateEstimatorEskf_DW.baroInitAltMean;
 
-    // '<S7>:62:15' sensorDataOut.sensorValidity.isBaroValid = isBaroDataValid;
+    // '<S8>:62:15' sensorDataOut.sensorValidity.isBaroValid = isBaroDataValid;
     stateEstimatorEskf_DW.sensorDataOut.sensorValidity.isBaroValid =
       rtu_baroData->isBaroDataValid;
 
@@ -224,14 +224,14 @@ void stateEstimatorEskf::stateEstimatorEskf_INITIALIZE(enumStateEstimateMode
     // origin lat, lon and alt
     //
     // Compute running mean and bias of IMU data
-    // '<S7>:1:48' if ( imuIdx < max(stateEstSmParams.imuInitCount, 1) )
+    // '<S8>:1:48' if ( imuIdx < max(stateEstSmParams.imuInitCount, 1) )
     if (stateEstimatorEskf_DW.imuIdx < std::fmax
         (rtu_stateEstSmParams->imuInitCount, 1.0F)) {
-      // '<S7>:1:49' imuIdx = imuIdx + 1;
+      // '<S8>:1:49' imuIdx = imuIdx + 1;
       stateEstimatorEskf_DW.imuIdx++;
 
-      // '<S7>:1:50' imuDelta = [filtBodyAccelsIn_mps2; filtBodyRatesIn_radps] -  ... 
-      // '<S7>:1:51'         imuMean;
+      // '<S8>:1:50' imuDelta = [filtBodyAccelsIn_mps2; filtBodyRatesIn_radps] -  ... 
+      // '<S8>:1:51'         imuMean;
       imuDelta_idx_0 = Product[0] - stateEstimatorEskf_DW.imuMean[0];
       imuDelta_idx_3 = stateEstimatorEskf_DW.TmpSignalConversionAtSFunctionI[0]
         - stateEstimatorEskf_DW.imuMean[3];
@@ -242,7 +242,7 @@ void stateEstimatorEskf::stateEstimatorEskf_INITIALIZE(enumStateEstimateMode
       imuDelta_idx_5 = stateEstimatorEskf_DW.TmpSignalConversionAtSFunctionI[2]
         - stateEstimatorEskf_DW.imuMean[5];
 
-      // '<S7>:1:52' imuMean = imuMean + imuDelta / imuIdx;
+      // '<S8>:1:52' imuMean = imuMean + imuDelta / imuIdx;
       stateEstimatorEskf_DW.imuMean[0] += imuDelta_idx_0 /
         stateEstimatorEskf_DW.imuIdx;
       stateEstimatorEskf_DW.imuMean[1] += imuDelta_idx_1 /
@@ -256,8 +256,8 @@ void stateEstimatorEskf::stateEstimatorEskf_INITIALIZE(enumStateEstimateMode
       stateEstimatorEskf_DW.imuMean[5] += imuDelta_idx_5 /
         stateEstimatorEskf_DW.imuIdx;
 
-      // '<S7>:1:53' imuM2 = imuM2 + imuDelta .* ( [filtBodyAccelsIn_mps2; filtBodyRatesIn_radps] - ... 
-      // '<S7>:1:54'         imuMean);
+      // '<S8>:1:53' imuM2 = imuM2 + imuDelta .* ( [filtBodyAccelsIn_mps2; filtBodyRatesIn_radps] - ... 
+      // '<S8>:1:54'         imuMean);
       stateEstimatorEskf_DW.imuM2[0] += (Product[0] -
         stateEstimatorEskf_DW.imuMean[0]) * imuDelta_idx_0;
       stateEstimatorEskf_DW.imuM2[1] += (Product[1] -
@@ -287,17 +287,17 @@ void stateEstimatorEskf::stateEstimatorEskf_INITIALIZE(enumStateEstimateMode
     // end
     //
     // Compute running mean and bias of MAG data
-    // '<S7>:1:69' if (isMagDataValid)
+    // '<S8>:1:69' if (isMagDataValid)
     if (rtu_magData->isMagDataValid) {
-      // '<S7>:1:70' if( magIdx < max(stateEstSmParams.magInitCount, 1) )
+      // '<S8>:1:70' if( magIdx < max(stateEstSmParams.magInitCount, 1) )
       if (stateEstimatorEskf_DW.magIdx < std::fmax
           (rtu_stateEstSmParams->magInitCount, 1.0F)) {
-        // '<S7>:1:71' magIdx = magIdx + 1;
+        // '<S8>:1:71' magIdx = magIdx + 1;
         stateEstimatorEskf_DW.magIdx++;
 
-        // '<S7>:1:72' magDelta = (normMagVecIn_nd - magMean);
-        // '<S7>:1:73' magMean = magMean + magDelta / magIdx;
-        // '<S7>:1:74' magM2 = magM2 + magDelta .* (normMagVecIn_nd - magMean);
+        // '<S8>:1:72' magDelta = (normMagVecIn_nd - magMean);
+        // '<S8>:1:73' magMean = magMean + magDelta / magIdx;
+        // '<S8>:1:74' magM2 = magM2 + magDelta .* (normMagVecIn_nd - magMean);
         imuDelta_idx_0 = Divide[0] - stateEstimatorEskf_DW.magMean[0];
         imuDelta_idx_3 = imuDelta_idx_0 / stateEstimatorEskf_DW.magIdx +
           stateEstimatorEskf_DW.magMean[0];
@@ -319,7 +319,7 @@ void stateEstimatorEskf::stateEstimatorEskf_INITIALIZE(enumStateEstimateMode
       }
 
       //
-      // '<S7>:1:77' if(magIdx >= stateEstSmParams.magInitCount)
+      // '<S8>:1:77' if(magIdx >= stateEstSmParams.magInitCount)
       if (stateEstimatorEskf_DW.magIdx >= rtu_stateEstSmParams->magInitCount) {
         real32_T initialQuat_tmp;
         real32_T initialQuat_tmp_0;
@@ -330,7 +330,7 @@ void stateEstimatorEskf::stateEstimatorEskf_INITIALIZE(enumStateEstimateMode
         // else
         // magBias_nd = [0; 0; 0];
         //  end
-        // '<S7>:1:84' [initialQuat, nedMagVecNorm_nd] = computeInitialAttitude(imuMean(1:3), magMean, stateEstSmParams.initMagDec_rad); 
+        // '<S8>:1:84' [initialQuat, nedMagVecNorm_nd] = computeInitialAttitude(imuMean(1:3), magMean, stateEstSmParams.initMagDec_rad); 
         // COMPUTEINITIALATTITUDE Computes the IMU attitude using IMU and mag data 
         //
         // Inputs:
@@ -440,30 +440,30 @@ void stateEstimatorEskf::stateEstimatorEskf_INITIALIZE(enumStateEstimateMode
         stateEstimatorEskf_DW.initialQuat[3] = initialQuat_tmp * imuDelta_idx_0
           - initialQuat_tmp_0 * imuDelta_idx_3;
 
-        // '<S7>:1:85' isAttInitialized = true;
+        // '<S8>:1:85' isAttInitialized = true;
         stateEstimatorEskf_DW.isAttInitialized = true;
       }
     }
 
     //
     // Compute running mean of GPS data for NED origin Lat, Lon and Alt
-    // '<S7>:1:90' if (isGpsDataValid && isGpsInitialized && gpsAcc_m(1) >= 0 && ... 
-    // '<S7>:1:91'         gpsAcc_m(1) <= stateEstSmParams.gpsHorAccThres_m && ... 
-    // '<S7>:1:92'         gpsAcc_m(2) >= 0 && ...
-    // '<S7>:1:93'         gpsAcc_m(2) <= stateEstSmParams.gpsVerAccThres_m)
+    // '<S8>:1:90' if (isGpsDataValid && isGpsInitialized && gpsAcc_m(1) >= 0 && ... 
+    // '<S8>:1:91'         gpsAcc_m(1) <= stateEstSmParams.gpsHorAccThres_m && ... 
+    // '<S8>:1:92'         gpsAcc_m(2) >= 0 && ...
+    // '<S8>:1:93'         gpsAcc_m(2) <= stateEstSmParams.gpsVerAccThres_m)
     if ((static_cast<boolean_T>(rtu_gpsData->isGpsDataValid &
           rtu_gpsData->isGpsInitialized)) && (VectorConcatenate[0] >= 0.0F) &&
         (VectorConcatenate[0] <= rtu_stateEstSmParams->gpsHorAccThres_m) &&
         (VectorConcatenate[1] >= 0.0F) && (VectorConcatenate[1] <=
          rtu_stateEstSmParams->gpsVerAccThres_m)) {
-      // '<S7>:1:94' if( gpsIdx < max(stateEstSmParams.gpsInitCount, 1) )
+      // '<S8>:1:94' if( gpsIdx < max(stateEstSmParams.gpsInitCount, 1) )
       if (stateEstimatorEskf_DW.gpsIdx < std::fmax
           (rtu_stateEstSmParams->gpsInitCount, 1.0F)) {
-        // '<S7>:1:95' gpsIdx = gpsIdx + 1;
+        // '<S8>:1:95' gpsIdx = gpsIdx + 1;
         stateEstimatorEskf_DW.gpsIdx++;
 
-        // '<S7>:1:96' llhDelta = (latLonAltIn - refLatLonAlt);
-        // '<S7>:1:97' refLatLonAlt = refLatLonAlt + llhDelta/gpsIdx;
+        // '<S8>:1:96' llhDelta = (latLonAltIn - refLatLonAlt);
+        // '<S8>:1:97' refLatLonAlt = refLatLonAlt + llhDelta/gpsIdx;
         stateEstimatorEskf_DW.refLatLonAlt[0] += (rtu_gpsData->latLonAlt[0] -
           stateEstimatorEskf_DW.refLatLonAlt[0]) / stateEstimatorEskf_DW.gpsIdx;
         stateEstimatorEskf_DW.refLatLonAlt[1] += (rtu_gpsData->latLonAlt[1] -
@@ -473,37 +473,37 @@ void stateEstimatorEskf::stateEstimatorEskf_INITIALIZE(enumStateEstimateMode
       }
 
       //
-      // '<S7>:1:100' if(gpsIdx >= stateEstSmParams.gpsInitCount)
+      // '<S8>:1:100' if(gpsIdx >= stateEstSmParams.gpsInitCount)
       if (stateEstimatorEskf_DW.gpsIdx >= rtu_stateEstSmParams->gpsInitCount) {
-        // '<S7>:1:101' isPosInitialized = true;
+        // '<S8>:1:101' isPosInitialized = true;
         stateEstimatorEskf_DW.isPosInitialized = true;
       }
     }
 
     //
     // Compute running mean and bias of baro data
-    // '<S7>:1:106' if (isBaroDataValid)
+    // '<S8>:1:106' if (isBaroDataValid)
     if (rtu_baroData->isBaroDataValid) {
-      // '<S7>:1:107' if( baroIdx < max(stateEstSmParams.baroInitCount, 1) )
+      // '<S8>:1:107' if( baroIdx < max(stateEstSmParams.baroInitCount, 1) )
       if (stateEstimatorEskf_DW.baroIdx < std::fmax
           (rtu_stateEstSmParams->baroInitCount, 1.0F)) {
-        // '<S7>:1:108' baroIdx = baroIdx + 1;
+        // '<S8>:1:108' baroIdx = baroIdx + 1;
         stateEstimatorEskf_DW.baroIdx++;
 
-        // '<S7>:1:109' baroInitAltDelta = (baroPressAlt_m - baroInitAltMean);
+        // '<S8>:1:109' baroInitAltDelta = (baroPressAlt_m - baroInitAltMean);
         imuDelta_idx_3 = *Divide1 - stateEstimatorEskf_DW.baroInitAltMean;
 
-        // '<S7>:1:110' baroInitAltMean = baroInitAltMean + baroInitAltDelta / baroIdx; 
+        // '<S8>:1:110' baroInitAltMean = baroInitAltMean + baroInitAltDelta / baroIdx; 
         stateEstimatorEskf_DW.baroInitAltMean += imuDelta_idx_3 /
           stateEstimatorEskf_DW.baroIdx;
 
-        // '<S7>:1:111' baroInitAltM2 = baroInitAltM2 + baroInitAltDelta .* (baroPressAlt_m - baroInitAltMean); 
+        // '<S8>:1:111' baroInitAltM2 = baroInitAltM2 + baroInitAltDelta .* (baroPressAlt_m - baroInitAltMean); 
         stateEstimatorEskf_DW.baroInitAltM2 += (*Divide1 -
           stateEstimatorEskf_DW.baroInitAltMean) * imuDelta_idx_3;
       }
 
       //
-      // '<S7>:1:114' if(baroIdx >= stateEstSmParams.baroInitCount)
+      // '<S8>:1:114' if(baroIdx >= stateEstSmParams.baroInitCount)
       if (stateEstimatorEskf_DW.baroIdx >= rtu_stateEstSmParams->baroInitCount)
       {
         // if(stateEstSmParams.baroInitCount > 1)
@@ -512,17 +512,17 @@ void stateEstimatorEskf::stateEstimatorEskf_INITIALIZE(enumStateEstimateMode
         // else
         // baroBias_m = 0;
         //  end
-        // '<S7>:1:121' isBaroInitialized = true;
+        // '<S8>:1:121' isBaroInitialized = true;
         stateEstimatorEskf_DW.isBaroInitialized = true;
       }
     }
 
-    // '<S7>:1:124' if(isGpsInitialized)
+    // '<S8>:1:124' if(isGpsInitialized)
     if (rtu_gpsData->isGpsInitialized) {
       // Status of the initialization
-      // '<S7>:1:126' stateEstInitPct = (imuIdx + magIdx + gpsIdx + baroIdx) / (stateEstSmParams.imuInitCount + ... 
-      // '<S7>:1:127'         stateEstSmParams.magInitCount + stateEstSmParams.gpsInitCount +  ... 
-      // '<S7>:1:128'         stateEstSmParams.baroInitCount) * 100;
+      // '<S8>:1:126' stateEstInitPct = (imuIdx + magIdx + gpsIdx + baroIdx) / (stateEstSmParams.imuInitCount + ... 
+      // '<S8>:1:127'         stateEstSmParams.magInitCount + stateEstSmParams.gpsInitCount +  ... 
+      // '<S8>:1:128'         stateEstSmParams.baroInitCount) * 100;
       stateEstimatorEskf_DW.stateEstInitPct = (((stateEstimatorEskf_DW.imuIdx +
         stateEstimatorEskf_DW.magIdx) + static_cast<real32_T>
         (stateEstimatorEskf_DW.gpsIdx)) + stateEstimatorEskf_DW.baroIdx) /
@@ -531,10 +531,10 @@ void stateEstimatorEskf::stateEstimatorEskf_INITIALIZE(enumStateEstimateMode
           rtu_stateEstSmParams->gpsInitCount) +
          rtu_stateEstSmParams->baroInitCount) * 100.0F;
     } else {
-      // '<S7>:1:129' else
+      // '<S8>:1:129' else
       // Status of the initialization
-      // '<S7>:1:131' stateEstInitPct = (imuIdx + magIdx + baroIdx) / (stateEstSmParams.imuInitCount + ... 
-      // '<S7>:1:132'         stateEstSmParams.magInitCount + stateEstSmParams.baroInitCount) * 100; 
+      // '<S8>:1:131' stateEstInitPct = (imuIdx + magIdx + baroIdx) / (stateEstSmParams.imuInitCount + ... 
+      // '<S8>:1:132'         stateEstSmParams.magInitCount + stateEstSmParams.baroInitCount) * 100; 
       stateEstimatorEskf_DW.stateEstInitPct = ((stateEstimatorEskf_DW.imuIdx +
         stateEstimatorEskf_DW.magIdx) + stateEstimatorEskf_DW.baroIdx) /
         ((rtu_stateEstSmParams->imuInitCount +
@@ -543,14 +543,14 @@ void stateEstimatorEskf::stateEstimatorEskf_INITIALIZE(enumStateEstimateMode
     }
 
     //
-    // '<S7>:1:136' sensorDataOut.bodyAccels_mps2 = filtBodyAccelsIn_mps2;
-    // '<S7>:1:137' sensorDataOut.bodyRates_radps = filtBodyRatesIn_radps;
-    // '<S7>:1:138' sensorDataOut.normMagVec_nd = normMagVecIn_nd;
-    // '<S7>:1:139' sensorDataOut.sensorValidity.isMagValid = isMagDataValid;
+    // '<S8>:1:136' sensorDataOut.bodyAccels_mps2 = filtBodyAccelsIn_mps2;
+    // '<S8>:1:137' sensorDataOut.bodyRates_radps = filtBodyRatesIn_radps;
+    // '<S8>:1:138' sensorDataOut.normMagVec_nd = normMagVecIn_nd;
+    // '<S8>:1:139' sensorDataOut.sensorValidity.isMagValid = isMagDataValid;
     stateEstimatorEskf_DW.sensorDataOut.sensorValidity.isMagValid =
       rtu_magData->isMagDataValid;
 
-    // '<S7>:1:140' latLonAltOut = latLonAltIn;
+    // '<S8>:1:140' latLonAltOut = latLonAltIn;
     stateEstimatorEskf_DW.sensorDataOut.bodyAccels_mps2[0] = Product[0];
     stateEstimatorEskf_DW.sensorDataOut.bodyRates_radps[0] =
       stateEstimatorEskf_DW.TmpSignalConversionAtSFunctionI[0];
@@ -567,19 +567,19 @@ void stateEstimatorEskf::stateEstimatorEskf_INITIALIZE(enumStateEstimateMode
     stateEstimatorEskf_DW.sensorDataOut.normMagVec_nd[2] = Divide[2];
     latLonAltOut[2] = rtu_gpsData->latLonAlt[2];
 
-    // '<S7>:1:141' sensorDataOut.sensorValidity.isGpsValid = isGpsDataValid;
+    // '<S8>:1:141' sensorDataOut.sensorValidity.isGpsValid = isGpsDataValid;
     stateEstimatorEskf_DW.sensorDataOut.sensorValidity.isGpsValid =
       rtu_gpsData->isGpsDataValid;
 
-    // '<S7>:1:142' sensorDataOut.baroAlt_m = 0;
+    // '<S8>:1:142' sensorDataOut.baroAlt_m = 0;
     stateEstimatorEskf_DW.sensorDataOut.baroAlt_m = 0.0F;
 
-    // '<S7>:1:143' sensorDataOut.sensorValidity.isBaroValid = isBaroDataValid;
+    // '<S8>:1:143' sensorDataOut.sensorValidity.isBaroValid = isBaroDataValid;
     stateEstimatorEskf_DW.sensorDataOut.sensorValidity.isBaroValid =
       rtu_baroData->isBaroDataValid;
 
     //
-    // '<S7>:1:146' initialStates = [initialQuat; 0; 0; 0; 0; 0; 0; gyroBias_radps; accelBias_mps2; magBias_nd; baroBias_m]; 
+    // '<S8>:1:146' initialStates = [initialQuat; 0; 0; 0; 0; 0; 0; gyroBias_radps; accelBias_mps2; magBias_nd; baroBias_m]; 
     stateEstimatorEskf_DW.initialStates[0] = stateEstimatorEskf_DW.initialQuat[0];
     stateEstimatorEskf_DW.initialStates[1] = stateEstimatorEskf_DW.initialQuat[1];
     stateEstimatorEskf_DW.initialStates[2] = stateEstimatorEskf_DW.initialQuat[2];
@@ -608,7 +608,7 @@ void stateEstimatorEskf::stateEstimatorEskf_INITIALIZE(enumStateEstimateMode
     stateEstimatorEskf_DW.initialStates[19] = stateEstimatorEskf_DW.baroBias_m;
 
     // Compute Body To NED DCM
-    // '<S7>:1:148' initialDcmBodyToNed = quatToDcm_function(initialStates(1:4)); 
+    // '<S8>:1:148' initialDcmBodyToNed = quatToDcm_function(initialStates(1:4)); 
     // Quaternions
     // 'quatToDcm_function:3' q0 = quat(1);
     // 'quatToDcm_function:4' q1 = quat(2);
@@ -664,39 +664,39 @@ void stateEstimatorEskf::state_enter_atomic_RUN_INIT_GPS(enumStateEstimateMode
   Product[3], const real32_T Divide[3], const busMagData *rtu_magData, const
   busGpsData *rtu_gpsData, const busBaroData *rtu_baroData)
 {
-  // Entry 'RUN_INIT_GPS': '<S7>:64'
+  // Entry 'RUN_INIT_GPS': '<S8>:64'
   // EKF RUNNING WITHOUT GPS BUT WE HAVE HEALTHY GPS SIGNAL
   // START INITIALIZING GPS
-  // '<S7>:64:5' gpsValidCount = 0;
+  // '<S8>:64:5' gpsValidCount = 0;
   stateEstimatorEskf_DW.gpsValidCount = 0U;
 
   //  Index to keep track of how many gps readings we have summed
   //  so far
-  // '<S7>:64:8' gpsIdx = 0;
+  // '<S8>:64:8' gpsIdx = 0;
   stateEstimatorEskf_DW.gpsIdx = 0.0;
 
-  // '<S7>:64:9' refLatLonAlt = [0; 0; 0];
-  // '<S7>:64:10' isPosInitialized = false;
+  // '<S8>:64:9' refLatLonAlt = [0; 0; 0];
+  // '<S8>:64:10' isPosInitialized = false;
   stateEstimatorEskf_DW.isPosInitialized = false;
 
-  // '<S7>:64:11' mode = enumStateEstimateMode.RUN_INIT_GPS;
+  // '<S8>:64:11' mode = enumStateEstimateMode.RUN_INIT_GPS;
   *mode = enumStateEstimateMode::RUN_INIT_GPS;
 
   // Chart: '<Root>/estimatorStateMachine'
-  // '<S7>:64:12' sensorDataOut.bodyAccels_mps2 = filtBodyAccelsIn_mps2;
-  // '<S7>:64:13' sensorDataOut.bodyRates_radps = filtBodyRatesIn_radps;
-  // '<S7>:64:14' sensorDataOut.normMagVec_nd = normMagVecIn_nd;
-  // '<S7>:64:15' sensorDataOut.sensorValidity.isMagValid = isMagDataValid;
+  // '<S8>:64:12' sensorDataOut.bodyAccels_mps2 = filtBodyAccelsIn_mps2;
+  // '<S8>:64:13' sensorDataOut.bodyRates_radps = filtBodyRatesIn_radps;
+  // '<S8>:64:14' sensorDataOut.normMagVec_nd = normMagVecIn_nd;
+  // '<S8>:64:15' sensorDataOut.sensorValidity.isMagValid = isMagDataValid;
   stateEstimatorEskf_DW.sensorDataOut.sensorValidity.isMagValid =
     rtu_magData->isMagDataValid;
 
-  // '<S7>:64:16' latLonAltOut = latLonAltIn;
+  // '<S8>:64:16' latLonAltOut = latLonAltIn;
   stateEstimatorEskf_DW.refLatLonAlt[0] = 0.0;
 
-  // Product: '<S6>/Product'
+  // Product: '<S7>/Product'
   stateEstimatorEskf_DW.sensorDataOut.bodyAccels_mps2[0] = Product[0];
 
-  // SignalConversion generated from: '<S7>/ SFunction '
+  // SignalConversion generated from: '<S8>/ SFunction '
   stateEstimatorEskf_DW.sensorDataOut.bodyRates_radps[0] =
     stateEstimatorEskf_DW.TmpSignalConversionAtSFunctionI[0];
 
@@ -707,10 +707,10 @@ void stateEstimatorEskf::state_enter_atomic_RUN_INIT_GPS(enumStateEstimateMode
   latLonAltOut[0] = rtu_gpsData->latLonAlt[0];
   stateEstimatorEskf_DW.refLatLonAlt[1] = 0.0;
 
-  // Product: '<S6>/Product'
+  // Product: '<S7>/Product'
   stateEstimatorEskf_DW.sensorDataOut.bodyAccels_mps2[1] = Product[1];
 
-  // SignalConversion generated from: '<S7>/ SFunction '
+  // SignalConversion generated from: '<S8>/ SFunction '
   stateEstimatorEskf_DW.sensorDataOut.bodyRates_radps[1] =
     stateEstimatorEskf_DW.TmpSignalConversionAtSFunctionI[1];
 
@@ -721,10 +721,10 @@ void stateEstimatorEskf::state_enter_atomic_RUN_INIT_GPS(enumStateEstimateMode
   latLonAltOut[1] = rtu_gpsData->latLonAlt[1];
   stateEstimatorEskf_DW.refLatLonAlt[2] = 0.0;
 
-  // Product: '<S6>/Product'
+  // Product: '<S7>/Product'
   stateEstimatorEskf_DW.sensorDataOut.bodyAccels_mps2[2] = Product[2];
 
-  // SignalConversion generated from: '<S7>/ SFunction '
+  // SignalConversion generated from: '<S8>/ SFunction '
   stateEstimatorEskf_DW.sensorDataOut.bodyRates_radps[2] =
     stateEstimatorEskf_DW.TmpSignalConversionAtSFunctionI[2];
 
@@ -734,16 +734,16 @@ void stateEstimatorEskf::state_enter_atomic_RUN_INIT_GPS(enumStateEstimateMode
   // Chart: '<Root>/estimatorStateMachine'
   latLonAltOut[2] = rtu_gpsData->latLonAlt[2];
 
-  // '<S7>:64:17' sensorDataOut.sensorValidity.isGpsValid = isGpsDataValid;
+  // '<S8>:64:17' sensorDataOut.sensorValidity.isGpsValid = isGpsDataValid;
   stateEstimatorEskf_DW.sensorDataOut.sensorValidity.isGpsValid =
     rtu_gpsData->isGpsDataValid;
 
-  // '<S7>:64:18' sensorDataOut.baroAlt_m = baroPressAlt_m - baroInitAltMean;
+  // '<S8>:64:18' sensorDataOut.baroAlt_m = baroPressAlt_m - baroInitAltMean;
   stateEstimatorEskf_DW.sensorDataOut.baroAlt_m = *Divide1 -
     stateEstimatorEskf_DW.baroInitAltMean;
 
   // Chart: '<Root>/estimatorStateMachine'
-  // '<S7>:64:19' sensorDataOut.sensorValidity.isBaroValid = isBaroDataValid;
+  // '<S8>:64:19' sensorDataOut.sensorValidity.isBaroValid = isBaroDataValid;
   stateEstimatorEskf_DW.sensorDataOut.sensorValidity.isBaroValid =
     rtu_baroData->isBaroDataValid;
 
@@ -3045,6 +3045,7 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
   real32_T rtb_VectorConcatenate1_0[3];
   real32_T VectorConcatenate[2];
   real32_T rtb_VectorConcatenate_k2[2];
+  real32_T q1q3;
   real32_T q2q3;
   real32_T rtb_Merge_idx_0;
   real32_T rtb_Merge_idx_0_tmp;
@@ -3054,7 +3055,6 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
   real32_T rtb_Merge_idx_1;
   real32_T rtb_Product2_c;
   real32_T rtb_Product3_l;
-  real32_T rtb_Sum_m1_idx_1;
   real32_T rtb_Sum_m1_idx_2;
   real32_T rtb_UnitDelay_g;
   real32_T rtb_XAxis;
@@ -3074,10 +3074,10 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
   boolean_T dhSensorIn_sensorValidity_isOfV;
   boolean_T gpsLossFlag;
   boolean_T imuReady;
-  boolean_T mtf01pDistValidityFlag;
   boolean_T rtb_Compare;
   boolean_T rtb_ekfDebugOut_isAidingUsed__0;
   boolean_T rtb_ekfDebugOut_isAidingUsed__1;
+  boolean_T rtb_ekfDebugOut_isAidingUsed__2;
   boolean_T stateModeReady;
   enumDhFifoStatus status;
   enumStateEstimateMode estSmModeOut;
@@ -3098,7 +3098,7 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
   boolean_T guard2;
   boolean_T guard3;
 
-  // DiscreteTransferFcn: '<S65>/X Axis'
+  // DiscreteTransferFcn: '<S66>/X Axis'
   stateEstimatorEskf_DW.XAxis_tmp = (rtu_imuData->bodyAccels_mps2[0] -
     stateEstimatorEskf_DW.XAxis_states[0] *
     rtu_imuNotchFiltParams->accelNtchFilt.xDen[1]) -
@@ -3111,7 +3111,7 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
     stateEstimatorEskf_DW.XAxis_states[1] *
     rtu_imuNotchFiltParams->accelNtchFilt.xNum[2];
 
-  // DiscreteTransferFcn: '<S65>/X Axis1'
+  // DiscreteTransferFcn: '<S66>/X Axis1'
   stateEstimatorEskf_DW.XAxis1_tmp = (rtu_imuData->bodyAccels_mps2[1] -
     stateEstimatorEskf_DW.XAxis1_states[0] *
     rtu_imuNotchFiltParams->accelNtchFilt.yDen[1]) -
@@ -3124,7 +3124,7 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
     stateEstimatorEskf_DW.XAxis1_states[1] *
     rtu_imuNotchFiltParams->accelNtchFilt.yNum[2];
 
-  // DiscreteTransferFcn: '<S65>/X Axis2'
+  // DiscreteTransferFcn: '<S66>/X Axis2'
   stateEstimatorEskf_DW.XAxis2_tmp = (rtu_imuData->bodyAccels_mps2[2] -
     stateEstimatorEskf_DW.XAxis2_states[0] *
     rtu_imuNotchFiltParams->accelNtchFilt.zDen[1]) -
@@ -3137,10 +3137,10 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
     stateEstimatorEskf_DW.XAxis2_states[1] *
     rtu_imuNotchFiltParams->accelNtchFilt.zNum[2];
 
-  // Product: '<S6>/Product' incorporates:
-  //   Product: '<S6>/Matrix Multiply'
-  //   SignalConversion generated from: '<S6>/Matrix Multiply'
-  //   Sum: '<S6>/Sum'
+  // Product: '<S7>/Product' incorporates:
+  //   Product: '<S7>/Matrix Multiply'
+  //   SignalConversion generated from: '<S7>/Matrix Multiply'
+  //   Sum: '<S7>/Sum'
 
   Product[0] = (((rtu_accelParams->scaleAlignMat_nd[0] * rtb_Product2_c +
                   rtu_accelParams->scaleAlignMat_nd[3] * rtb_Product3_l) +
@@ -3155,7 +3155,7 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
                  rtu_accelParams->scaleAlignMat_nd[8] * rtb_UnitDelay_g) +
                 rtu_accelParams->offset_nd[2]) * *rtu_gEarth_mps2;
 
-  // DiscreteTransferFcn: '<S66>/X Axis'
+  // DiscreteTransferFcn: '<S67>/X Axis'
   stateEstimatorEskf_DW.XAxis_tmp_o = (rtu_imuData->bodyRates_radps[0] -
     stateEstimatorEskf_DW.XAxis_states_e[0] *
     rtu_imuNotchFiltParams->gyroNtchFilt.xDen[1]) -
@@ -3168,7 +3168,7 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
     stateEstimatorEskf_DW.XAxis_states_e[1] *
     rtu_imuNotchFiltParams->gyroNtchFilt.xNum[2];
 
-  // DiscreteTransferFcn: '<S66>/X Axis1'
+  // DiscreteTransferFcn: '<S67>/X Axis1'
   stateEstimatorEskf_DW.XAxis1_tmp_l = (rtu_imuData->bodyRates_radps[1] -
     stateEstimatorEskf_DW.XAxis1_states_a[0] *
     rtu_imuNotchFiltParams->gyroNtchFilt.yDen[1]) -
@@ -3181,7 +3181,7 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
     stateEstimatorEskf_DW.XAxis1_states_a[1] *
     rtu_imuNotchFiltParams->gyroNtchFilt.yNum[2];
 
-  // DiscreteTransferFcn: '<S66>/X Axis2'
+  // DiscreteTransferFcn: '<S67>/X Axis2'
   stateEstimatorEskf_DW.XAxis2_tmp_o = (rtu_imuData->bodyRates_radps[2] -
     stateEstimatorEskf_DW.XAxis2_states_j[0] *
     rtu_imuNotchFiltParams->gyroNtchFilt.zDen[1]) -
@@ -3196,23 +3196,22 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
 
   // Sum: '<S11>/Sum'
   rtb_Product2_c = rtu_magData->bodyMagVector_uT[0] - rtu_magParams->offset_uT[0];
-  rtb_UnitDelay_g = rtu_magData->bodyMagVector_uT[1] - rtu_magParams->offset_uT
-    [1];
-  rtb_Sum_m1_idx_2 = rtu_magData->bodyMagVector_uT[2] - rtu_magParams->
-    offset_uT[2];
+  rtb_Sum_m1_idx_2 = rtu_magData->bodyMagVector_uT[1] - rtu_magParams->
+    offset_uT[1];
+  q1q3 = rtu_magData->bodyMagVector_uT[2] - rtu_magParams->offset_uT[2];
 
   // Product: '<S11>/Matrix Multiply' incorporates:
   //   Sum: '<S72>/Sum'
 
   rtb_Product3_l = (rtu_magParams->scaleAlignMat_nd[0] * rtb_Product2_c +
-                    rtu_magParams->scaleAlignMat_nd[3] * rtb_UnitDelay_g) +
-    rtu_magParams->scaleAlignMat_nd[6] * rtb_Sum_m1_idx_2;
-  rtb_Sum_m1_idx_1 = (rtu_magParams->scaleAlignMat_nd[1] * rtb_Product2_c +
-                      rtu_magParams->scaleAlignMat_nd[4] * rtb_UnitDelay_g) +
-    rtu_magParams->scaleAlignMat_nd[7] * rtb_Sum_m1_idx_2;
+                    rtu_magParams->scaleAlignMat_nd[3] * rtb_Sum_m1_idx_2) +
+    rtu_magParams->scaleAlignMat_nd[6] * q1q3;
+  rtb_UnitDelay_g = (rtu_magParams->scaleAlignMat_nd[1] * rtb_Product2_c +
+                     rtu_magParams->scaleAlignMat_nd[4] * rtb_Sum_m1_idx_2) +
+    rtu_magParams->scaleAlignMat_nd[7] * q1q3;
   rtb_Sum_m1_idx_2 = (rtu_magParams->scaleAlignMat_nd[2] * rtb_Product2_c +
-                      rtu_magParams->scaleAlignMat_nd[5] * rtb_UnitDelay_g) +
-    rtu_magParams->scaleAlignMat_nd[8] * rtb_Sum_m1_idx_2;
+                      rtu_magParams->scaleAlignMat_nd[5] * rtb_Sum_m1_idx_2) +
+    rtu_magParams->scaleAlignMat_nd[8] * q1q3;
 
   // MinMax: '<S11>/Max' incorporates:
   //   Constant: '<S11>/Constant2'
@@ -3222,14 +3221,14 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
   //   Sum: '<S72>/Sum'
 
   rtb_Product2_c = std::fmax(std::sqrt((rtb_Product3_l * rtb_Product3_l +
-    rtb_Sum_m1_idx_1 * rtb_Sum_m1_idx_1) + rtb_Sum_m1_idx_2 * rtb_Sum_m1_idx_2),
+    rtb_UnitDelay_g * rtb_UnitDelay_g) + rtb_Sum_m1_idx_2 * rtb_Sum_m1_idx_2),
     1.0E-7F);
 
   // Product: '<S11>/Divide' incorporates:
   //   Sum: '<S72>/Sum'
 
   Divide[0] = rtb_Product3_l / rtb_Product2_c;
-  Divide[1] = rtb_Sum_m1_idx_1 / rtb_Product2_c;
+  Divide[1] = rtb_UnitDelay_g / rtb_Product2_c;
   Divide[2] = rtb_Sum_m1_idx_2 / rtb_Product2_c;
 
   // SignalConversion generated from: '<Root>/Vector Concatenate' incorporates:
@@ -3253,7 +3252,7 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
   rtb_Product2_c = (1.0F - std::pow(rtu_baroData->pressure_pa / 101325.0F,
     0.190294951F)) * 44330.0F;
 
-  // SignalConversion generated from: '<S7>/ SFunction ' incorporates:
+  // SignalConversion generated from: '<S8>/ SFunction ' incorporates:
   //   Chart: '<Root>/estimatorStateMachine'
 
   stateEstimatorEskf_DW.TmpSignalConversionAtSFunctionI[0] = rtb_XAxis;
@@ -3262,9 +3261,9 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
 
   // Chart: '<Root>/estimatorStateMachine' incorporates:
   //   Product: '<S11>/Divide'
-  //   Product: '<S6>/Product'
+  //   Product: '<S7>/Product'
   //   SignalConversion generated from: '<Root>/Vector Concatenate'
-  //   SignalConversion generated from: '<S7>/ SFunction '
+  //   SignalConversion generated from: '<S8>/ SFunction '
   //
   // Gateway: estimatorStateMachine
   // During: estimatorStateMachine
@@ -3273,23 +3272,23 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
     stateEstimatorEskf_DW.is_active_c3_stateEstimatorEskf = 1U;
 
     // Entry Internal: estimatorStateMachine
-    // Transition: '<S7>:2'
+    // Transition: '<S8>:2'
     stateEstimatorEskf_DW.is_c3_stateEstimatorEskf =
       stateEstimatorEsk_IN_INITIALIZE;
 
-    // Entry 'INITIALIZE': '<S7>:1'
+    // Entry 'INITIALIZE': '<S8>:1'
     // Variables to set on entry
-    // '<S7>:1:4' mode = enumStateEstimateMode.INITIALIZE;
+    // '<S8>:1:4' mode = enumStateEstimateMode.INITIALIZE;
     mode = enumStateEstimateMode::INITIALIZE;
 
-    // '<S7>:1:5' sensorDataOut.bodyAccels_mps2 = filtBodyAccelsIn_mps2;
-    // '<S7>:1:6' sensorDataOut.bodyRates_radps = filtBodyRatesIn_radps;
-    // '<S7>:1:7' sensorDataOut.normMagVec_nd = normMagVecIn_nd;
-    // '<S7>:1:8' sensorDataOut.sensorValidity.isMagValid = isMagDataValid;
+    // '<S8>:1:5' sensorDataOut.bodyAccels_mps2 = filtBodyAccelsIn_mps2;
+    // '<S8>:1:6' sensorDataOut.bodyRates_radps = filtBodyRatesIn_radps;
+    // '<S8>:1:7' sensorDataOut.normMagVec_nd = normMagVecIn_nd;
+    // '<S8>:1:8' sensorDataOut.sensorValidity.isMagValid = isMagDataValid;
     stateEstimatorEskf_DW.sensorDataOut.sensorValidity.isMagValid =
       rtu_magData->isMagDataValid;
 
-    // '<S7>:1:9' latLonAltOut = latLonAltIn;
+    // '<S8>:1:9' latLonAltOut = latLonAltIn;
     stateEstimatorEskf_DW.sensorDataOut.bodyAccels_mps2[0] = Product[0];
     stateEstimatorEskf_DW.sensorDataOut.bodyRates_radps[0] =
       stateEstimatorEskf_DW.TmpSignalConversionAtSFunctionI[0];
@@ -3306,26 +3305,26 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
     stateEstimatorEskf_DW.sensorDataOut.normMagVec_nd[2] = Divide[2];
     latLonAltOut[2] = rtu_gpsData->latLonAlt[2];
 
-    // '<S7>:1:10' sensorDataOut.sensorValidity.isGpsValid = isGpsDataValid;
+    // '<S8>:1:10' sensorDataOut.sensorValidity.isGpsValid = isGpsDataValid;
     stateEstimatorEskf_DW.sensorDataOut.sensorValidity.isGpsValid =
       rtu_gpsData->isGpsDataValid;
 
-    // '<S7>:1:11' sensorDataOut.baroAlt_m = 0;
+    // '<S8>:1:11' sensorDataOut.baroAlt_m = 0;
     stateEstimatorEskf_DW.sensorDataOut.baroAlt_m = 0.0F;
 
-    // '<S7>:1:12' sensorDataOut.sensorValidity.isBaroValid = isBaroDataValid;
+    // '<S8>:1:12' sensorDataOut.sensorValidity.isBaroValid = isBaroDataValid;
     stateEstimatorEskf_DW.sensorDataOut.sensorValidity.isBaroValid =
       rtu_baroData->isBaroDataValid;
 
-    // '<S7>:1:13' resetStates = true;
+    // '<S8>:1:13' resetStates = true;
     stateEstimatorEskf_DW.resetStates = true;
 
     //  Index to keep track of how many imu readings we have summed
     //  so far
-    // '<S7>:1:16' imuIdx = 0;
+    // '<S8>:1:16' imuIdx = 0;
     stateEstimatorEskf_DW.imuIdx = 0.0F;
 
-    // '<S7>:1:17' imuMean = [0; 0; 0; 0; 0; 0];
+    // '<S8>:1:17' imuMean = [0; 0; 0; 0; 0; 0];
     stateEstimatorEskf_DW.imuMean[0] = 0.0F;
     stateEstimatorEskf_DW.imuMean[1] = 0.0F;
     stateEstimatorEskf_DW.imuMean[2] = 0.0F;
@@ -3333,8 +3332,8 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
     stateEstimatorEskf_DW.imuMean[4] = 0.0F;
     stateEstimatorEskf_DW.imuMean[5] = 0.0F;
 
-    // '<S7>:1:18' accelBias_mps2 = [0; 0; 0];
-    // '<S7>:1:19' gyroBias_radps = [0; 0; 0];
+    // '<S8>:1:18' accelBias_mps2 = [0; 0; 0];
+    // '<S8>:1:19' gyroBias_radps = [0; 0; 0];
     stateEstimatorEskf_DW.accelBias_mps2[0] = 0.0F;
     stateEstimatorEskf_DW.gyroBias_radps[0] = 0.0F;
     stateEstimatorEskf_DW.accelBias_mps2[1] = 0.0F;
@@ -3342,7 +3341,7 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
     stateEstimatorEskf_DW.accelBias_mps2[2] = 0.0F;
     stateEstimatorEskf_DW.gyroBias_radps[2] = 0.0F;
 
-    // '<S7>:1:20' imuM2 = [0; 0; 0; 0; 0; 0];
+    // '<S8>:1:20' imuM2 = [0; 0; 0; 0; 0; 0];
     stateEstimatorEskf_DW.imuM2[0] = 0.0F;
     stateEstimatorEskf_DW.imuM2[1] = 0.0F;
     stateEstimatorEskf_DW.imuM2[2] = 0.0F;
@@ -3350,30 +3349,30 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
     stateEstimatorEskf_DW.imuM2[4] = 0.0F;
     stateEstimatorEskf_DW.imuM2[5] = 0.0F;
 
-    // '<S7>:1:21' initialQuat = [1; 0; 0; 0];
+    // '<S8>:1:21' initialQuat = [1; 0; 0; 0];
     stateEstimatorEskf_DW.initialQuat[0] = 1.0F;
     stateEstimatorEskf_DW.initialQuat[1] = 0.0F;
     stateEstimatorEskf_DW.initialQuat[2] = 0.0F;
     stateEstimatorEskf_DW.initialQuat[3] = 0.0F;
 
-    // '<S7>:1:22' isAttInitialized = false;
+    // '<S8>:1:22' isAttInitialized = false;
     stateEstimatorEskf_DW.isAttInitialized = false;
 
     //  Index to keep track of how many mag readings we have summed
     //  so far
-    // '<S7>:1:25' magIdx = 0;
+    // '<S8>:1:25' magIdx = 0;
     stateEstimatorEskf_DW.magIdx = 0.0F;
 
-    // '<S7>:1:26' magMean = [0; 0; 0];
-    // '<S7>:1:27' magM2 = [0; 0; 0];
-    // '<S7>:1:28' magBias_nd = [0; 0; 0];
-    // '<S7>:1:29' nedMagVecNorm_nd = [0; 0; 0];
+    // '<S8>:1:26' magMean = [0; 0; 0];
+    // '<S8>:1:27' magM2 = [0; 0; 0];
+    // '<S8>:1:28' magBias_nd = [0; 0; 0];
+    // '<S8>:1:29' nedMagVecNorm_nd = [0; 0; 0];
     //  Index to keep track of how many gps readings we have summed
     //  so far
-    // '<S7>:1:32' gpsIdx = 0;
+    // '<S8>:1:32' gpsIdx = 0;
     stateEstimatorEskf_DW.gpsIdx = 0.0;
 
-    // '<S7>:1:33' refLatLonAlt = [0; 0; 0];
+    // '<S8>:1:33' refLatLonAlt = [0; 0; 0];
     stateEstimatorEskf_DW.magMean[0] = 0.0F;
     stateEstimatorEskf_DW.magM2[0] = 0.0F;
     stateEstimatorEskf_DW.magBias_nd[0] = 0.0F;
@@ -3387,24 +3386,24 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
     stateEstimatorEskf_DW.magBias_nd[2] = 0.0F;
     stateEstimatorEskf_DW.refLatLonAlt[2] = 0.0;
 
-    // '<S7>:1:34' isPosInitialized = false;
+    // '<S8>:1:34' isPosInitialized = false;
     stateEstimatorEskf_DW.isPosInitialized = false;
 
     //  Index to keep track of how many baro readings we have summed
     //  so far
-    // '<S7>:1:37' baroIdx = 0;
+    // '<S8>:1:37' baroIdx = 0;
     stateEstimatorEskf_DW.baroIdx = 0.0F;
 
-    // '<S7>:1:38' baroInitAltMean = 0;
+    // '<S8>:1:38' baroInitAltMean = 0;
     stateEstimatorEskf_DW.baroInitAltMean = 0.0F;
 
-    // '<S7>:1:39' baroInitAltM2 = 0;
+    // '<S8>:1:39' baroInitAltM2 = 0;
     stateEstimatorEskf_DW.baroInitAltM2 = 0.0F;
 
-    // '<S7>:1:40' baroBias_m = 0;
+    // '<S8>:1:40' baroBias_m = 0;
     stateEstimatorEskf_DW.baroBias_m = 0.0F;
 
-    // '<S7>:1:41' isBaroInitialized = false;
+    // '<S8>:1:41' isBaroInitialized = false;
     stateEstimatorEskf_DW.isBaroInitialized = false;
 
     // End of entry stage
@@ -3420,35 +3419,35 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
       stateEstimatorEskf_DW.resetStates = false;
       mode = enumStateEstimateMode::RUN;
 
-      // During 'RUN': '<S7>:43'
-      // '<S7>:68:1' sf_internal_predicateOutput = 0 | (duration(~isGpsDataValid) >=  ... 
-      // '<S7>:68:2' stateEstSmParams.gpsLossCheckDuration_s);
+      // During 'RUN': '<S8>:43'
+      // '<S8>:68:1' sf_internal_predicateOutput = 0 | (duration(~isGpsDataValid) >=  ... 
+      // '<S8>:68:2' stateEstSmParams.gpsLossCheckDuration_s);
       if (rtu_gpsData->isGpsDataValid) {
         stateEstimatorEskf_DW.durationCounter_1 = 0U;
       }
 
       if (static_cast<real_T>(stateEstimatorEskf_DW.durationCounter_1) >=
           rtu_stateEstSmParams->gpsLossCheckDuration_s * 250.0F) {
-        // Transition: '<S7>:68'
+        // Transition: '<S8>:68'
         stateEstimatorEskf_DW.is_c3_stateEstimatorEskf =
           stateEstimatorE_IN_RUN_GPS_LOST;
 
-        // Entry 'RUN_GPS_LOST': '<S7>:67'
+        // Entry 'RUN_GPS_LOST': '<S8>:67'
         // GPS WAS LOST
-        // '<S7>:67:4' gpsValidCount = 0;
+        // '<S8>:67:4' gpsValidCount = 0;
         stateEstimatorEskf_DW.gpsValidCount = 0U;
 
-        // '<S7>:67:5' mode = enumStateEstimateMode.RUN_GPS_LOST;
+        // '<S8>:67:5' mode = enumStateEstimateMode.RUN_GPS_LOST;
         mode = enumStateEstimateMode::RUN_GPS_LOST;
 
-        // '<S7>:67:6' sensorDataOut.bodyAccels_mps2 = filtBodyAccelsIn_mps2;
-        // '<S7>:67:7' sensorDataOut.bodyRates_radps = filtBodyRatesIn_radps;
-        // '<S7>:67:8' sensorDataOut.normMagVec_nd = normMagVecIn_nd;
-        // '<S7>:67:9' sensorDataOut.sensorValidity.isMagValid = isMagDataValid; 
+        // '<S8>:67:6' sensorDataOut.bodyAccels_mps2 = filtBodyAccelsIn_mps2;
+        // '<S8>:67:7' sensorDataOut.bodyRates_radps = filtBodyRatesIn_radps;
+        // '<S8>:67:8' sensorDataOut.normMagVec_nd = normMagVecIn_nd;
+        // '<S8>:67:9' sensorDataOut.sensorValidity.isMagValid = isMagDataValid; 
         stateEstimatorEskf_DW.sensorDataOut.sensorValidity.isMagValid =
           rtu_magData->isMagDataValid;
 
-        // '<S7>:67:10' latLonAltOut = latLonAltIn;
+        // '<S8>:67:10' latLonAltOut = latLonAltIn;
         stateEstimatorEskf_DW.sensorDataOut.bodyAccels_mps2[0] = Product[0];
         stateEstimatorEskf_DW.sensorDataOut.bodyRates_radps[0] =
           stateEstimatorEskf_DW.TmpSignalConversionAtSFunctionI[0];
@@ -3465,29 +3464,29 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
         stateEstimatorEskf_DW.sensorDataOut.normMagVec_nd[2] = Divide[2];
         latLonAltOut[2] = rtu_gpsData->latLonAlt[2];
 
-        // '<S7>:67:11' sensorDataOut.sensorValidity.isGpsValid = isGpsDataValid; 
+        // '<S8>:67:11' sensorDataOut.sensorValidity.isGpsValid = isGpsDataValid; 
         stateEstimatorEskf_DW.sensorDataOut.sensorValidity.isGpsValid =
           rtu_gpsData->isGpsDataValid;
 
-        // '<S7>:67:12' sensorDataOut.baroAlt_m = baroPressAlt_m - baroInitAltMean; 
+        // '<S8>:67:12' sensorDataOut.baroAlt_m = baroPressAlt_m - baroInitAltMean; 
         stateEstimatorEskf_DW.sensorDataOut.baroAlt_m = rtb_Product2_c -
           stateEstimatorEskf_DW.baroInitAltMean;
 
-        // '<S7>:67:13' sensorDataOut.sensorValidity.isBaroValid = isBaroDataValid; 
+        // '<S8>:67:13' sensorDataOut.sensorValidity.isBaroValid = isBaroDataValid; 
         stateEstimatorEskf_DW.sensorDataOut.sensorValidity.isBaroValid =
           rtu_baroData->isBaroDataValid;
 
         //
       } else {
         // FULL EKF WITH GPS IS RUNNING
-        // '<S7>:43:16' sensorDataOut.bodyAccels_mps2 = filtBodyAccelsIn_mps2;
-        // '<S7>:43:17' sensorDataOut.bodyRates_radps = filtBodyRatesIn_radps;
-        // '<S7>:43:18' sensorDataOut.normMagVec_nd = normMagVecIn_nd;
-        // '<S7>:43:19' sensorDataOut.sensorValidity.isMagValid = isMagDataValid; 
+        // '<S8>:43:16' sensorDataOut.bodyAccels_mps2 = filtBodyAccelsIn_mps2;
+        // '<S8>:43:17' sensorDataOut.bodyRates_radps = filtBodyRatesIn_radps;
+        // '<S8>:43:18' sensorDataOut.normMagVec_nd = normMagVecIn_nd;
+        // '<S8>:43:19' sensorDataOut.sensorValidity.isMagValid = isMagDataValid; 
         stateEstimatorEskf_DW.sensorDataOut.sensorValidity.isMagValid =
           rtu_magData->isMagDataValid;
 
-        // '<S7>:43:20' latLonAltOut = latLonAltIn;
+        // '<S8>:43:20' latLonAltOut = latLonAltIn;
         stateEstimatorEskf_DW.sensorDataOut.bodyAccels_mps2[0] = Product[0];
         stateEstimatorEskf_DW.sensorDataOut.bodyRates_radps[0] =
           stateEstimatorEskf_DW.TmpSignalConversionAtSFunctionI[0];
@@ -3504,15 +3503,15 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
         stateEstimatorEskf_DW.sensorDataOut.normMagVec_nd[2] = Divide[2];
         latLonAltOut[2] = rtu_gpsData->latLonAlt[2];
 
-        // '<S7>:43:21' sensorDataOut.sensorValidity.isGpsValid = isGpsDataValid; 
+        // '<S8>:43:21' sensorDataOut.sensorValidity.isGpsValid = isGpsDataValid; 
         stateEstimatorEskf_DW.sensorDataOut.sensorValidity.isGpsValid =
           rtu_gpsData->isGpsDataValid;
 
-        // '<S7>:43:22' sensorDataOut.baroAlt_m = baroPressAlt_m - baroInitAltMean; 
+        // '<S8>:43:22' sensorDataOut.baroAlt_m = baroPressAlt_m - baroInitAltMean; 
         stateEstimatorEskf_DW.sensorDataOut.baroAlt_m = rtb_Product2_c -
           stateEstimatorEskf_DW.baroInitAltMean;
 
-        // '<S7>:43:23' sensorDataOut.sensorValidity.isBaroValid = isBaroDataValid; 
+        // '<S8>:43:23' sensorDataOut.sensorValidity.isBaroValid = isBaroDataValid; 
         stateEstimatorEskf_DW.sensorDataOut.sensorValidity.isBaroValid =
           rtu_baroData->isBaroDataValid;
       }
@@ -3521,11 +3520,11 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
      case stateEstimatorE_IN_RUN_GPS_LOST:
       mode = enumStateEstimateMode::RUN_GPS_LOST;
 
-      // During 'RUN_GPS_LOST': '<S7>:67'
-      // '<S7>:71:1' sf_internal_predicateOutput = 0 | (gpsValidCount >= stateEstSmParams.desValidGpsCount); 
+      // During 'RUN_GPS_LOST': '<S8>:67'
+      // '<S8>:71:1' sf_internal_predicateOutput = 0 | (gpsValidCount >= stateEstSmParams.desValidGpsCount); 
       if (stateEstimatorEskf_DW.gpsValidCount >=
           rtu_stateEstSmParams->desValidGpsCount) {
-        // Transition: '<S7>:71'
+        // Transition: '<S8>:71'
         stateEstimatorEskf_DW.durationCounter_1_g = 0U;
         stateEstimatorEskf_DW.is_c3_stateEstimatorEskf =
           stateEstimatorE_IN_RUN_INIT_GPS;
@@ -3533,14 +3532,14 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
           Product, Divide, rtu_magData, rtu_gpsData, rtu_baroData);
       } else {
         // GPS WAS LOST
-        // '<S7>:67:16' sensorDataOut.bodyAccels_mps2 = filtBodyAccelsIn_mps2;
-        // '<S7>:67:17' sensorDataOut.bodyRates_radps = filtBodyRatesIn_radps;
-        // '<S7>:67:18' sensorDataOut.normMagVec_nd = normMagVecIn_nd;
-        // '<S7>:67:19' sensorDataOut.sensorValidity.isMagValid = isMagDataValid; 
+        // '<S8>:67:16' sensorDataOut.bodyAccels_mps2 = filtBodyAccelsIn_mps2;
+        // '<S8>:67:17' sensorDataOut.bodyRates_radps = filtBodyRatesIn_radps;
+        // '<S8>:67:18' sensorDataOut.normMagVec_nd = normMagVecIn_nd;
+        // '<S8>:67:19' sensorDataOut.sensorValidity.isMagValid = isMagDataValid; 
         stateEstimatorEskf_DW.sensorDataOut.sensorValidity.isMagValid =
           rtu_magData->isMagDataValid;
 
-        // '<S7>:67:20' latLonAltOut = latLonAltIn;
+        // '<S8>:67:20' latLonAltOut = latLonAltIn;
         stateEstimatorEskf_DW.sensorDataOut.bodyAccels_mps2[0] = Product[0];
         stateEstimatorEskf_DW.sensorDataOut.bodyRates_radps[0] =
           stateEstimatorEskf_DW.TmpSignalConversionAtSFunctionI[0];
@@ -3557,22 +3556,22 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
         stateEstimatorEskf_DW.sensorDataOut.normMagVec_nd[2] = Divide[2];
         latLonAltOut[2] = rtu_gpsData->latLonAlt[2];
 
-        // '<S7>:67:21' sensorDataOut.sensorValidity.isGpsValid = isGpsDataValid; 
+        // '<S8>:67:21' sensorDataOut.sensorValidity.isGpsValid = isGpsDataValid; 
         stateEstimatorEskf_DW.sensorDataOut.sensorValidity.isGpsValid =
           rtu_gpsData->isGpsDataValid;
 
-        // '<S7>:67:22' sensorDataOut.baroAlt_m = baroPressAlt_m - baroInitAltMean; 
+        // '<S8>:67:22' sensorDataOut.baroAlt_m = baroPressAlt_m - baroInitAltMean; 
         stateEstimatorEskf_DW.sensorDataOut.baroAlt_m = rtb_Product2_c -
           stateEstimatorEskf_DW.baroInitAltMean;
 
-        // '<S7>:67:23' sensorDataOut.sensorValidity.isBaroValid = isBaroDataValid; 
+        // '<S8>:67:23' sensorDataOut.sensorValidity.isBaroValid = isBaroDataValid; 
         stateEstimatorEskf_DW.sensorDataOut.sensorValidity.isBaroValid =
           rtu_baroData->isBaroDataValid;
 
         //
-        // '<S7>:67:25' if(isGpsDataValid)
+        // '<S8>:67:25' if(isGpsDataValid)
         if (rtu_gpsData->isGpsDataValid) {
-          // '<S7>:67:26' gpsValidCount = gpsValidCount + 1;
+          // '<S8>:67:26' gpsValidCount = gpsValidCount + 1;
           stateEstimatorEskf_DW.gpsValidCount = static_cast<uint16_T>
             (stateEstimatorEskf_DW.gpsValidCount + 1);
         }
@@ -3583,45 +3582,45 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
       stateEstimatorEskf_DW.resetStates = false;
       mode = enumStateEstimateMode::RUN_GPS_NOT_INIT;
 
-      // During 'RUN_GPS_NOT_INIT': '<S7>:62'
-      // '<S7>:65:1' sf_internal_predicateOutput = 0 | (gpsValidCount >= stateEstSmParams.desValidGpsCount); 
+      // During 'RUN_GPS_NOT_INIT': '<S8>:62'
+      // '<S8>:65:1' sf_internal_predicateOutput = 0 | (gpsValidCount >= stateEstSmParams.desValidGpsCount); 
       if (stateEstimatorEskf_DW.gpsValidCount >=
           rtu_stateEstSmParams->desValidGpsCount) {
-        // Transition: '<S7>:65'
+        // Transition: '<S8>:65'
         stateEstimatorEskf_DW.durationCounter_1_g = 0U;
         stateEstimatorEskf_DW.is_c3_stateEstimatorEskf =
           stateEstimatorE_IN_RUN_INIT_GPS;
         state_enter_atomic_RUN_INIT_GPS(&mode, latLonAltOut, &rtb_Product2_c,
           Product, Divide, rtu_magData, rtu_gpsData, rtu_baroData);
       } else {
-        // '<S7>:73:1' sf_internal_predicateOutput = 0 | (duration(~isGpsDataValid) >=  ... 
-        // '<S7>:73:2' stateEstSmParams.gpsLossCheckDuration_s);
+        // '<S8>:73:1' sf_internal_predicateOutput = 0 | (duration(~isGpsDataValid) >=  ... 
+        // '<S8>:73:2' stateEstSmParams.gpsLossCheckDuration_s);
         if (rtu_gpsData->isGpsDataValid) {
           stateEstimatorEskf_DW.durationCounter_1_n = 0U;
         }
 
         if (static_cast<real_T>(stateEstimatorEskf_DW.durationCounter_1_n) >=
             rtu_stateEstSmParams->gpsLossCheckDuration_s * 250.0F) {
-          // Transition: '<S7>:73'
+          // Transition: '<S8>:73'
           stateEstimatorEskf_DW.is_c3_stateEstimatorEskf =
             stateEstimatorE_IN_RUN_GPS_LOST;
 
-          // Entry 'RUN_GPS_LOST': '<S7>:67'
+          // Entry 'RUN_GPS_LOST': '<S8>:67'
           // GPS WAS LOST
-          // '<S7>:67:4' gpsValidCount = 0;
+          // '<S8>:67:4' gpsValidCount = 0;
           stateEstimatorEskf_DW.gpsValidCount = 0U;
 
-          // '<S7>:67:5' mode = enumStateEstimateMode.RUN_GPS_LOST;
+          // '<S8>:67:5' mode = enumStateEstimateMode.RUN_GPS_LOST;
           mode = enumStateEstimateMode::RUN_GPS_LOST;
 
-          // '<S7>:67:6' sensorDataOut.bodyAccels_mps2 = filtBodyAccelsIn_mps2;
-          // '<S7>:67:7' sensorDataOut.bodyRates_radps = filtBodyRatesIn_radps;
-          // '<S7>:67:8' sensorDataOut.normMagVec_nd = normMagVecIn_nd;
-          // '<S7>:67:9' sensorDataOut.sensorValidity.isMagValid = isMagDataValid; 
+          // '<S8>:67:6' sensorDataOut.bodyAccels_mps2 = filtBodyAccelsIn_mps2;
+          // '<S8>:67:7' sensorDataOut.bodyRates_radps = filtBodyRatesIn_radps;
+          // '<S8>:67:8' sensorDataOut.normMagVec_nd = normMagVecIn_nd;
+          // '<S8>:67:9' sensorDataOut.sensorValidity.isMagValid = isMagDataValid; 
           stateEstimatorEskf_DW.sensorDataOut.sensorValidity.isMagValid =
             rtu_magData->isMagDataValid;
 
-          // '<S7>:67:10' latLonAltOut = latLonAltIn;
+          // '<S8>:67:10' latLonAltOut = latLonAltIn;
           stateEstimatorEskf_DW.sensorDataOut.bodyAccels_mps2[0] = Product[0];
           stateEstimatorEskf_DW.sensorDataOut.bodyRates_radps[0] =
             stateEstimatorEskf_DW.TmpSignalConversionAtSFunctionI[0];
@@ -3638,29 +3637,29 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
           stateEstimatorEskf_DW.sensorDataOut.normMagVec_nd[2] = Divide[2];
           latLonAltOut[2] = rtu_gpsData->latLonAlt[2];
 
-          // '<S7>:67:11' sensorDataOut.sensorValidity.isGpsValid = isGpsDataValid; 
+          // '<S8>:67:11' sensorDataOut.sensorValidity.isGpsValid = isGpsDataValid; 
           stateEstimatorEskf_DW.sensorDataOut.sensorValidity.isGpsValid =
             rtu_gpsData->isGpsDataValid;
 
-          // '<S7>:67:12' sensorDataOut.baroAlt_m = baroPressAlt_m - baroInitAltMean; 
+          // '<S8>:67:12' sensorDataOut.baroAlt_m = baroPressAlt_m - baroInitAltMean; 
           stateEstimatorEskf_DW.sensorDataOut.baroAlt_m = rtb_Product2_c -
             stateEstimatorEskf_DW.baroInitAltMean;
 
-          // '<S7>:67:13' sensorDataOut.sensorValidity.isBaroValid = isBaroDataValid; 
+          // '<S8>:67:13' sensorDataOut.sensorValidity.isBaroValid = isBaroDataValid; 
           stateEstimatorEskf_DW.sensorDataOut.sensorValidity.isBaroValid =
             rtu_baroData->isBaroDataValid;
 
           //
         } else {
           // EKF STARTED RUNNING WITHOUT GPS
-          // '<S7>:62:18' sensorDataOut.bodyAccels_mps2 = filtBodyAccelsIn_mps2; 
-          // '<S7>:62:19' sensorDataOut.bodyRates_radps = filtBodyRatesIn_radps; 
-          // '<S7>:62:20' sensorDataOut.normMagVec_nd = normMagVecIn_nd;
-          // '<S7>:62:21' sensorDataOut.sensorValidity.isMagValid = isMagDataValid; 
+          // '<S8>:62:18' sensorDataOut.bodyAccels_mps2 = filtBodyAccelsIn_mps2; 
+          // '<S8>:62:19' sensorDataOut.bodyRates_radps = filtBodyRatesIn_radps; 
+          // '<S8>:62:20' sensorDataOut.normMagVec_nd = normMagVecIn_nd;
+          // '<S8>:62:21' sensorDataOut.sensorValidity.isMagValid = isMagDataValid; 
           stateEstimatorEskf_DW.sensorDataOut.sensorValidity.isMagValid =
             rtu_magData->isMagDataValid;
 
-          // '<S7>:62:22' latLonAltOut = latLonAltIn;
+          // '<S8>:62:22' latLonAltOut = latLonAltIn;
           stateEstimatorEskf_DW.sensorDataOut.bodyAccels_mps2[0] = Product[0];
           stateEstimatorEskf_DW.sensorDataOut.bodyRates_radps[0] =
             stateEstimatorEskf_DW.TmpSignalConversionAtSFunctionI[0];
@@ -3677,22 +3676,22 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
           stateEstimatorEskf_DW.sensorDataOut.normMagVec_nd[2] = Divide[2];
           latLonAltOut[2] = rtu_gpsData->latLonAlt[2];
 
-          // '<S7>:62:23' sensorDataOut.sensorValidity.isGpsValid = isGpsDataValid; 
+          // '<S8>:62:23' sensorDataOut.sensorValidity.isGpsValid = isGpsDataValid; 
           stateEstimatorEskf_DW.sensorDataOut.sensorValidity.isGpsValid =
             rtu_gpsData->isGpsDataValid;
 
-          // '<S7>:62:24' sensorDataOut.baroAlt_m = baroPressAlt_m - baroInitAltMean; 
+          // '<S8>:62:24' sensorDataOut.baroAlt_m = baroPressAlt_m - baroInitAltMean; 
           stateEstimatorEskf_DW.sensorDataOut.baroAlt_m = rtb_Product2_c -
             stateEstimatorEskf_DW.baroInitAltMean;
 
-          // '<S7>:62:25' sensorDataOut.sensorValidity.isBaroValid = isBaroDataValid; 
+          // '<S8>:62:25' sensorDataOut.sensorValidity.isBaroValid = isBaroDataValid; 
           stateEstimatorEskf_DW.sensorDataOut.sensorValidity.isBaroValid =
             rtu_baroData->isBaroDataValid;
 
           //
-          // '<S7>:62:27' if(isGpsDataValid)
+          // '<S8>:62:27' if(isGpsDataValid)
           if (rtu_gpsData->isGpsDataValid) {
-            // '<S7>:62:28' gpsValidCount = gpsValidCount + 1;
+            // '<S8>:62:28' gpsValidCount = gpsValidCount + 1;
             stateEstimatorEskf_DW.gpsValidCount = static_cast<uint16_T>
               (stateEstimatorEskf_DW.gpsValidCount + 1);
           }
@@ -3703,30 +3702,30 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
      default:
       mode = enumStateEstimateMode::RUN_INIT_GPS;
 
-      // During 'RUN_INIT_GPS': '<S7>:64'
-      // '<S7>:66:1' sf_internal_predicateOutput = 0 | (isPosInitialized);
+      // During 'RUN_INIT_GPS': '<S8>:64'
+      // '<S8>:66:1' sf_internal_predicateOutput = 0 | (isPosInitialized);
       if (stateEstimatorEskf_DW.isPosInitialized) {
-        // Transition: '<S7>:66'
+        // Transition: '<S8>:66'
         stateEstimatorEskf_DW.durationCounter_1 = 0U;
         stateEstimatorEskf_DW.is_c3_stateEstimatorEskf =
           stateEstimatorEskf_IN_RUN;
 
-        // Entry 'RUN': '<S7>:43'
+        // Entry 'RUN': '<S8>:43'
         // FULL EKF WITH GPS IS RUNNING
-        // '<S7>:43:4' resetStates = false;
+        // '<S8>:43:4' resetStates = false;
         stateEstimatorEskf_DW.resetStates = false;
 
-        // '<S7>:43:5' mode = enumStateEstimateMode.RUN;
+        // '<S8>:43:5' mode = enumStateEstimateMode.RUN;
         mode = enumStateEstimateMode::RUN;
 
-        // '<S7>:43:6' sensorDataOut.bodyAccels_mps2 = filtBodyAccelsIn_mps2;
-        // '<S7>:43:7' sensorDataOut.bodyRates_radps = filtBodyRatesIn_radps;
-        // '<S7>:43:8' sensorDataOut.normMagVec_nd = normMagVecIn_nd;
-        // '<S7>:43:9' sensorDataOut.sensorValidity.isMagValid = isMagDataValid; 
+        // '<S8>:43:6' sensorDataOut.bodyAccels_mps2 = filtBodyAccelsIn_mps2;
+        // '<S8>:43:7' sensorDataOut.bodyRates_radps = filtBodyRatesIn_radps;
+        // '<S8>:43:8' sensorDataOut.normMagVec_nd = normMagVecIn_nd;
+        // '<S8>:43:9' sensorDataOut.sensorValidity.isMagValid = isMagDataValid; 
         stateEstimatorEskf_DW.sensorDataOut.sensorValidity.isMagValid =
           rtu_magData->isMagDataValid;
 
-        // '<S7>:43:10' latLonAltOut = latLonAltIn;
+        // '<S8>:43:10' latLonAltOut = latLonAltIn;
         stateEstimatorEskf_DW.sensorDataOut.bodyAccels_mps2[0] = Product[0];
         stateEstimatorEskf_DW.sensorDataOut.bodyRates_radps[0] =
           stateEstimatorEskf_DW.TmpSignalConversionAtSFunctionI[0];
@@ -3743,48 +3742,48 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
         stateEstimatorEskf_DW.sensorDataOut.normMagVec_nd[2] = Divide[2];
         latLonAltOut[2] = rtu_gpsData->latLonAlt[2];
 
-        // '<S7>:43:11' sensorDataOut.sensorValidity.isGpsValid = isGpsDataValid; 
+        // '<S8>:43:11' sensorDataOut.sensorValidity.isGpsValid = isGpsDataValid; 
         stateEstimatorEskf_DW.sensorDataOut.sensorValidity.isGpsValid =
           rtu_gpsData->isGpsDataValid;
 
-        // '<S7>:43:12' sensorDataOut.baroAlt_m = baroPressAlt_m - baroInitAltMean; 
+        // '<S8>:43:12' sensorDataOut.baroAlt_m = baroPressAlt_m - baroInitAltMean; 
         stateEstimatorEskf_DW.sensorDataOut.baroAlt_m = rtb_Product2_c -
           stateEstimatorEskf_DW.baroInitAltMean;
 
-        // '<S7>:43:13' sensorDataOut.sensorValidity.isBaroValid = isBaroDataValid; 
+        // '<S8>:43:13' sensorDataOut.sensorValidity.isBaroValid = isBaroDataValid; 
         stateEstimatorEskf_DW.sensorDataOut.sensorValidity.isBaroValid =
           rtu_baroData->isBaroDataValid;
 
         //
       } else {
-        // '<S7>:70:1' sf_internal_predicateOutput = 0 | (duration(~isGpsDataValid) >=  ... 
-        // '<S7>:70:2' stateEstSmParams.gpsLossCheckDuration_s);
+        // '<S8>:70:1' sf_internal_predicateOutput = 0 | (duration(~isGpsDataValid) >=  ... 
+        // '<S8>:70:2' stateEstSmParams.gpsLossCheckDuration_s);
         if (rtu_gpsData->isGpsDataValid) {
           stateEstimatorEskf_DW.durationCounter_1_g = 0U;
         }
 
         if (static_cast<real_T>(stateEstimatorEskf_DW.durationCounter_1_g) >=
             rtu_stateEstSmParams->gpsLossCheckDuration_s * 250.0F) {
-          // Transition: '<S7>:70'
+          // Transition: '<S8>:70'
           stateEstimatorEskf_DW.is_c3_stateEstimatorEskf =
             stateEstimatorE_IN_RUN_GPS_LOST;
 
-          // Entry 'RUN_GPS_LOST': '<S7>:67'
+          // Entry 'RUN_GPS_LOST': '<S8>:67'
           // GPS WAS LOST
-          // '<S7>:67:4' gpsValidCount = 0;
+          // '<S8>:67:4' gpsValidCount = 0;
           stateEstimatorEskf_DW.gpsValidCount = 0U;
 
-          // '<S7>:67:5' mode = enumStateEstimateMode.RUN_GPS_LOST;
+          // '<S8>:67:5' mode = enumStateEstimateMode.RUN_GPS_LOST;
           mode = enumStateEstimateMode::RUN_GPS_LOST;
 
-          // '<S7>:67:6' sensorDataOut.bodyAccels_mps2 = filtBodyAccelsIn_mps2;
-          // '<S7>:67:7' sensorDataOut.bodyRates_radps = filtBodyRatesIn_radps;
-          // '<S7>:67:8' sensorDataOut.normMagVec_nd = normMagVecIn_nd;
-          // '<S7>:67:9' sensorDataOut.sensorValidity.isMagValid = isMagDataValid; 
+          // '<S8>:67:6' sensorDataOut.bodyAccels_mps2 = filtBodyAccelsIn_mps2;
+          // '<S8>:67:7' sensorDataOut.bodyRates_radps = filtBodyRatesIn_radps;
+          // '<S8>:67:8' sensorDataOut.normMagVec_nd = normMagVecIn_nd;
+          // '<S8>:67:9' sensorDataOut.sensorValidity.isMagValid = isMagDataValid; 
           stateEstimatorEskf_DW.sensorDataOut.sensorValidity.isMagValid =
             rtu_magData->isMagDataValid;
 
-          // '<S7>:67:10' latLonAltOut = latLonAltIn;
+          // '<S8>:67:10' latLonAltOut = latLonAltIn;
           stateEstimatorEskf_DW.sensorDataOut.bodyAccels_mps2[0] = Product[0];
           stateEstimatorEskf_DW.sensorDataOut.bodyRates_radps[0] =
             stateEstimatorEskf_DW.TmpSignalConversionAtSFunctionI[0];
@@ -3801,15 +3800,15 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
           stateEstimatorEskf_DW.sensorDataOut.normMagVec_nd[2] = Divide[2];
           latLonAltOut[2] = rtu_gpsData->latLonAlt[2];
 
-          // '<S7>:67:11' sensorDataOut.sensorValidity.isGpsValid = isGpsDataValid; 
+          // '<S8>:67:11' sensorDataOut.sensorValidity.isGpsValid = isGpsDataValid; 
           stateEstimatorEskf_DW.sensorDataOut.sensorValidity.isGpsValid =
             rtu_gpsData->isGpsDataValid;
 
-          // '<S7>:67:12' sensorDataOut.baroAlt_m = baroPressAlt_m - baroInitAltMean; 
+          // '<S8>:67:12' sensorDataOut.baroAlt_m = baroPressAlt_m - baroInitAltMean; 
           stateEstimatorEskf_DW.sensorDataOut.baroAlt_m = rtb_Product2_c -
             stateEstimatorEskf_DW.baroInitAltMean;
 
-          // '<S7>:67:13' sensorDataOut.sensorValidity.isBaroValid = isBaroDataValid; 
+          // '<S8>:67:13' sensorDataOut.sensorValidity.isBaroValid = isBaroDataValid; 
           stateEstimatorEskf_DW.sensorDataOut.sensorValidity.isBaroValid =
             rtu_baroData->isBaroDataValid;
 
@@ -3817,14 +3816,14 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
         } else {
           // EKF RUNNING WITHOUT GPS BUT WE HAVE HEALTHY GPS SIGNAL
           // START INITIALIZING GPS
-          // '<S7>:64:22' sensorDataOut.bodyAccels_mps2 = filtBodyAccelsIn_mps2; 
-          // '<S7>:64:23' sensorDataOut.bodyRates_radps = filtBodyRatesIn_radps; 
-          // '<S7>:64:24' sensorDataOut.normMagVec_nd = normMagVecIn_nd;
-          // '<S7>:64:25' sensorDataOut.sensorValidity.isMagValid = isMagDataValid; 
+          // '<S8>:64:22' sensorDataOut.bodyAccels_mps2 = filtBodyAccelsIn_mps2; 
+          // '<S8>:64:23' sensorDataOut.bodyRates_radps = filtBodyRatesIn_radps; 
+          // '<S8>:64:24' sensorDataOut.normMagVec_nd = normMagVecIn_nd;
+          // '<S8>:64:25' sensorDataOut.sensorValidity.isMagValid = isMagDataValid; 
           stateEstimatorEskf_DW.sensorDataOut.sensorValidity.isMagValid =
             rtu_magData->isMagDataValid;
 
-          // '<S7>:64:26' latLonAltOut = latLonAltIn;
+          // '<S8>:64:26' latLonAltOut = latLonAltIn;
           stateEstimatorEskf_DW.sensorDataOut.bodyAccels_mps2[0] = Product[0];
           stateEstimatorEskf_DW.sensorDataOut.bodyRates_radps[0] =
             stateEstimatorEskf_DW.TmpSignalConversionAtSFunctionI[0];
@@ -3841,36 +3840,36 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
           stateEstimatorEskf_DW.sensorDataOut.normMagVec_nd[2] = Divide[2];
           latLonAltOut[2] = rtu_gpsData->latLonAlt[2];
 
-          // '<S7>:64:27' sensorDataOut.sensorValidity.isGpsValid = isGpsDataValid; 
+          // '<S8>:64:27' sensorDataOut.sensorValidity.isGpsValid = isGpsDataValid; 
           stateEstimatorEskf_DW.sensorDataOut.sensorValidity.isGpsValid =
             rtu_gpsData->isGpsDataValid;
 
-          // '<S7>:64:28' sensorDataOut.baroAlt_m = baroPressAlt_m - baroInitAltMean; 
+          // '<S8>:64:28' sensorDataOut.baroAlt_m = baroPressAlt_m - baroInitAltMean; 
           stateEstimatorEskf_DW.sensorDataOut.baroAlt_m = rtb_Product2_c -
             stateEstimatorEskf_DW.baroInitAltMean;
 
-          // '<S7>:64:29' sensorDataOut.sensorValidity.isBaroValid = isBaroDataValid; 
+          // '<S8>:64:29' sensorDataOut.sensorValidity.isBaroValid = isBaroDataValid; 
           stateEstimatorEskf_DW.sensorDataOut.sensorValidity.isBaroValid =
             rtu_baroData->isBaroDataValid;
 
           //
           // Compute running mean of GPS data for NED origin Lat, Lon and Alt
-          // '<S7>:64:32' if (isGpsDataValid && gpsAcc_m(1) >= 0 && ...
-          // '<S7>:64:33'         gpsAcc_m(1) <= stateEstSmParams.gpsHorAccThres_m && ... 
-          // '<S7>:64:34'         gpsAcc_m(2) >= 0 && ...
-          // '<S7>:64:35'         gpsAcc_m(2) <= stateEstSmParams.gpsVerAccThres_m) 
+          // '<S8>:64:32' if (isGpsDataValid && gpsAcc_m(1) >= 0 && ...
+          // '<S8>:64:33'         gpsAcc_m(1) <= stateEstSmParams.gpsHorAccThres_m && ... 
+          // '<S8>:64:34'         gpsAcc_m(2) >= 0 && ...
+          // '<S8>:64:35'         gpsAcc_m(2) <= stateEstSmParams.gpsVerAccThres_m) 
           if (rtu_gpsData->isGpsDataValid && (rtu_gpsData->hacc_m >= 0.0F) &&
               (rtu_gpsData->hacc_m <= rtu_stateEstSmParams->gpsHorAccThres_m) &&
               (rtu_gpsData->vacc_m >= 0.0F) && (rtu_gpsData->vacc_m <=
                rtu_stateEstSmParams->gpsVerAccThres_m)) {
-            // '<S7>:64:36' if( gpsIdx < max(stateEstSmParams.gpsInitCount, 1) ) 
+            // '<S8>:64:36' if( gpsIdx < max(stateEstSmParams.gpsInitCount, 1) ) 
             if (stateEstimatorEskf_DW.gpsIdx < std::fmax
                 (rtu_stateEstSmParams->gpsInitCount, 1.0F)) {
-              // '<S7>:64:37' gpsIdx = gpsIdx + 1;
+              // '<S8>:64:37' gpsIdx = gpsIdx + 1;
               stateEstimatorEskf_DW.gpsIdx++;
 
-              // '<S7>:64:38' llhDelta = (latLonAltIn - refLatLonAlt);
-              // '<S7>:64:39' refLatLonAlt = refLatLonAlt + llhDelta/gpsIdx;
+              // '<S8>:64:38' llhDelta = (latLonAltIn - refLatLonAlt);
+              // '<S8>:64:39' refLatLonAlt = refLatLonAlt + llhDelta/gpsIdx;
               stateEstimatorEskf_DW.refLatLonAlt[0] += (rtu_gpsData->latLonAlt[0]
                 - stateEstimatorEskf_DW.refLatLonAlt[0]) /
                 stateEstimatorEskf_DW.gpsIdx;
@@ -3883,10 +3882,10 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
             }
 
             //
-            // '<S7>:64:42' if(gpsIdx >= stateEstSmParams.gpsInitCount)
+            // '<S8>:64:42' if(gpsIdx >= stateEstSmParams.gpsInitCount)
             if (stateEstimatorEskf_DW.gpsIdx >=
                 rtu_stateEstSmParams->gpsInitCount) {
-              // '<S7>:64:43' isPosInitialized = true;
+              // '<S8>:64:43' isPosInitialized = true;
               stateEstimatorEskf_DW.isPosInitialized = true;
             }
           }
@@ -3907,55 +3906,14 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
     stateEstimatorEskf_DW.durationCounter_1_g = 0U;
   }
 
-  // MATLAB Function: '<S12>/MATLAB Function' incorporates:
-  //   UnitDelay: '<Root>/Unit Delay1'
+  // RelationalOperator: '<S68>/Compare' incorporates:
+  //   Constant: '<S68>/Constant'
 
-  // MATLAB Function 'opticalFlowToNeVel/MATLAB Function': '<S73>:1'
-  // '<S73>:1:2' agl_m = lidarRangeToAgl_function( ...
-  // '<S73>:1:3'     lidarRange_m, roll_rad, pitch_rad, xL_m, yL_m, zL_m);
-  // CORRECTLIDARRANGETOBODYAGLFAST_FUNCTION
-  //  Fast scalar version for fixed body-frame lidar lever arm.
-  //
-  //  Body frame:
-  //    x forward
-  //    y right
-  //    z down
-  //
-  //  Lidar:
-  //    beam aligned with body +Z/down
-  // 'lidarRangeToAgl_function:14' sinRoll_rad = sin(roll_rad);
-  // 'lidarRangeToAgl_function:15' cosRoll_rad = cos(roll_rad);
-  // 'lidarRangeToAgl_function:16' sinPitch_rad = sin(pitch_rad);
-  // 'lidarRangeToAgl_function:17' cosPitch_rad = cos(pitch_rad);
-  rtb_UnitDelay_g = std::cos(stateEstimatorEskf_DW.UnitDelay1_DSTATE[1]);
-
-  // MATLAB Function: '<S12>/getMtf01pValidity'
-  // 'lidarRangeToAgl_function:19' agl_m = ...
-  // 'lidarRangeToAgl_function:20'     -sinPitch_rad*xL_m + ...
-  // 'lidarRangeToAgl_function:21'      sinRoll_rad*cosPitch_rad*yL_m + ...
-  // 'lidarRangeToAgl_function:22'      cosRoll_rad*cosPitch_rad*(zL_m + lidarRange_m); 
-  // This function generates a validity flag based to inform EKF when to not
-  // use optical flow data
-  // MATLAB Function 'opticalFlowToNeVel/getMtf01pValidity': '<S75>:1'
-  // Update MTF01P distance validity
-  // '<S75>:1:6' mtf01pDistValidityFlag = (mtf01pData.distPrecision <= mtf01pParams.distPrecisionThr) & ... 
-  // '<S75>:1:7'     (mtf01pData.distStatus == 1) & (mtf01pData.dist_m > mtf01pParams.distLimit_m(1)) & (mtf01pData.dist_m < mtf01pParams.distLimit_m(2)); 
-  mtf01pDistValidityFlag = static_cast<boolean_T>(static_cast<boolean_T>
-    ((rtu_mtf01pData->distPrecision <= rtu_mtf01pParams->distPrecisionThr) &
-     (rtu_mtf01pData->distStatus == 1)) & (rtu_mtf01pData->dist_m >
-    rtu_mtf01pParams->distLimit_m[0])) & (rtu_mtf01pData->dist_m <
-    rtu_mtf01pParams->distLimit_m[1]);
-
-  // RelationalOperator: '<S67>/Compare' incorporates:
-  //   Constant: '<S67>/Constant'
-
-  // Update flag based on flow health
-  // '<S75>:1:10' mtf01pValidityFlag = mtf01pDistValidityFlag & (mtf01pData.flowStatus == 1); 
   rtb_Compare = (mode == enumStateEstimateMode::RUN);
 
-  // MATLAB Function: '<S9>/convertLlhToNedPos'
-  // MATLAB Function 'latLonAltToNedPos/convertLlhToNedPos': '<S69>:1'
-  // '<S69>:1:3' nedPos_m = convertLlhToNedPos_function(latLonAlt, refLatLonAlt, isGpsValid); 
+  // MATLAB Function: '<S10>/convertLlhToNedPos'
+  // MATLAB Function 'latLonAltToNedPos/convertLlhToNedPos': '<S70>:1'
+  // '<S70>:1:3' nedPos_m = convertLlhToNedPos_function(latLonAlt, refLatLonAlt, isGpsValid); 
   //  CONVERTLLHTONEDPOS_FUNCTION converts Latitude, Longitude, and Height (LLH) to 
   //  North-East-Down (nedPos_m) coordinates with the origin at refLlh.
   //
@@ -4058,14 +4016,14 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
     }
   }
 
-  // End of MATLAB Function: '<S9>/convertLlhToNedPos'
+  // End of MATLAB Function: '<S10>/convertLlhToNedPos'
 
   // Sum: '<S12>/Sum2' incorporates:
   //   Sum: '<S72>/Sum'
   //   UnitDelay: '<Root>/Unit Delay'
 
   rtb_Product3_l = rtb_XAxis - stateEstimatorEskf_DW.UnitDelay_DSTATE_e[10];
-  rtb_Sum_m1_idx_1 = rtb_XAxis1 - stateEstimatorEskf_DW.UnitDelay_DSTATE_e[11];
+  rtb_UnitDelay_g = rtb_XAxis1 - stateEstimatorEskf_DW.UnitDelay_DSTATE_e[11];
   rtb_Sum_m1_idx_2 = rtb_XAxis2 - stateEstimatorEskf_DW.UnitDelay_DSTATE_e[12];
 
   // Sum: '<S12>/Sum4' incorporates:
@@ -4080,8 +4038,8 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
   rtb_Product2_c = ((rtu_mtf01pParams->sensorToBodyRot[0] *
                      rtu_mtf01pData->flowX_radps +
                      rtu_mtf01pParams->sensorToBodyRot[2] *
-                     rtu_mtf01pData->flowY_radps) - rtb_Sum_m1_idx_1) *
-    rtu_mtf01pData->dist_m + (rtb_Sum_m1_idx_1 * rtu_mtf01pParams->posVector_m[2]
+                     rtu_mtf01pData->flowY_radps) - rtb_UnitDelay_g) *
+    rtu_mtf01pData->dist_m + (rtb_UnitDelay_g * rtu_mtf01pParams->posVector_m[2]
     - rtu_mtf01pParams->posVector_m[1] * rtb_Sum_m1_idx_2);
   rtb_XAxis = ((rtu_mtf01pParams->sensorToBodyRot[1] *
                 rtu_mtf01pData->flowX_radps + rtu_mtf01pParams->sensorToBodyRot
@@ -4089,7 +4047,7 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
     rtu_mtf01pData->dist_m + (rtu_mtf01pParams->posVector_m[0] *
     rtb_Sum_m1_idx_2 - rtb_Product3_l * rtu_mtf01pParams->posVector_m[2]);
   rtb_Product3_l = rtb_Product3_l * rtu_mtf01pParams->posVector_m[1] -
-    rtu_mtf01pParams->posVector_m[0] * rtb_Sum_m1_idx_1;
+    rtu_mtf01pParams->posVector_m[0] * rtb_UnitDelay_g;
 
   // MATLAB Function: '<S77>/Compute Filter Numerator And Denominator' incorporates:
   //   MATLAB Function: '<S76>/Compute Filter Numerator And Denominator'
@@ -4228,14 +4186,23 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
   //   BusAssignment: '<Root>/Bus Assignment'
   //   BusCreator: '<Root>/Bus Creator1'
   //   Concatenate: '<S74>/Vector Concatenate'
-  //   DataTypeConversion: '<S9>/Cast To Single'
+  //   Constant: '<S21>/Constant'
+  //   Constant: '<S22>/Constant'
+  //   Constant: '<S22>/Constant1'
+  //   DataTypeConversion: '<S10>/Cast To Single'
   //   Logic: '<S12>/AND'
-  //   MATLAB Function: '<S12>/MATLAB Function'
   //   MATLAB Function: '<S12>/getMtf01pValidity'
-  //   Sum: '<S9>/Sum'
-  //   UnitDelay: '<Root>/Unit Delay1'
-  //   UnitDelay: '<S9>/Unit Delay'
+  //   Sum: '<S10>/Sum'
+  //   UnitDelay: '<S10>/Unit Delay'
 
+  // This function generates a validity flag based to inform EKF when to not
+  // use optical flow data
+  // MATLAB Function 'opticalFlowToNeVel/getMtf01pValidity': '<S75>:1'
+  // Update MTF01P distance validity
+  // '<S75>:1:6' mtf01pDistValidityFlag = (mtf01pData.distPrecision <= mtf01pParams.distPrecisionThr) & ... 
+  // '<S75>:1:7'     (mtf01pData.distStatus == 1) & (mtf01pData.dist_m > mtf01pParams.distLimit_m(1)) & (mtf01pData.dist_m < mtf01pParams.distLimit_m(2)); 
+  // Update flag based on flow health
+  // '<S75>:1:10' mtf01pValidityFlag = mtf01pDistValidityFlag & (mtf01pData.flowStatus == 1); 
   // MATLAB Function 'EKF/DelayedHorizonPassthrough/DelayedHorizonBufferManager': '<S19>:1' 
   // '<S19>:1:2' [dhSensorIn, estSmModeOut, dhBufferDebug] = delayedHorizonBufferManager_function(sensorIn, estSmMode, reset, ekfParams); 
   // DELAYEDHORIZONBUFFERMANAGER manages sensor buffers so the ESKF operates
@@ -4852,12 +4819,12 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
   }
 
   // 'delayedHorizonBufferManager_function:69' if sensorIn.sensorTimestamp.lidarTimestamp_ms >= lidarDelay_ms 
-  if (uMultiWordGe(&rtu_mtf01pData->timestamp_ms.chunks[0U],
+  if (uMultiWordGe(&rtCP_Constant_Value_j.chunks[0U],
                    &stateEstimatorEskf_ConstP.DelayedHorizonBufferManager_ekf.lidarDelay_ms.chunks
                    [0], 2)) {
     // 'delayedHorizonBufferManager_function:70' lidarTimeIn_ms = sensorIn.sensorTimestamp.lidarTimestamp_ms - lidarDelay_ms; 
-    uMultiWord2MultiWord(&rtu_mtf01pData->timestamp_ms.chunks[0U], 2,
-                         &tmp_7.chunks[0U], 3);
+    uMultiWord2MultiWord(&rtCP_Constant_Value_j.chunks[0U], 2, &tmp_7.chunks[0U],
+                         3);
     uMultiWord2MultiWord
       (&stateEstimatorEskf_ConstP.DelayedHorizonBufferManager_ekf.lidarDelay_ms.chunks
        [0], 2, &tmp_8.chunks[0U], 3);
@@ -5391,13 +5358,7 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
   // 'delayedHorizonBufferManager_function:128'               sensorIn.lidarAgl_m, ... 
   // 'delayedHorizonBufferManager_function:129'               fusionTime_ms, reset, ... 
   // 'delayedHorizonBufferManager_function:130'               ekfParams.lidarFifoParams); 
-  stateEstimatorEskf_lidarFifo(mtf01pDistValidityFlag, lidarTimeIn_ms, (-std::
-    sin(stateEstimatorEskf_DW.UnitDelay1_DSTATE[1]) *
-    rtu_mtf01pParams->posVector_m[0] + std::sin
-    (stateEstimatorEskf_DW.UnitDelay1_DSTATE[0]) * rtb_UnitDelay_g *
-    rtu_mtf01pParams->posVector_m[1]) + std::cos
-    (stateEstimatorEskf_DW.UnitDelay1_DSTATE[0]) * rtb_UnitDelay_g *
-    (rtu_mtf01pParams->posVector_m[2] + rtu_mtf01pData->dist_m), fusionTime_ms,
+  stateEstimatorEskf_lidarFifo(false, lidarTimeIn_ms, 0.0F, fusionTime_ms,
     stateEstimatorEskf_DW.resetStates,
     stateEstimatorEskf_ConstP.DelayedHorizonBufferManager_ekf.lidarFifoParams.capacity,
     stateEstimatorEskf_ConstP.DelayedHorizonBufferManager_ekf.lidarFifoParams.minInterval_ms,
@@ -5419,8 +5380,12 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
   // 'delayedHorizonBufferManager_function:143'              fusionTime_ms, reset, ... 
   // 'delayedHorizonBufferManager_function:144'              ekfParams.flowFifoParams); 
   stateEstimatorEskf_flowFifo(static_cast<boolean_T>(static_cast<boolean_T>(
-    static_cast<boolean_T>(mtf01pDistValidityFlag & (rtu_mtf01pData->flowStatus ==
-    1)) & rtu_mtf01pData->isMtf01pDataValid) &
+    static_cast<boolean_T>(static_cast<boolean_T>(static_cast<boolean_T>(
+    static_cast<boolean_T>((rtu_mtf01pData->distPrecision <=
+    rtu_mtf01pParams->distPrecisionThr) & (rtu_mtf01pData->distStatus == 1)) &
+    (rtu_mtf01pData->dist_m > rtu_mtf01pParams->distLimit_m[0])) &
+    (rtu_mtf01pData->dist_m < rtu_mtf01pParams->distLimit_m[1])) &
+    (rtu_mtf01pData->flowStatus == 1)) & rtu_mtf01pData->isMtf01pDataValid) &
     rtu_stateEstSmParams->useOpticalFlow), ofTimeIn_ms, VectorConcatenate,
     fusionTime_ms, stateEstimatorEskf_DW.resetStates,
     stateEstimatorEskf_ConstP.DelayedHorizonBufferManager_ekf.flowFifoParams.capacity,
@@ -5483,9 +5448,9 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
   //   MATLAB Function: '<S15>/DelayedHorizonBufferManager'
 
   rtb_ekfDebugOut_isAidingUsed_is = 0U;
-  mtf01pDistValidityFlag = false;
   rtb_ekfDebugOut_isAidingUsed__0 = false;
   rtb_ekfDebugOut_isAidingUsed__1 = false;
+  rtb_ekfDebugOut_isAidingUsed__2 = false;
   std::memset(&rtb_ekfDebugOut_dhStates[0], 0, 23U * sizeof(real32_T));
 
   // MATLAB Function 'EKF/EKF': '<S16>:1'
@@ -5680,7 +5645,7 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
         //                             % Derivative of [pN; pE; pD]
         //                                                        % Derivative of [vN; vE; vD] 
         // 'updateEskfStates:31' states(5:10) = states(5:10) + sampleTime_s * stateDot; 
-        rtb_UnitDelay_g = stateEstimatorEskf_DW.lastImuOut[0] -
+        rtb_XAxis2 = stateEstimatorEskf_DW.lastImuOut[0] -
           stateEstimatorEskf_DW.Delay_DSTATE[13];
         rtb_XAxis = stateEstimatorEskf_DW.lastImuOut[1] -
           stateEstimatorEskf_DW.Delay_DSTATE[14];
@@ -5695,20 +5660,17 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
         rtb_states[6] = stateEstimatorEskf_DW.lastImuOut[6] *
           stateEstimatorEskf_DW.Delay_DSTATE[9] +
           stateEstimatorEskf_DW.Delay_DSTATE[6];
-        rtb_states[7] = ((stateEstimatorEskf_DW.Delay2_DSTATE[0] *
-                          rtb_UnitDelay_g + stateEstimatorEskf_DW.Delay2_DSTATE
-                          [3] * rtb_XAxis) +
+        rtb_states[7] = ((stateEstimatorEskf_DW.Delay2_DSTATE[0] * rtb_XAxis2 +
+                          stateEstimatorEskf_DW.Delay2_DSTATE[3] * rtb_XAxis) +
                          stateEstimatorEskf_DW.Delay2_DSTATE[6] * rtb_XAxis1) *
           stateEstimatorEskf_DW.lastImuOut[6] +
           stateEstimatorEskf_DW.Delay_DSTATE[7];
-        rtb_states[8] = ((stateEstimatorEskf_DW.Delay2_DSTATE[1] *
-                          rtb_UnitDelay_g + stateEstimatorEskf_DW.Delay2_DSTATE
-                          [4] * rtb_XAxis) +
+        rtb_states[8] = ((stateEstimatorEskf_DW.Delay2_DSTATE[1] * rtb_XAxis2 +
+                          stateEstimatorEskf_DW.Delay2_DSTATE[4] * rtb_XAxis) +
                          stateEstimatorEskf_DW.Delay2_DSTATE[7] * rtb_XAxis1) *
           stateEstimatorEskf_DW.lastImuOut[6] +
           stateEstimatorEskf_DW.Delay_DSTATE[8];
-        rtb_states[9] = (((stateEstimatorEskf_DW.Delay2_DSTATE[2] *
-                           rtb_UnitDelay_g +
+        rtb_states[9] = (((stateEstimatorEskf_DW.Delay2_DSTATE[2] * rtb_XAxis2 +
                            stateEstimatorEskf_DW.Delay2_DSTATE[5] * rtb_XAxis) +
                           stateEstimatorEskf_DW.Delay2_DSTATE[8] * rtb_XAxis1) +
                          *rtu_gEarth_mps2) * stateEstimatorEskf_DW.lastImuOut[6]
@@ -5739,18 +5701,18 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
         // Propagate the quaternion part of the state
         // 'updateEskfStates:43' dThetaUnit = dTheta/dThetaNorm;
         // 'updateEskfStates:44' states(1:4) = quatMultiply(states(1:4), [cos(dThetaNorm*0.5); sin(dThetaNorm*0.5)*dThetaUnit]); 
-        rtb_UnitDelay_g = rtb_XAxis * 0.5F;
-        rtb_XAxis1 = std::sin(rtb_UnitDelay_g);
-        tmp_2[0] = std::cos(rtb_UnitDelay_g);
-        rtb_UnitDelay_g = rtb_CastToSingle[0] / rtb_XAxis;
-        rtb_CastToSingle[0] = rtb_UnitDelay_g;
-        tmp_2[1] = rtb_XAxis1 * rtb_UnitDelay_g;
-        rtb_UnitDelay_g = rtb_CastToSingle[1] / rtb_XAxis;
-        rtb_CastToSingle[1] = rtb_UnitDelay_g;
-        tmp_2[2] = rtb_XAxis1 * rtb_UnitDelay_g;
-        rtb_UnitDelay_g = rtb_CastToSingle[2] / rtb_XAxis;
-        rtb_CastToSingle[2] = rtb_UnitDelay_g;
-        tmp_2[3] = rtb_XAxis1 * rtb_UnitDelay_g;
+        rtb_XAxis2 = rtb_XAxis * 0.5F;
+        rtb_XAxis1 = std::sin(rtb_XAxis2);
+        tmp_2[0] = std::cos(rtb_XAxis2);
+        rtb_XAxis2 = rtb_CastToSingle[0] / rtb_XAxis;
+        rtb_CastToSingle[0] = rtb_XAxis2;
+        tmp_2[1] = rtb_XAxis1 * rtb_XAxis2;
+        rtb_XAxis2 = rtb_CastToSingle[1] / rtb_XAxis;
+        rtb_CastToSingle[1] = rtb_XAxis2;
+        tmp_2[2] = rtb_XAxis1 * rtb_XAxis2;
+        rtb_XAxis2 = rtb_CastToSingle[2] / rtb_XAxis;
+        rtb_CastToSingle[2] = rtb_XAxis2;
+        tmp_2[3] = rtb_XAxis1 * rtb_XAxis2;
         quatMultiply_UkcBdhzN(&rtb_states[0], tmp_2, qDelayed);
         rtb_states[0] = qDelayed[0];
         rtb_states[1] = qDelayed[1];
@@ -5810,18 +5772,18 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
       stateEstimatorEskf_DW.xErrorJac[0] = rtb_XAxis;
       rtb_XAxis1 = 0.5F * -rtb_states[2];
       stateEstimatorEskf_DW.xErrorJac[20] = rtb_XAxis1;
-      rtb_UnitDelay_g = 0.5F * -rtb_states[3];
-      stateEstimatorEskf_DW.xErrorJac[40] = rtb_UnitDelay_g;
-      rtb_XAxis2 = 0.5F * rtb_states[0];
-      stateEstimatorEskf_DW.xErrorJac[1] = rtb_XAxis2;
-      stateEstimatorEskf_DW.xErrorJac[21] = rtb_UnitDelay_g;
+      rtb_XAxis2 = 0.5F * -rtb_states[3];
+      stateEstimatorEskf_DW.xErrorJac[40] = rtb_XAxis2;
+      rtb_UnitDelay_g = 0.5F * rtb_states[0];
+      stateEstimatorEskf_DW.xErrorJac[1] = rtb_UnitDelay_g;
+      stateEstimatorEskf_DW.xErrorJac[21] = rtb_XAxis2;
       stateEstimatorEskf_DW.xErrorJac[41] = 0.5F * rtb_states[2];
       stateEstimatorEskf_DW.xErrorJac[2] = 0.5F * rtb_states[3];
-      stateEstimatorEskf_DW.xErrorJac[22] = rtb_XAxis2;
+      stateEstimatorEskf_DW.xErrorJac[22] = rtb_UnitDelay_g;
       stateEstimatorEskf_DW.xErrorJac[42] = rtb_XAxis;
       stateEstimatorEskf_DW.xErrorJac[3] = rtb_XAxis1;
       stateEstimatorEskf_DW.xErrorJac[23] = 0.5F * rtb_states[1];
-      stateEstimatorEskf_DW.xErrorJac[43] = rtb_XAxis2;
+      stateEstimatorEskf_DW.xErrorJac[43] = rtb_UnitDelay_g;
 
       // 'errorStateEkf_function2:170' measJac = computeEskfAccelMeasJac(states, gEarth_mps2); 
       // COMPUTEESKFACCELMEASJAC Computes Meas Jacobian for accelerometer
@@ -5843,20 +5805,20 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
       // 'computeEskfAccelMeasJac:18' states(3) = states(3);
       // 'computeEskfAccelMeasJac:19' states(4) = states(4);
       // 'computeEskfAccelMeasJac:21' tmp1 = gEarth_mps2*2*states(3);
-      rtb_UnitDelay_g = *rtu_gEarth_mps2 * 2.0F;
-      rtb_XAxis = rtb_UnitDelay_g * rtb_states[2];
+      rtb_XAxis2 = *rtu_gEarth_mps2 * 2.0F;
+      rtb_XAxis = rtb_XAxis2 * rtb_states[2];
 
       // 'computeEskfAccelMeasJac:22' tmp2 = -2*gEarth_mps2*states(4);
       rtb_XAxis1 = -2.0F * *rtu_gEarth_mps2 * rtb_states[3];
 
       // 'computeEskfAccelMeasJac:23' tmp3 = gEarth_mps2*2*states(1);
-      rtb_XAxis2 = rtb_UnitDelay_g * rtb_states[0];
+      rtb_XAxis2 *= rtb_states[0];
 
       // 'computeEskfAccelMeasJac:24' tmp4 = -gEarth_mps2*2*states(2);
       rtb_UnitDelay_g = -*rtu_gEarth_mps2 * 2.0F * rtb_states[1];
 
       // 'computeEskfAccelMeasJac:25' tmp5 = 4*gEarth_mps2;
-      rtb_Sum_m1_idx_1 = 4.0F * *rtu_gEarth_mps2;
+      rtb_Sum_m1_idx_2 = 4.0F * *rtu_gEarth_mps2;
 
       // 'computeEskfAccelMeasJac:27' accelMeasJac(1, 1) = tmp1;
       measJac[0] = rtb_XAxis;
@@ -5889,10 +5851,10 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
       measJac[43] = 1.0F;
 
       // 'computeEskfAccelMeasJac:39' accelMeasJac(3, 2) = states(2)*tmp5;
-      measJac[5] = rtb_states[1] * rtb_Sum_m1_idx_1;
+      measJac[5] = rtb_states[1] * rtb_Sum_m1_idx_2;
 
       // 'computeEskfAccelMeasJac:40' accelMeasJac(3, 3) = states(3)*tmp5;
-      measJac[8] = rtb_states[2] * rtb_Sum_m1_idx_1;
+      measJac[8] = rtb_states[2] * rtb_Sum_m1_idx_2;
 
       // 'computeEskfAccelMeasJac:41' accelMeasJac(3, 16) = 1;
       measJac[47] = 1.0F;
@@ -5906,20 +5868,20 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
       i_2 = 0;
       for (i = 0; i < 3; i++) {
         rtb_XAxis1 = 0.0F;
-        rtb_UnitDelay_g = 0.0F;
         rtb_XAxis2 = 0.0F;
+        rtb_UnitDelay_g = 0.0F;
         i_1 = 0;
         for (covP_tmp = 0; covP_tmp < 4; covP_tmp++) {
           rtb_XAxis = stateEstimatorEskf_DW.xErrorJac[covP_tmp +
             rtb_VectorConcatenate1_tmp];
           rtb_XAxis1 += measJac[i_1] * rtb_XAxis;
-          rtb_UnitDelay_g += measJac[i_1 + 1] * rtb_XAxis;
-          rtb_XAxis2 += measJac[i_1 + 2] * rtb_XAxis;
+          rtb_XAxis2 += measJac[i_1 + 1] * rtb_XAxis;
+          rtb_UnitDelay_g += measJac[i_1 + 2] * rtb_XAxis;
           i_1 += 3;
         }
 
-        H[i_2 + 2] = rtb_XAxis2;
-        H[i_2 + 1] = rtb_UnitDelay_g;
+        H[i_2 + 2] = rtb_UnitDelay_g;
+        H[i_2 + 1] = rtb_XAxis2;
         H[i_2] = rtb_XAxis1;
         H[i_2 + 36] = stateEstimatorEskf_DW.I3[i_2];
         H[i_2 + 37] = stateEstimatorEskf_DW.I3[i_2 + 1];
@@ -5935,11 +5897,11 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
       // 'errorStateEkf_function2:180' estGravityInBodyFrame = C_ned2b*[0; 0; -gEarth_mps2] + states(14:16); 
       // 'errorStateEkf_function2:182' tmp1 = covP(:, 13:15) + covP(:, 1:3) * H(:, 1:3).'; 
       rtb_XAxis1 = H[3];
-      rtb_UnitDelay_g = H[0];
-      rtb_XAxis2 = H[6];
+      rtb_XAxis2 = H[0];
+      rtb_UnitDelay_g = H[6];
       rtb_XAxis = H[4];
-      rtb_Sum_m1_idx_1 = H[1];
-      rtb_Sum_m1_idx_2 = H[7];
+      rtb_Sum_m1_idx_2 = H[1];
+      q1q3 = H[7];
       q2q3 = H[5];
       rtb_dcmBodyToNed_idx_7 = H[2];
       rtb_dcmBodyToNed_idx_2 = H[8];
@@ -5952,12 +5914,12 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
         rtb_Merge_idx_0 = stateEstimatorEskf_DW.covP[rtb_VectorConcatenate1_tmp
           + 38];
         tmp1[rtb_VectorConcatenate1_tmp] = ((rtb_dcmBodyToNed_idx_5 * rtb_XAxis1
-          + rtb_dcmBodyToNed_idx_8 * rtb_UnitDelay_g) + rtb_Merge_idx_0 *
-          rtb_XAxis2) + stateEstimatorEskf_DW.covP[rtb_VectorConcatenate1_tmp +
-          228];
+          + rtb_dcmBodyToNed_idx_8 * rtb_XAxis2) + rtb_Merge_idx_0 *
+          rtb_UnitDelay_g) +
+          stateEstimatorEskf_DW.covP[rtb_VectorConcatenate1_tmp + 228];
         tmp1[rtb_VectorConcatenate1_tmp + 19] = ((rtb_dcmBodyToNed_idx_5 *
-          rtb_XAxis + rtb_dcmBodyToNed_idx_8 * rtb_Sum_m1_idx_1) +
-          rtb_Merge_idx_0 * rtb_Sum_m1_idx_2) +
+          rtb_XAxis + rtb_dcmBodyToNed_idx_8 * rtb_Sum_m1_idx_2) +
+          rtb_Merge_idx_0 * q1q3) +
           stateEstimatorEskf_DW.covP[rtb_VectorConcatenate1_tmp + 247];
         tmp1[rtb_VectorConcatenate1_tmp + 38] = ((rtb_dcmBodyToNed_idx_5 * q2q3
           + rtb_dcmBodyToNed_idx_8 * rtb_dcmBodyToNed_idx_7) + rtb_Merge_idx_0 *
@@ -6025,14 +5987,14 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
       for (rtb_VectorConcatenate1_tmp = 0; rtb_VectorConcatenate1_tmp < 3;
            rtb_VectorConcatenate1_tmp++) {
         rtb_XAxis1 = H[rtb_VectorConcatenate1_tmp + 3];
-        rtb_UnitDelay_g = H[rtb_VectorConcatenate1_tmp];
-        rtb_XAxis2 = H[rtb_VectorConcatenate1_tmp + 6];
+        rtb_XAxis2 = H[rtb_VectorConcatenate1_tmp];
+        rtb_UnitDelay_g = H[rtb_VectorConcatenate1_tmp + 6];
         for (i_2 = 0; i_2 < 15; i_2++) {
           i = 19 * c_0[i_2];
           tmp1_0[rtb_VectorConcatenate1_tmp + 3 * i_2] =
             ((stateEstimatorEskf_DW.covP[i + 1] * rtb_XAxis1 +
-              stateEstimatorEskf_DW.covP[i] * rtb_UnitDelay_g) +
-             stateEstimatorEskf_DW.covP[i + 2] * rtb_XAxis2) +
+              stateEstimatorEskf_DW.covP[i] * rtb_XAxis2) +
+             stateEstimatorEskf_DW.covP[i + 2] * rtb_UnitDelay_g) +
             stateEstimatorEskf_DW.covP[(i + rtb_VectorConcatenate1_tmp) + 12];
         }
       }
@@ -6041,13 +6003,12 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
            rtb_VectorConcatenate1_tmp++) {
         rtb_XAxis = K[rtb_VectorConcatenate1_tmp + 15];
         rtb_XAxis1 = K[rtb_VectorConcatenate1_tmp];
-        rtb_UnitDelay_g = K[rtb_VectorConcatenate1_tmp + 30];
+        rtb_XAxis2 = K[rtb_VectorConcatenate1_tmp + 30];
         for (i_2 = 0; i_2 < 15; i_2++) {
           tmp_5[rtb_VectorConcatenate1_tmp + 15 * i_2] =
             stateEstimatorEskf_DW.covP[19 * c_0[i_2] +
             c_0[rtb_VectorConcatenate1_tmp]] - ((tmp1_0[3 * i_2 + 1] * rtb_XAxis
-            + tmp1_0[3 * i_2] * rtb_XAxis1) + tmp1_0[3 * i_2 + 2] *
-            rtb_UnitDelay_g);
+            + tmp1_0[3 * i_2] * rtb_XAxis1) + tmp1_0[3 * i_2 + 2] * rtb_XAxis2);
         }
       }
 
@@ -6121,18 +6082,18 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
       stateEstimatorEskf_DW.xErrorJac[0] = rtb_XAxis;
       rtb_XAxis1 = 0.5F * -rtb_states[2];
       stateEstimatorEskf_DW.xErrorJac[20] = rtb_XAxis1;
-      rtb_UnitDelay_g = 0.5F * -rtb_states[3];
-      stateEstimatorEskf_DW.xErrorJac[40] = rtb_UnitDelay_g;
-      rtb_XAxis2 = 0.5F * rtb_states[0];
-      stateEstimatorEskf_DW.xErrorJac[1] = rtb_XAxis2;
-      stateEstimatorEskf_DW.xErrorJac[21] = rtb_UnitDelay_g;
+      rtb_XAxis2 = 0.5F * -rtb_states[3];
+      stateEstimatorEskf_DW.xErrorJac[40] = rtb_XAxis2;
+      rtb_UnitDelay_g = 0.5F * rtb_states[0];
+      stateEstimatorEskf_DW.xErrorJac[1] = rtb_UnitDelay_g;
+      stateEstimatorEskf_DW.xErrorJac[21] = rtb_XAxis2;
       stateEstimatorEskf_DW.xErrorJac[41] = 0.5F * rtb_states[2];
       stateEstimatorEskf_DW.xErrorJac[2] = 0.5F * rtb_states[3];
-      stateEstimatorEskf_DW.xErrorJac[22] = rtb_XAxis2;
+      stateEstimatorEskf_DW.xErrorJac[22] = rtb_UnitDelay_g;
       stateEstimatorEskf_DW.xErrorJac[42] = rtb_XAxis;
       stateEstimatorEskf_DW.xErrorJac[3] = rtb_XAxis1;
       stateEstimatorEskf_DW.xErrorJac[23] = 0.5F * rtb_states[1];
-      stateEstimatorEskf_DW.xErrorJac[43] = rtb_XAxis2;
+      stateEstimatorEskf_DW.xErrorJac[43] = rtb_UnitDelay_g;
 
       // 'errorStateEkf_function2:212' H = zeros(3, 19, 'single');
       std::memset(&H[0], 0, 57U * sizeof(real32_T));
@@ -6146,20 +6107,20 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
       i_2 = 0;
       for (i = 0; i < 3; i++) {
         rtb_XAxis1 = 0.0F;
-        rtb_UnitDelay_g = 0.0F;
         rtb_XAxis2 = 0.0F;
+        rtb_UnitDelay_g = 0.0F;
         i_1 = 0;
         for (covP_tmp = 0; covP_tmp < 4; covP_tmp++) {
           rtb_XAxis = stateEstimatorEskf_DW.xErrorJac[covP_tmp +
             rtb_VectorConcatenate1_tmp];
           rtb_XAxis1 += measJac[i_1] * rtb_XAxis;
-          rtb_UnitDelay_g += measJac[i_1 + 1] * rtb_XAxis;
-          rtb_XAxis2 += measJac[i_1 + 2] * rtb_XAxis;
+          rtb_XAxis2 += measJac[i_1 + 1] * rtb_XAxis;
+          rtb_UnitDelay_g += measJac[i_1 + 2] * rtb_XAxis;
           i_1 += 3;
         }
 
-        H[i_2 + 2] = rtb_XAxis2;
-        H[i_2 + 1] = rtb_UnitDelay_g;
+        H[i_2 + 2] = rtb_UnitDelay_g;
+        H[i_2 + 1] = rtb_XAxis2;
         H[i_2] = rtb_XAxis1;
         H[i_2 + 45] = stateEstimatorEskf_DW.I3[i_2];
         H[i_2 + 46] = stateEstimatorEskf_DW.I3[i_2 + 1];
@@ -6170,11 +6131,11 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
 
       // 'errorStateEkf_function2:215' tmp1 = covP(:, 16:18) + covP(:, 1:3) * H(:,1:3).'; 
       rtb_XAxis1 = H[3];
-      rtb_UnitDelay_g = H[0];
-      rtb_XAxis2 = H[6];
+      rtb_XAxis2 = H[0];
+      rtb_UnitDelay_g = H[6];
       rtb_XAxis = H[4];
-      rtb_Sum_m1_idx_1 = H[1];
-      rtb_Sum_m1_idx_2 = H[7];
+      rtb_Sum_m1_idx_2 = H[1];
+      q1q3 = H[7];
       q2q3 = H[5];
       rtb_dcmBodyToNed_idx_7 = H[2];
       rtb_dcmBodyToNed_idx_2 = H[8];
@@ -6187,12 +6148,12 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
         rtb_Merge_idx_0 = stateEstimatorEskf_DW.covP[rtb_VectorConcatenate1_tmp
           + 38];
         tmp1[rtb_VectorConcatenate1_tmp] = ((rtb_dcmBodyToNed_idx_5 * rtb_XAxis1
-          + rtb_dcmBodyToNed_idx_8 * rtb_UnitDelay_g) + rtb_Merge_idx_0 *
-          rtb_XAxis2) + stateEstimatorEskf_DW.covP[rtb_VectorConcatenate1_tmp +
-          285];
+          + rtb_dcmBodyToNed_idx_8 * rtb_XAxis2) + rtb_Merge_idx_0 *
+          rtb_UnitDelay_g) +
+          stateEstimatorEskf_DW.covP[rtb_VectorConcatenate1_tmp + 285];
         tmp1[rtb_VectorConcatenate1_tmp + 19] = ((rtb_dcmBodyToNed_idx_5 *
-          rtb_XAxis + rtb_dcmBodyToNed_idx_8 * rtb_Sum_m1_idx_1) +
-          rtb_Merge_idx_0 * rtb_Sum_m1_idx_2) +
+          rtb_XAxis + rtb_dcmBodyToNed_idx_8 * rtb_Sum_m1_idx_2) +
+          rtb_Merge_idx_0 * q1q3) +
           stateEstimatorEskf_DW.covP[rtb_VectorConcatenate1_tmp + 304];
         tmp1[rtb_VectorConcatenate1_tmp + 38] = ((rtb_dcmBodyToNed_idx_5 * q2q3
           + rtb_dcmBodyToNed_idx_8 * rtb_dcmBodyToNed_idx_7) + rtb_Merge_idx_0 *
@@ -6260,15 +6221,15 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
         for (rtb_VectorConcatenate1_tmp = 0; rtb_VectorConcatenate1_tmp < 3;
              rtb_VectorConcatenate1_tmp++) {
           rtb_XAxis1 = H[rtb_VectorConcatenate1_tmp + 3];
-          rtb_UnitDelay_g = H[rtb_VectorConcatenate1_tmp];
-          rtb_XAxis2 = H[rtb_VectorConcatenate1_tmp + 6];
+          rtb_XAxis2 = H[rtb_VectorConcatenate1_tmp];
+          rtb_UnitDelay_g = H[rtb_VectorConcatenate1_tmp + 6];
           i_2 = 0;
           i = 0;
           for (i_1 = 0; i_1 < 19; i_1++) {
             tmp1[i_2 + rtb_VectorConcatenate1_tmp] =
               ((stateEstimatorEskf_DW.covP[i + 1] * rtb_XAxis1 +
-                stateEstimatorEskf_DW.covP[i] * rtb_UnitDelay_g) +
-               stateEstimatorEskf_DW.covP[i + 2] * rtb_XAxis2) +
+                stateEstimatorEskf_DW.covP[i] * rtb_XAxis2) +
+               stateEstimatorEskf_DW.covP[i + 2] * rtb_UnitDelay_g) +
               stateEstimatorEskf_DW.covP[(i + rtb_VectorConcatenate1_tmp) + 15];
             i_2 += 3;
             i += 19;
@@ -6279,13 +6240,13 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
              rtb_VectorConcatenate1_tmp++) {
           rtb_XAxis = b_K[rtb_VectorConcatenate1_tmp + 19];
           rtb_XAxis1 = b_K[rtb_VectorConcatenate1_tmp];
-          rtb_UnitDelay_g = b_K[rtb_VectorConcatenate1_tmp + 38];
+          rtb_XAxis2 = b_K[rtb_VectorConcatenate1_tmp + 38];
           i_2 = 0;
           i = 0;
           for (i_1 = 0; i_1 < 19; i_1++) {
             covP_tmp = i_2 + rtb_VectorConcatenate1_tmp;
             stateEstimatorEskf_DW.covP[covP_tmp] -= (tmp1[i + 1] * rtb_XAxis +
-              tmp1[i] * rtb_XAxis1) + tmp1[i + 2] * rtb_UnitDelay_g;
+              tmp1[i] * rtb_XAxis1) + tmp1[i + 2] * rtb_XAxis2;
             i_2 += 19;
             i += 3;
           }
@@ -6361,14 +6322,14 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
         for (rtb_VectorConcatenate1_tmp = 0; rtb_VectorConcatenate1_tmp < 3;
              rtb_VectorConcatenate1_tmp++) {
           rtb_XAxis1 = H[rtb_VectorConcatenate1_tmp + 3];
-          rtb_UnitDelay_g = H[rtb_VectorConcatenate1_tmp];
-          rtb_XAxis2 = H[rtb_VectorConcatenate1_tmp + 6];
+          rtb_XAxis2 = H[rtb_VectorConcatenate1_tmp];
+          rtb_UnitDelay_g = H[rtb_VectorConcatenate1_tmp + 6];
           for (i_2 = 0; i_2 < 15; i_2++) {
             i = 19 * c_0[i_2];
             tmp1_0[rtb_VectorConcatenate1_tmp + 3 * i_2] =
               ((stateEstimatorEskf_DW.covP[i + 1] * rtb_XAxis1 +
-                stateEstimatorEskf_DW.covP[i] * rtb_UnitDelay_g) +
-               stateEstimatorEskf_DW.covP[i + 2] * rtb_XAxis2) +
+                stateEstimatorEskf_DW.covP[i] * rtb_XAxis2) +
+               stateEstimatorEskf_DW.covP[i + 2] * rtb_UnitDelay_g) +
               stateEstimatorEskf_DW.covP[(i + rtb_VectorConcatenate1_tmp) + 15];
           }
         }
@@ -6377,13 +6338,13 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
              rtb_VectorConcatenate1_tmp++) {
           rtb_XAxis = K[rtb_VectorConcatenate1_tmp + 15];
           rtb_XAxis1 = K[rtb_VectorConcatenate1_tmp];
-          rtb_UnitDelay_g = K[rtb_VectorConcatenate1_tmp + 30];
+          rtb_XAxis2 = K[rtb_VectorConcatenate1_tmp + 30];
           for (i_2 = 0; i_2 < 15; i_2++) {
             tmp_5[rtb_VectorConcatenate1_tmp + 15 * i_2] =
               stateEstimatorEskf_DW.covP[19 * c_0[i_2] +
               c_0[rtb_VectorConcatenate1_tmp]] - ((tmp1_0[3 * i_2 + 1] *
               rtb_XAxis + tmp1_0[3 * i_2] * rtb_XAxis1) + tmp1_0[3 * i_2 + 2] *
-              rtb_UnitDelay_g);
+              rtb_XAxis2);
           }
         }
 
@@ -6516,9 +6477,9 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
       // 'errorStateEkf_function2:562' K = covP(idxEs, idx).*iS;
       // 'errorStateEkf_function2:563' errorStateHat(idxEs) = K*nu;
       for (i = 0; i < 19; i++) {
-        rtb_UnitDelay_g = stateEstimatorEskf_DW.covP[i + 114] * rtb_XAxis;
-        d_K[i] = rtb_UnitDelay_g;
-        b_errorStateHat[i] = rtb_UnitDelay_g * rtb_XAxis1;
+        rtb_XAxis2 = stateEstimatorEskf_DW.covP[i + 114] * rtb_XAxis;
+        d_K[i] = rtb_XAxis2;
+        b_errorStateHat[i] = rtb_XAxis2 * rtb_XAxis1;
       }
 
       // 'errorStateEkf_function2:565' covP(idxEs, idxEs) = covP(idxEs, idxEs) - (K*covP(idx, idxEs)); 
@@ -6585,9 +6546,9 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
       // 'errorStateEkf_function2:562' K = covP(idxEs, idx).*iS;
       // 'errorStateEkf_function2:563' errorStateHat(idxEs) = K*nu;
       for (i = 0; i < 19; i++) {
-        rtb_UnitDelay_g = b_covP[i + 133] * rtb_XAxis;
-        d_K[i] = rtb_UnitDelay_g;
-        b_errorStateHat[i] = rtb_UnitDelay_g * rtb_XAxis1;
+        rtb_XAxis2 = b_covP[i + 133] * rtb_XAxis;
+        d_K[i] = rtb_XAxis2;
+        b_errorStateHat[i] = rtb_XAxis2 * rtb_XAxis1;
       }
 
       // 'errorStateEkf_function2:565' covP(idxEs, idxEs) = covP(idxEs, idxEs) - (K*covP(idx, idxEs)); 
@@ -6642,7 +6603,7 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
 
       //  end
       // 'errorStateEkf_function2:286' ekfDebugOut.isAidingUsed.isFlowUsed = true; 
-      rtb_ekfDebugOut_isAidingUsed__1 = true;
+      rtb_ekfDebugOut_isAidingUsed__2 = true;
     }
 
     // Fuse GPS data if it is valid
@@ -6864,7 +6825,7 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
       // 'errorStateEkf_function2:374' if NIS <= 25
       if (rtb_Product3_l * rtb_Product3_l * rtb_XAxis <= 25.0F) {
         // 'errorStateEkf_function2:375' ekfDebugOut.isAidingUsed.isBaroUsed = true; 
-        mtf01pDistValidityFlag = true;
+        rtb_ekfDebugOut_isAidingUsed__0 = true;
 
         // 'errorStateEkf_function2:377' if estSmMode == enumStateEstimateMode.RUN || isOfValid 
         imuReady = (estSmModeOut == enumStateEstimateMode::RUN) |
@@ -6878,10 +6839,10 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
           // 'errorStateEkf_function2:383'                     (-K * (covP(6, idxEs) - covP(19, idxEs))); 
           i = 0;
           for (i_1 = 0; i_1 < 19; i_1++) {
-            rtb_UnitDelay_g = (stateEstimatorEskf_DW.covP[i_1 + 342] -
-                               stateEstimatorEskf_DW.covP[i_1 + 95]) * rtb_XAxis;
-            errorStateHat[i_1] = rtb_UnitDelay_g * rtb_Product3_l;
-            d_K[i_1] = -rtb_UnitDelay_g;
+            rtb_XAxis2 = (stateEstimatorEskf_DW.covP[i_1 + 342] -
+                          stateEstimatorEskf_DW.covP[i_1 + 95]) * rtb_XAxis;
+            errorStateHat[i_1] = rtb_XAxis2 * rtb_Product3_l;
+            d_K[i_1] = -rtb_XAxis2;
             b_errorStateHat[i_1] = stateEstimatorEskf_DW.covP[i + 5] -
               stateEstimatorEskf_DW.covP[i + 18];
             i += 19;
@@ -7030,7 +6991,7 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
       // 'errorStateEkf_function2:420' if NIS < 27
       if (rtb_Product3_l * rtb_Product3_l * rtb_XAxis < 27.0F) {
         // 'errorStateEkf_function2:421' ekfDebugOut.isAidingUsed.isLidarUsed = true; 
-        rtb_ekfDebugOut_isAidingUsed__0 = true;
+        rtb_ekfDebugOut_isAidingUsed__1 = true;
 
         // 'errorStateEkf_function2:422' if estSmMode == enumStateEstimateMode.RUN || isOfValid 
         imuReady = (estSmModeOut == enumStateEstimateMode::RUN) |
@@ -7040,9 +7001,9 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
           // 'errorStateEkf_function2:424' errorStateHat(idxEs) = K*nu;
           // 'errorStateEkf_function2:426' covP(idxEs, idxEs) = covP(idxEs, idxEs) - (-K*covP(6, idxEs)); 
           for (i = 0; i < 19; i++) {
-            rtb_UnitDelay_g = -stateEstimatorEskf_DW.covP[i + 95] * rtb_XAxis;
-            errorStateHat[i] = rtb_UnitDelay_g * rtb_Product3_l;
-            d_K[i] = -rtb_UnitDelay_g;
+            rtb_XAxis2 = -stateEstimatorEskf_DW.covP[i + 95] * rtb_XAxis;
+            errorStateHat[i] = rtb_XAxis2 * rtb_Product3_l;
+            d_K[i] = -rtb_XAxis2;
           }
 
           rtb_VectorConcatenate1_tmp = 0;
@@ -7187,11 +7148,11 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
   rty_stateEstimatorDebug->ekfDebugData.isAidingUsed.isGpsUsed =
     rtb_ekfDebugOut_isAidingUsed_is;
   rty_stateEstimatorDebug->ekfDebugData.isAidingUsed.isBaroUsed =
-    mtf01pDistValidityFlag;
-  rty_stateEstimatorDebug->ekfDebugData.isAidingUsed.isLidarUsed =
     rtb_ekfDebugOut_isAidingUsed__0;
-  rty_stateEstimatorDebug->ekfDebugData.isAidingUsed.isFlowUsed =
+  rty_stateEstimatorDebug->ekfDebugData.isAidingUsed.isLidarUsed =
     rtb_ekfDebugOut_isAidingUsed__1;
+  rty_stateEstimatorDebug->ekfDebugData.isAidingUsed.isFlowUsed =
+    rtb_ekfDebugOut_isAidingUsed__2;
   std::memcpy(&rty_stateEstimatorDebug->ekfDebugData.dhStates[0],
               &rtb_ekfDebugOut_dhStates[0], 23U * sizeof(real32_T));
   rty_stateEstimatorDebug->ekfDebugData.dhBufferDebugData =
@@ -7396,9 +7357,9 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
         Divide[1] = (rtb_states[5] -
                      stateEstimatorEskf_DW.posBuf[rtb_VectorConcatenate1_tmp + 1])
           * 0.02F;
-        rtb_Sum_m1_idx_1 = (rtb_states[8] -
-                            stateEstimatorEskf_DW.velBuf[rtb_VectorConcatenate1_tmp
-                            + 1]) * 0.02F;
+        rtb_UnitDelay_g = (rtb_states[8] -
+                           stateEstimatorEskf_DW.velBuf[rtb_VectorConcatenate1_tmp
+                           + 1]) * 0.02F;
         Divide[2] = (rtb_states[6] -
                      stateEstimatorEskf_DW.posBuf[rtb_VectorConcatenate1_tmp + 2])
           * 0.02F;
@@ -7424,7 +7385,7 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
           stateEstimatorEskf_DW.posBuf[i_2 + 2] = rtb_XAxis1;
 
           // 'outputPredictor_function:155' velBuf(:,idx) = velBuf(:,idx) + velCorrection; 
-          rtb_XAxis = stateEstimatorEskf_DW.velBuf[i_2 + 1] + rtb_Sum_m1_idx_1;
+          rtb_XAxis = stateEstimatorEskf_DW.velBuf[i_2 + 1] + rtb_UnitDelay_g;
           rtb_XAxis1 = stateEstimatorEskf_DW.velBuf[i_2 + 2] + rtb_Sum_m1_idx_2;
           stateEstimatorEskf_DW.velBuf[i_2] += rtb_Product3_l;
           stateEstimatorEskf_DW.velBuf[i_2 + 1] = rtb_XAxis;
@@ -7455,7 +7416,7 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
         stateEstimatorEskf_DW.pCurrent[0] += Divide[0];
         stateEstimatorEskf_DW.vCurrent[0] += rtb_Product3_l;
         stateEstimatorEskf_DW.pCurrent[1] += Divide[1];
-        stateEstimatorEskf_DW.vCurrent[1] += rtb_Sum_m1_idx_1;
+        stateEstimatorEskf_DW.vCurrent[1] += rtb_UnitDelay_g;
         stateEstimatorEskf_DW.pCurrent[2] += Divide[2];
         stateEstimatorEskf_DW.vCurrent[2] += rtb_Sum_m1_idx_2;
 
@@ -7497,14 +7458,14 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
           // 'outputPredictor_function:185' qEskf = qEskf/qNorm;
           rtb_Product3_l = rtb_states[0] / rtb_Product2_c;
           rtb_XAxis1 = rtb_states[1] / rtb_Product2_c;
-          rtb_UnitDelay_g = rtb_states[2] / rtb_Product2_c;
+          rtb_XAxis2 = rtb_states[2] / rtb_Product2_c;
           rtb_Product2_c = rtb_states[3] / rtb_Product2_c;
         } else {
           // 'outputPredictor_function:186' else
           // 'outputPredictor_function:187' qEskf = single([1;0;0;0]);
           rtb_Product3_l = 1.0F;
           rtb_XAxis1 = 0.0F;
-          rtb_UnitDelay_g = 0.0F;
+          rtb_XAxis2 = 0.0F;
           rtb_Product2_c = 0.0F;
         }
 
@@ -7527,7 +7488,7 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
         // 'outputPredictor_function:335'        q1(3)*q2(3) - ...
         // 'outputPredictor_function:336'        q1(4)*q2(4);
         qError[0] = ((qDelayed[0] * rtb_Product3_l - -qDelayed[1] * rtb_XAxis1)
-                     - -qDelayed[2] * rtb_UnitDelay_g) - -qDelayed[3] *
+                     - -qDelayed[2] * rtb_XAxis2) - -qDelayed[3] *
           rtb_Product2_c;
 
         // 'outputPredictor_function:338' q(2) = q1(1)*q2(2) + ...
@@ -7535,24 +7496,21 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
         // 'outputPredictor_function:340'        q1(3)*q2(4) - ...
         // 'outputPredictor_function:341'        q1(4)*q2(3);
         qError[1] = ((qDelayed[0] * rtb_XAxis1 + rtb_Product3_l * -qDelayed[1])
-                     + -qDelayed[2] * rtb_Product2_c) - rtb_UnitDelay_g *
-          -qDelayed[3];
+                     + -qDelayed[2] * rtb_Product2_c) - rtb_XAxis2 * -qDelayed[3];
 
         // 'outputPredictor_function:343' q(3) = q1(1)*q2(3) - ...
         // 'outputPredictor_function:344'        q1(2)*q2(4) + ...
         // 'outputPredictor_function:345'        q1(3)*q2(1) + ...
         // 'outputPredictor_function:346'        q1(4)*q2(2);
-        qError[2] = ((qDelayed[0] * rtb_UnitDelay_g - -qDelayed[1] *
-                      rtb_Product2_c) + rtb_Product3_l * -qDelayed[2]) +
-          rtb_XAxis1 * -qDelayed[3];
+        qError[2] = ((qDelayed[0] * rtb_XAxis2 - -qDelayed[1] * rtb_Product2_c)
+                     + rtb_Product3_l * -qDelayed[2]) + rtb_XAxis1 * -qDelayed[3];
 
         // 'outputPredictor_function:348' q(4) = q1(1)*q2(4) + ...
         // 'outputPredictor_function:349'        q1(2)*q2(3) - ...
         // 'outputPredictor_function:350'        q1(3)*q2(2) + ...
         // 'outputPredictor_function:351'        q1(4)*q2(1);
-        qError[3] = ((qDelayed[0] * rtb_Product2_c + -qDelayed[1] *
-                      rtb_UnitDelay_g) - rtb_XAxis1 * -qDelayed[2]) +
-          rtb_Product3_l * -qDelayed[3];
+        qError[3] = ((qDelayed[0] * rtb_Product2_c + -qDelayed[1] * rtb_XAxis2)
+                     - rtb_XAxis1 * -qDelayed[2]) + rtb_Product3_l * -qDelayed[3];
 
         //  Select shortest equivalent quaternion rotation.
         // 'outputPredictor_function:206' if qError(1) < 0
@@ -7646,12 +7604,12 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
         stateEstimatorEskf_DW.qCurrent[3];
 
       // 'outputPredictor_function:371' q1q2 = q1*q2;
-      rtb_Sum_m1_idx_1 = stateEstimatorEskf_DW.qCurrent[1] *
+      rtb_Sum_m1_idx_2 = stateEstimatorEskf_DW.qCurrent[1] *
         stateEstimatorEskf_DW.qCurrent[2];
 
       // 'outputPredictor_function:372' q1q3 = q1*q3;
-      rtb_Sum_m1_idx_2 = stateEstimatorEskf_DW.qCurrent[1] *
-        stateEstimatorEskf_DW.qCurrent[3];
+      q1q3 = stateEstimatorEskf_DW.qCurrent[1] * stateEstimatorEskf_DW.qCurrent
+        [3];
 
       // 'outputPredictor_function:373' q2q3 = q2*q3;
       q2q3 = stateEstimatorEskf_DW.qCurrent[2] * stateEstimatorEskf_DW.qCurrent
@@ -7693,21 +7651,21 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
       // 'outputPredictor_function:264'     (bodyRates_radps - gyroBias_radps)*sampleTime_s + ... 
       // 'outputPredictor_function:265'     deltaAngleCorr;
       stateEstimatorEskf_DW.vCurrent[0] += (((1.0F - (rtb_Product3_l + rtb_XAxis)
-        * 2.0F) * rtb_dcmBodyToNed_idx_7 + (rtb_Sum_m1_idx_1 - rtb_UnitDelay_g) *
-        2.0F * rtb_dcmBodyToNed_idx_2) + (rtb_Sum_m1_idx_2 + rtb_XAxis2) * 2.0F *
+        * 2.0F) * rtb_dcmBodyToNed_idx_7 + (rtb_Sum_m1_idx_2 - rtb_UnitDelay_g) *
+        2.0F * rtb_dcmBodyToNed_idx_2) + (q1q3 + rtb_XAxis2) * 2.0F *
         rtb_dcmBodyToNed_idx_5) * rtu_imuData->dtImuTime_s;
       rtb_CastToSingle[0] +=
         (stateEstimatorEskf_DW.sensorDataOut.bodyRates_radps[0] - rtb_states[10])
         * rtu_imuData->dtImuTime_s;
       stateEstimatorEskf_DW.vCurrent[1] += (((1.0F - (rtb_Product2_c + rtb_XAxis)
-        * 2.0F) * rtb_dcmBodyToNed_idx_2 + (rtb_Sum_m1_idx_1 + rtb_UnitDelay_g) *
+        * 2.0F) * rtb_dcmBodyToNed_idx_2 + (rtb_Sum_m1_idx_2 + rtb_UnitDelay_g) *
         2.0F * rtb_dcmBodyToNed_idx_7) + (q2q3 - rtb_XAxis1) * 2.0F *
         rtb_dcmBodyToNed_idx_5) * rtu_imuData->dtImuTime_s;
       rtb_CastToSingle[1] +=
         (stateEstimatorEskf_DW.sensorDataOut.bodyRates_radps[1] - rtb_states[11])
         * rtu_imuData->dtImuTime_s;
-      stateEstimatorEskf_DW.vCurrent[2] += ((((rtb_Sum_m1_idx_2 - rtb_XAxis2) *
-        2.0F * rtb_dcmBodyToNed_idx_7 + (q2q3 + rtb_XAxis1) * 2.0F *
+      stateEstimatorEskf_DW.vCurrent[2] += ((((q1q3 - rtb_XAxis2) * 2.0F *
+        rtb_dcmBodyToNed_idx_7 + (q2q3 + rtb_XAxis1) * 2.0F *
         rtb_dcmBodyToNed_idx_2) + (1.0F - (rtb_Product2_c + rtb_Product3_l) *
         2.0F) * rtb_dcmBodyToNed_idx_5) + *rtu_gEarth_mps2) *
         rtu_imuData->dtImuTime_s;
@@ -7728,13 +7686,13 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
         rtb_Product2_c = std::sin(rtb_Product3_l);
         rtb_Product3_l = std::cos(rtb_Product3_l);
         rtb_XAxis1 = rtb_CastToSingle[0] / rtb_XAxis * rtb_Product2_c;
-        rtb_UnitDelay_g = rtb_CastToSingle[1] / rtb_XAxis * rtb_Product2_c;
+        rtb_XAxis2 = rtb_CastToSingle[1] / rtb_XAxis * rtb_Product2_c;
         rtb_Product2_c *= rtb_CastToSingle[2] / rtb_XAxis;
 
         // 'outputPredictor_function:276' qCurrent = quatMultiplyLocal(qCurrent,dq); 
         rtb_XAxis = stateEstimatorEskf_DW.qCurrent[0];
-        rtb_XAxis2 = stateEstimatorEskf_DW.qCurrent[1];
-        rtb_Sum_m1_idx_1 = stateEstimatorEskf_DW.qCurrent[2];
+        rtb_UnitDelay_g = stateEstimatorEskf_DW.qCurrent[1];
+        rtb_Sum_m1_idx_2 = stateEstimatorEskf_DW.qCurrent[2];
 
         // 'outputPredictor_function:331' q = zeros(4,1,'single');
         // 'outputPredictor_function:333' q(1) = q1(1)*q2(1) - ...
@@ -7743,7 +7701,7 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
         // 'outputPredictor_function:336'        q1(4)*q2(4);
         stateEstimatorEskf_DW.qCurrent[0] = ((stateEstimatorEskf_DW.qCurrent[0] *
           rtb_Product3_l - stateEstimatorEskf_DW.qCurrent[1] * rtb_XAxis1) -
-          stateEstimatorEskf_DW.qCurrent[2] * rtb_UnitDelay_g) -
+          stateEstimatorEskf_DW.qCurrent[2] * rtb_XAxis2) -
           stateEstimatorEskf_DW.qCurrent[3] * rtb_Product2_c;
 
         // 'outputPredictor_function:338' q(2) = q1(1)*q2(2) + ...
@@ -7752,15 +7710,15 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
         // 'outputPredictor_function:341'        q1(4)*q2(3);
         stateEstimatorEskf_DW.qCurrent[1] = ((rtb_XAxis * rtb_XAxis1 +
           rtb_Product3_l * stateEstimatorEskf_DW.qCurrent[1]) +
-          stateEstimatorEskf_DW.qCurrent[2] * rtb_Product2_c) - rtb_UnitDelay_g *
+          stateEstimatorEskf_DW.qCurrent[2] * rtb_Product2_c) - rtb_XAxis2 *
           stateEstimatorEskf_DW.qCurrent[3];
 
         // 'outputPredictor_function:343' q(3) = q1(1)*q2(3) - ...
         // 'outputPredictor_function:344'        q1(2)*q2(4) + ...
         // 'outputPredictor_function:345'        q1(3)*q2(1) + ...
         // 'outputPredictor_function:346'        q1(4)*q2(2);
-        stateEstimatorEskf_DW.qCurrent[2] = ((rtb_XAxis * rtb_UnitDelay_g -
-          rtb_XAxis2 * rtb_Product2_c) + rtb_Product3_l *
+        stateEstimatorEskf_DW.qCurrent[2] = ((rtb_XAxis * rtb_XAxis2 -
+          rtb_UnitDelay_g * rtb_Product2_c) + rtb_Product3_l *
           stateEstimatorEskf_DW.qCurrent[2]) + rtb_XAxis1 *
           stateEstimatorEskf_DW.qCurrent[3];
 
@@ -7769,7 +7727,7 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
         // 'outputPredictor_function:350'        q1(3)*q2(2) + ...
         // 'outputPredictor_function:351'        q1(4)*q2(1);
         stateEstimatorEskf_DW.qCurrent[3] = ((rtb_XAxis * rtb_Product2_c +
-          rtb_XAxis2 * rtb_UnitDelay_g) - rtb_XAxis1 * rtb_Sum_m1_idx_1) +
+          rtb_UnitDelay_g * rtb_XAxis2) - rtb_XAxis1 * rtb_Sum_m1_idx_2) +
           rtb_Product3_l * stateEstimatorEskf_DW.qCurrent[3];
 
         // 'outputPredictor_function:278' qNorm = norm(qCurrent);
@@ -7915,14 +7873,13 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
   // 'quatToDcm_function:10' dcmBodyToNed = [1-2*(q2^2+q3^2), 2*(q1*q2-q3*q0), 2*(q1*q3+q2*q0); 
   // 'quatToDcm_function:11'     2*(q1*q2+q3*q0), 1-2*(q1^2+q3^2), 2*(q2*q3-q1*q0); 
   // 'quatToDcm_function:12'     2*(q1*q3-q2*q0), 2*(q2*q3+q1*q0), 1-2*(q1^2+q2^2)]; 
-  rtb_UnitDelay_g = 1.0F - (rty_states[2] * rty_states[2] + rty_states[3] *
-    rty_states[3]) * 2.0F;
-  rtb_XAxis2 = (rty_states[1] * rty_states[2] - rty_states[0] * rty_states[3]) *
-    2.0F;
-  rtb_Sum_m1_idx_1 = (rty_states[1] * rty_states[3] + rty_states[0] *
+  rtb_XAxis2 = 1.0F - (rty_states[2] * rty_states[2] + rty_states[3] *
+                       rty_states[3]) * 2.0F;
+  rtb_UnitDelay_g = (rty_states[1] * rty_states[2] - rty_states[0] * rty_states
+                     [3]) * 2.0F;
+  rtb_Sum_m1_idx_2 = (rty_states[1] * rty_states[3] + rty_states[0] *
                       rty_states[2]) * 2.0F;
-  rtb_Sum_m1_idx_2 = (rty_states[1] * rty_states[2] + rty_states[0] *
-                      rty_states[3]) * 2.0F;
+  q1q3 = (rty_states[1] * rty_states[2] + rty_states[0] * rty_states[3]) * 2.0F;
   q2q3 = 1.0F - (rty_states[1] * rty_states[1] + rty_states[3] * rty_states[3]) *
     2.0F;
   rtb_dcmBodyToNed_idx_7 = (rty_states[2] * rty_states[3] - rty_states[0] *
@@ -7934,151 +7891,151 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
   rtb_dcmBodyToNed_idx_8 = 1.0F - (rty_states[1] * rty_states[1] + rty_states[2]
     * rty_states[2]) * 2.0F;
 
-  // Sqrt: '<S62>/sqrt' incorporates:
-  //   Product: '<S63>/Product'
-  //   Product: '<S63>/Product1'
-  //   Product: '<S63>/Product2'
-  //   Product: '<S63>/Product3'
-  //   Sum: '<S63>/Sum'
+  // Sqrt: '<S63>/sqrt' incorporates:
+  //   Product: '<S64>/Product'
+  //   Product: '<S64>/Product1'
+  //   Product: '<S64>/Product2'
+  //   Product: '<S64>/Product3'
+  //   Sum: '<S64>/Sum'
 
   rtb_Product3_l = std::sqrt(((rty_states[0] * rty_states[0] + rty_states[1] *
     rty_states[1]) + rty_states[2] * rty_states[2]) + rty_states[3] *
     rty_states[3]);
 
-  // Product: '<S61>/Product'
+  // Product: '<S62>/Product'
   rtb_XAxis = rty_states[0] / rtb_Product3_l;
 
-  // Product: '<S61>/Product1'
+  // Product: '<S62>/Product1'
   rtb_XAxis1 = rty_states[1] / rtb_Product3_l;
 
-  // Product: '<S61>/Product2'
+  // Product: '<S62>/Product2'
   rtb_Product2_c = rty_states[2] / rtb_Product3_l;
 
-  // Product: '<S61>/Product3'
+  // Product: '<S62>/Product3'
   rtb_Product3_l = rty_states[3] / rtb_Product3_l;
 
-  // Gain: '<S53>/Gain' incorporates:
-  //   Product: '<S53>/Product1'
-  //   Product: '<S53>/Product2'
-  //   Sum: '<S53>/Sum'
+  // Gain: '<S54>/Gain' incorporates:
+  //   Product: '<S54>/Product1'
+  //   Product: '<S54>/Product2'
+  //   Sum: '<S54>/Sum'
 
   rtb_VectorConcatenate_p[6] = (rtb_XAxis1 * rtb_Product3_l - rtb_XAxis *
     rtb_Product2_c) * 2.0F;
 
-  // If: '<S22>/If' incorporates:
-  //   Concatenate: '<S60>/Vector Concatenate'
-  //   Gain: '<S26>/Gain1'
-  //   Selector: '<S26>/Selector1'
+  // If: '<S23>/If' incorporates:
+  //   Concatenate: '<S61>/Vector Concatenate'
+  //   Gain: '<S27>/Gain1'
+  //   Selector: '<S27>/Selector1'
 
   if (static_cast<boolean_T>((-rtb_VectorConcatenate_p[6] >= 1.0F) |
        (-rtb_VectorConcatenate_p[6] <= -1.0F))) {
-    // Outputs for IfAction SubSystem: '<S22>/AxisRotZeroR3' incorporates:
-    //   ActionPort: '<S25>/Action Port'
+    // Outputs for IfAction SubSystem: '<S23>/AxisRotZeroR3' incorporates:
+    //   ActionPort: '<S26>/Action Port'
 
-    // Fcn: '<S25>/Fcn1' incorporates:
-    //   Gain: '<S26>/Gain3'
-    //   Gain: '<S54>/Gain'
-    //   Product: '<S54>/Product2'
-    //   Product: '<S54>/Product3'
-    //   Product: '<S55>/Product'
-    //   Product: '<S55>/Product1'
+    // Fcn: '<S26>/Fcn1' incorporates:
+    //   Gain: '<S27>/Gain3'
+    //   Gain: '<S55>/Gain'
     //   Product: '<S55>/Product2'
     //   Product: '<S55>/Product3'
-    //   Sum: '<S54>/Sum'
+    //   Product: '<S56>/Product'
+    //   Product: '<S56>/Product1'
+    //   Product: '<S56>/Product2'
+    //   Product: '<S56>/Product3'
     //   Sum: '<S55>/Sum'
+    //   Sum: '<S56>/Sum'
 
     rtb_Merge_idx_0 = std::atan2(-((rtb_XAxis1 * rtb_Product2_c - rtb_Product3_l
       * rtb_XAxis) * 2.0F), ((rtb_XAxis * rtb_XAxis - rtb_XAxis1 * rtb_XAxis1) +
       rtb_Product2_c * rtb_Product2_c) - rtb_Product3_l * rtb_Product3_l);
 
-    // If: '<S32>/If' incorporates:
-    //   Constant: '<S33>/Constant'
+    // If: '<S33>/If' incorporates:
     //   Constant: '<S34>/Constant'
-    //   Fcn: '<S25>/Fcn2'
+    //   Constant: '<S35>/Constant'
+    //   Fcn: '<S26>/Fcn2'
 
     if (-rtb_VectorConcatenate_p[6] > 1.0F) {
-      // Outputs for IfAction SubSystem: '<S32>/If Action Subsystem' incorporates:
-      //   ActionPort: '<S33>/Action Port'
-
-      rtb_XAxis = 1.0F;
-
-      // End of Outputs for SubSystem: '<S32>/If Action Subsystem'
-    } else if (-rtb_VectorConcatenate_p[6] < -1.0F) {
-      // Outputs for IfAction SubSystem: '<S32>/If Action Subsystem1' incorporates:
+      // Outputs for IfAction SubSystem: '<S33>/If Action Subsystem' incorporates:
       //   ActionPort: '<S34>/Action Port'
 
       rtb_XAxis = 1.0F;
 
-      // End of Outputs for SubSystem: '<S32>/If Action Subsystem1'
+      // End of Outputs for SubSystem: '<S33>/If Action Subsystem'
+    } else if (-rtb_VectorConcatenate_p[6] < -1.0F) {
+      // Outputs for IfAction SubSystem: '<S33>/If Action Subsystem1' incorporates:
+      //   ActionPort: '<S35>/Action Port'
+
+      rtb_XAxis = 1.0F;
+
+      // End of Outputs for SubSystem: '<S33>/If Action Subsystem1'
     } else {
       rtb_XAxis = -rtb_VectorConcatenate_p[6];
     }
 
     rtb_Merge_idx_1 = std::asin(rtb_XAxis);
 
-    // End of If: '<S32>/If'
+    // End of If: '<S33>/If'
 
-    // Fcn: '<S25>/Fcn3'
+    // Fcn: '<S26>/Fcn3'
     rtb_Product2_c = 0.0F;
 
-    // End of Outputs for SubSystem: '<S22>/AxisRotZeroR3'
+    // End of Outputs for SubSystem: '<S23>/AxisRotZeroR3'
   } else {
-    // Product: '<S51>/Product3' incorporates:
-    //   Product: '<S59>/Product3'
+    // Product: '<S52>/Product3' incorporates:
+    //   Product: '<S60>/Product3'
 
     rtb_Merge_idx_0_tmp = rtb_XAxis * rtb_XAxis;
 
-    // Product: '<S51>/Product2' incorporates:
-    //   Product: '<S59>/Product2'
+    // Product: '<S52>/Product2' incorporates:
+    //   Product: '<S60>/Product2'
 
     rtb_Merge_idx_0_tmp_0 = rtb_XAxis1 * rtb_XAxis1;
 
-    // Product: '<S51>/Product1' incorporates:
-    //   Product: '<S59>/Product1'
+    // Product: '<S52>/Product1' incorporates:
+    //   Product: '<S60>/Product1'
 
     rtb_Merge_idx_0_tmp_1 = rtb_Product2_c * rtb_Product2_c;
 
-    // Product: '<S51>/Product' incorporates:
-    //   Product: '<S59>/Product'
+    // Product: '<S52>/Product' incorporates:
+    //   Product: '<S60>/Product'
 
     rtb_Merge_idx_0_tmp_2 = rtb_Product3_l * rtb_Product3_l;
 
-    // Outputs for IfAction SubSystem: '<S22>/AxisRotDefault' incorporates:
-    //   ActionPort: '<S24>/Action Port'
+    // Outputs for IfAction SubSystem: '<S23>/AxisRotDefault' incorporates:
+    //   ActionPort: '<S25>/Action Port'
 
-    // Fcn: '<S24>/Fcn1' incorporates:
-    //   Gain: '<S52>/Gain'
-    //   Product: '<S51>/Product'
-    //   Product: '<S51>/Product1'
-    //   Product: '<S51>/Product2'
-    //   Product: '<S51>/Product3'
+    // Fcn: '<S25>/Fcn1' incorporates:
+    //   Gain: '<S53>/Gain'
+    //   Product: '<S52>/Product'
+    //   Product: '<S52>/Product1'
     //   Product: '<S52>/Product2'
     //   Product: '<S52>/Product3'
-    //   Sum: '<S51>/Sum'
+    //   Product: '<S53>/Product2'
+    //   Product: '<S53>/Product3'
     //   Sum: '<S52>/Sum'
+    //   Sum: '<S53>/Sum'
 
     rtb_Merge_idx_0 = std::atan2((rtb_Product3_l * rtb_XAxis + rtb_XAxis1 *
       rtb_Product2_c) * 2.0F, ((rtb_Merge_idx_0_tmp + rtb_Merge_idx_0_tmp_0) -
       rtb_Merge_idx_0_tmp_1) - rtb_Merge_idx_0_tmp_2);
 
-    // Fcn: '<S24>/Fcn2'
+    // Fcn: '<S25>/Fcn2'
     rtb_Merge_idx_1 = std::asin(-rtb_VectorConcatenate_p[6]);
 
-    // Fcn: '<S24>/Fcn3' incorporates:
-    //   Gain: '<S56>/Gain'
-    //   Product: '<S56>/Product1'
-    //   Product: '<S56>/Product2'
-    //   Sum: '<S56>/Sum'
-    //   Sum: '<S59>/Sum'
+    // Fcn: '<S25>/Fcn3' incorporates:
+    //   Gain: '<S57>/Gain'
+    //   Product: '<S57>/Product1'
+    //   Product: '<S57>/Product2'
+    //   Sum: '<S57>/Sum'
+    //   Sum: '<S60>/Sum'
 
     rtb_Product2_c = std::atan2((rtb_XAxis * rtb_XAxis1 + rtb_Product2_c *
       rtb_Product3_l) * 2.0F, ((rtb_Merge_idx_0_tmp - rtb_Merge_idx_0_tmp_0) -
       rtb_Merge_idx_0_tmp_1) + rtb_Merge_idx_0_tmp_2);
 
-    // End of Outputs for SubSystem: '<S22>/AxisRotDefault'
+    // End of Outputs for SubSystem: '<S23>/AxisRotDefault'
   }
 
-  // End of If: '<S22>/If'
+  // End of If: '<S23>/If'
 
   // SignalConversion generated from: '<Root>/eulAng_rad'
   rty_eulAng_rad[0] = rtb_Product2_c;
@@ -8086,27 +8043,27 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
   rty_eulAng_rad[2] = rtb_Merge_idx_0;
 
   // Sum: '<Root>/Sum' incorporates:
-  //   Product: '<S6>/Product'
+  //   Product: '<S7>/Product'
 
   rty_bodyAccels_mps2[0] = Product[0] - rty_states[14];
 
   // Math: '<Root>/Transpose'
-  rty_dcmNedToBody[0] = rtb_UnitDelay_g;
-  rty_dcmNedToBody[1] = rtb_XAxis2;
-  rty_dcmNedToBody[2] = rtb_Sum_m1_idx_1;
+  rty_dcmNedToBody[0] = rtb_XAxis2;
+  rty_dcmNedToBody[1] = rtb_UnitDelay_g;
+  rty_dcmNedToBody[2] = rtb_Sum_m1_idx_2;
 
   // Sum: '<Root>/Sum' incorporates:
-  //   Product: '<S6>/Product'
+  //   Product: '<S7>/Product'
 
   rty_bodyAccels_mps2[1] = Product[1] - rty_states[15];
 
   // Math: '<Root>/Transpose'
-  rty_dcmNedToBody[3] = rtb_Sum_m1_idx_2;
+  rty_dcmNedToBody[3] = q1q3;
   rty_dcmNedToBody[4] = q2q3;
   rty_dcmNedToBody[5] = rtb_dcmBodyToNed_idx_7;
 
   // Sum: '<Root>/Sum' incorporates:
-  //   Product: '<S6>/Product'
+  //   Product: '<S7>/Product'
 
   rty_bodyAccels_mps2[2] = Product[2] - rty_states[16];
 
@@ -8119,20 +8076,20 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
   //   Gain: '<Root>/ZeroOutRollAndPitch'
 
   //  precalculate trignometric values
-  // MATLAB Function 'eulToDcm': '<S8>:1'
-  // '<S8>:1:4' s_phi = sin(eul_rad(1));
-  // '<S8>:1:5' c_phi = cos(eul_rad(1));
-  // '<S8>:1:7' s_theta = sin(eul_rad(2));
-  // '<S8>:1:8' c_theta = cos(eul_rad(2));
-  // '<S8>:1:10' s_psi = sin(eul_rad(3));
+  // MATLAB Function 'eulToDcm': '<S9>:1'
+  // '<S9>:1:4' s_phi = sin(eul_rad(1));
+  // '<S9>:1:5' c_phi = cos(eul_rad(1));
+  // '<S9>:1:7' s_theta = sin(eul_rad(2));
+  // '<S9>:1:8' c_theta = cos(eul_rad(2));
+  // '<S9>:1:10' s_psi = sin(eul_rad(3));
   rtb_Product3_l = std::sin(rtb_Merge_idx_0);
 
-  // '<S8>:1:11' c_psi = cos(eul_rad(3));
+  // '<S9>:1:11' c_psi = cos(eul_rad(3));
   rtb_XAxis = std::cos(rtb_Merge_idx_0);
 
-  // '<S8>:1:13' dcmFromNed = [c_psi*c_theta, c_theta*s_psi, -s_theta;
-  // '<S8>:1:14'     c_psi*s_phi*s_theta - c_phi*s_psi, c_phi*c_psi + s_phi*s_psi*s_theta, c_theta*s_phi; 
-  // '<S8>:1:15'     s_phi*s_psi + c_phi*c_psi*s_theta, c_phi*s_psi*s_theta - c_psi*s_phi, c_phi*c_theta]; 
+  // '<S9>:1:13' dcmFromNed = [c_psi*c_theta, c_theta*s_psi, -s_theta;
+  // '<S9>:1:14'     c_psi*s_phi*s_theta - c_phi*s_psi, c_phi*c_psi + s_phi*s_psi*s_theta, c_theta*s_phi; 
+  // '<S9>:1:15'     s_phi*s_psi + c_phi*c_psi*s_theta, c_phi*s_psi*s_theta - c_psi*s_phi, c_phi*c_theta]; 
   rty_dcmNedToFep[0] = rtb_XAxis;
   rty_dcmNedToFep[3] = rtb_Product3_l;
   rty_dcmNedToFep[6] = -0.0F;
@@ -8143,10 +8100,10 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
   rty_dcmNedToFep[5] = 0.0F;
   rty_dcmNedToFep[8] = 1.0F;
 
-  // Update for DiscreteTransferFcn: '<S65>/X Axis'
-  // MATLAB Function 'lidarRangeToAgl/MATLAB Function': '<S71>:1'
-  // '<S71>:1:2' agl_m = lidarRangeToAgl_function( ...
-  // '<S71>:1:3'     lidarRange_m, roll_rad, pitch_rad, xL_m, yL_m, zL_m);
+  // Update for DiscreteTransferFcn: '<S66>/X Axis'
+  // MATLAB Function 'opticalFlowToNeVel/MATLAB Function': '<S73>:1'
+  // '<S73>:1:2' agl_m = lidarRangeToAgl_function( ...
+  // '<S73>:1:3'     lidarRange_m, roll_rad, pitch_rad, xL_m, yL_m, zL_m);
   // CORRECTLIDARRANGETOBODYAGLFAST_FUNCTION
   //  Fast scalar version for fixed body-frame lidar lever arm.
   //
@@ -8168,61 +8125,56 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
   stateEstimatorEskf_DW.XAxis_states[1] = stateEstimatorEskf_DW.XAxis_states[0];
   stateEstimatorEskf_DW.XAxis_states[0] = stateEstimatorEskf_DW.XAxis_tmp;
 
-  // Update for DiscreteTransferFcn: '<S65>/X Axis1'
+  // Update for DiscreteTransferFcn: '<S66>/X Axis1'
   stateEstimatorEskf_DW.XAxis1_states[1] = stateEstimatorEskf_DW.XAxis1_states[0];
   stateEstimatorEskf_DW.XAxis1_states[0] = stateEstimatorEskf_DW.XAxis1_tmp;
 
-  // Update for DiscreteTransferFcn: '<S65>/X Axis2'
+  // Update for DiscreteTransferFcn: '<S66>/X Axis2'
   stateEstimatorEskf_DW.XAxis2_states[1] = stateEstimatorEskf_DW.XAxis2_states[0];
   stateEstimatorEskf_DW.XAxis2_states[0] = stateEstimatorEskf_DW.XAxis2_tmp;
 
-  // Update for DiscreteTransferFcn: '<S66>/X Axis'
+  // Update for DiscreteTransferFcn: '<S67>/X Axis'
   stateEstimatorEskf_DW.XAxis_states_e[1] =
     stateEstimatorEskf_DW.XAxis_states_e[0];
   stateEstimatorEskf_DW.XAxis_states_e[0] = stateEstimatorEskf_DW.XAxis_tmp_o;
 
-  // Update for DiscreteTransferFcn: '<S66>/X Axis1'
+  // Update for DiscreteTransferFcn: '<S67>/X Axis1'
   stateEstimatorEskf_DW.XAxis1_states_a[1] =
     stateEstimatorEskf_DW.XAxis1_states_a[0];
   stateEstimatorEskf_DW.XAxis1_states_a[0] = stateEstimatorEskf_DW.XAxis1_tmp_l;
 
-  // Update for DiscreteTransferFcn: '<S66>/X Axis2'
+  // Update for DiscreteTransferFcn: '<S67>/X Axis2'
   stateEstimatorEskf_DW.XAxis2_states_j[1] =
     stateEstimatorEskf_DW.XAxis2_states_j[0];
   stateEstimatorEskf_DW.XAxis2_states_j[0] = stateEstimatorEskf_DW.XAxis2_tmp_o;
 
-  // Update for UnitDelay: '<Root>/Unit Delay1'
-  stateEstimatorEskf_DW.UnitDelay1_DSTATE[0] = rtb_Product2_c;
-  stateEstimatorEskf_DW.UnitDelay1_DSTATE[1] = rtb_Merge_idx_1;
-  stateEstimatorEskf_DW.UnitDelay1_DSTATE[2] = rtb_Merge_idx_0;
-
-  // Switch: '<S9>/Switch' incorporates:
-  //   RelationalOperator: '<S68>/FixPt Relational Operator'
-  //   UnitDelay: '<S68>/Delay Input1'
+  // Switch: '<S10>/Switch' incorporates:
+  //   RelationalOperator: '<S69>/FixPt Relational Operator'
+  //   UnitDelay: '<S69>/Delay Input1'
   //
-  //  Block description for '<S68>/Delay Input1':
+  //  Block description for '<S69>/Delay Input1':
   //
   //   Store in Global RAM
 
   if (static_cast<int32_T>(rtb_Compare) > static_cast<int32_T>
       (stateEstimatorEskf_DW.DelayInput1_DSTATE)) {
-    // Update for UnitDelay: '<S9>/Unit Delay' incorporates:
+    // Update for UnitDelay: '<S10>/Unit Delay' incorporates:
     //   UnitDelay: '<Root>/Unit Delay'
 
     stateEstimatorEskf_DW.UnitDelay_DSTATE =
       stateEstimatorEskf_DW.UnitDelay_DSTATE_e[6];
   }
 
-  // End of Switch: '<S9>/Switch'
+  // End of Switch: '<S10>/Switch'
 
   // Update for UnitDelay: '<Root>/Unit Delay2'
-  stateEstimatorEskf_DW.UnitDelay2_DSTATE[0] = rtb_UnitDelay_g;
-  stateEstimatorEskf_DW.UnitDelay2_DSTATE[1] = rtb_Sum_m1_idx_2;
+  stateEstimatorEskf_DW.UnitDelay2_DSTATE[0] = rtb_XAxis2;
+  stateEstimatorEskf_DW.UnitDelay2_DSTATE[1] = q1q3;
   stateEstimatorEskf_DW.UnitDelay2_DSTATE[2] = rtb_dcmBodyToNed_idx_2;
-  stateEstimatorEskf_DW.UnitDelay2_DSTATE[3] = rtb_XAxis2;
+  stateEstimatorEskf_DW.UnitDelay2_DSTATE[3] = rtb_UnitDelay_g;
   stateEstimatorEskf_DW.UnitDelay2_DSTATE[4] = q2q3;
   stateEstimatorEskf_DW.UnitDelay2_DSTATE[5] = rtb_dcmBodyToNed_idx_5;
-  stateEstimatorEskf_DW.UnitDelay2_DSTATE[6] = rtb_Sum_m1_idx_1;
+  stateEstimatorEskf_DW.UnitDelay2_DSTATE[6] = rtb_Sum_m1_idx_2;
   stateEstimatorEskf_DW.UnitDelay2_DSTATE[7] = rtb_dcmBodyToNed_idx_7;
   stateEstimatorEskf_DW.UnitDelay2_DSTATE[8] = rtb_dcmBodyToNed_idx_8;
 
@@ -8249,19 +8201,24 @@ void stateEstimatorEskf::step(const busImuData *rtu_imuData, const busMagData
 
   // Update for Delay: '<S1>/Delay2'
   stateEstimatorEskf_DW.icLoad_g = false;
-  stateEstimatorEskf_DW.Delay2_DSTATE[0] = rtb_UnitDelay_g;
-  stateEstimatorEskf_DW.Delay2_DSTATE[1] = rtb_Sum_m1_idx_2;
+  stateEstimatorEskf_DW.Delay2_DSTATE[0] = rtb_XAxis2;
+  stateEstimatorEskf_DW.Delay2_DSTATE[1] = q1q3;
   stateEstimatorEskf_DW.Delay2_DSTATE[2] = rtb_dcmBodyToNed_idx_2;
-  stateEstimatorEskf_DW.Delay2_DSTATE[3] = rtb_XAxis2;
+  stateEstimatorEskf_DW.Delay2_DSTATE[3] = rtb_UnitDelay_g;
   stateEstimatorEskf_DW.Delay2_DSTATE[4] = q2q3;
   stateEstimatorEskf_DW.Delay2_DSTATE[5] = rtb_dcmBodyToNed_idx_5;
-  stateEstimatorEskf_DW.Delay2_DSTATE[6] = rtb_Sum_m1_idx_1;
+  stateEstimatorEskf_DW.Delay2_DSTATE[6] = rtb_Sum_m1_idx_2;
   stateEstimatorEskf_DW.Delay2_DSTATE[7] = rtb_dcmBodyToNed_idx_7;
   stateEstimatorEskf_DW.Delay2_DSTATE[8] = rtb_dcmBodyToNed_idx_8;
 
-  // Update for UnitDelay: '<S68>/Delay Input1'
+  // Update for UnitDelay: '<Root>/Unit Delay1'
+  stateEstimatorEskf_DW.UnitDelay1_DSTATE[0] = rtb_Product2_c;
+  stateEstimatorEskf_DW.UnitDelay1_DSTATE[1] = rtb_Merge_idx_1;
+  stateEstimatorEskf_DW.UnitDelay1_DSTATE[2] = rtb_Merge_idx_0;
+
+  // Update for UnitDelay: '<S69>/Delay Input1'
   //
-  //  Block description for '<S68>/Delay Input1':
+  //  Block description for '<S69>/Delay Input1':
   //
   //   Store in Global RAM
 

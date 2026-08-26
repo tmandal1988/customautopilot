@@ -5,9 +5,10 @@
 //
 //  Model version              : 7.0
 //  Simulink Coder version : 25.1 (R2025a) 21-Nov-2024
-//  C++ source code generated on : Sun Aug 16 16:27:47 2026
+//  C++ source code generated on : Sun Aug 23 09:38:38 2026
 
 #include "rtwtypes.h"
+#include "multiword_types.h"
 
 extern const real32_T rtCP_pooled_CXXzsOanZf3J[225];
 const real32_T rtCP_pooled_CXXzsOanZf3J[225]{ 0.1F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F,
@@ -71,6 +72,9 @@ extern const real32_T rtCP_pooled_hgQumAwLKgQK[20];
 const real32_T rtCP_pooled_hgQumAwLKgQK[20]{ 1.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F,
   0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F,
   0.0F } ;
+
+extern const uint64m_T rtCP_pooled_pA0qXqPpgtK7;
+const uint64m_T rtCP_pooled_pA0qXqPpgtK7 { { 0U, 0U } };
 
 extern const real32_T rtCP_pooled_xQnWEKhdbvvV[361];
 const real32_T rtCP_pooled_xQnWEKhdbvvV[361]{ 6.85E-6F, 0.0F, 0.0F, 0.0F, 0.0F,

@@ -3,9 +3,9 @@
 //
 // Code generated for Simulink model 'stateEstimatorEskf'.
 //
-// Model version                  : 7.84
+// Model version                  : 7.88
 // Simulink Coder version         : 25.1 (R2025a) 21-Nov-2024
-// C/C++ source code generated on : Sun Aug 16 16:27:15 2026
+// C/C++ source code generated on : Sun Aug 23 09:38:07 2026
 //
 #ifndef norm_94qjDDKI_h_
 #define norm_94qjDDKI_h_
